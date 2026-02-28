@@ -38,8 +38,9 @@ BattleScene (Control, battle_scene.gd)
                     │     └── ActionsVBox
                     │           ├── ActionsLabel
                     │           └── Buttons (HBoxContainer: AttackBtn, EndTurnBtn)
-                    └── LogPanel (PanelContainer)
-                          └── Log (Label, battle log text)
+                    └── LogPanel (PanelContainer; fixed min height 220px)
+                          └── LogScroll (ScrollContainer)
+                                └── Log (Label; battle log, scrollable)
 ```
 
 BattleManager is **not** in the scene file; it is created in code in `battle_scene.gd` and added as a child of BattleScene (so it runs in the same tree but has no visual node).
