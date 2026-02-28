@@ -126,7 +126,7 @@ func _make_fallback_texture() -> Texture2D:
 				img.fill_rect(Rect2i(x * 8, y * 8, 8, 8), Color(0.0, 0.85, 1.0, 0.5))
 	return ImageTexture.create_from_image(img)
 
-# --- Update name and HP bar from _stats; dim if dead ---
+# --- Update name and HP bar from _stats; hide slot when dead (removed from display) ---
 func refresh() -> void:
 	if _stats == null:
 		return
@@ -136,7 +136,7 @@ func refresh() -> void:
 		hp_bar.max_value = float(_stats.max_hp)
 		hp_bar.value = float(_stats.current_hp)
 		hp_bar.visible = _stats.is_alive()
-	modulate.a = 1.0 if _stats.is_alive() else 0.45
+	visible = _stats.is_alive()
 
 func get_stats() -> BattlerStats:
 	return _stats

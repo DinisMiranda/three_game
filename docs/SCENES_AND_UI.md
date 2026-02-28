@@ -4,12 +4,21 @@ Scene tree and how the battle UI is laid out and styled.
 
 ## Main scene tree
 
+The game starts at **MainMenu** (`scenes/main_menu/main_menu.tscn`). **Start Battle** loads the battle scene. From battle, **Back to Main Menu** (on the end screen) loads the main menu again.
+
 ```
-Main (Control, main.gd)
-  └── Battle (instance of battle_scene.tscn)
+MainMenu (Control, main_menu.gd)
+  ├── Background (ColorRect)
+  └── Margin / VBox: Title, StartBtn
 ```
 
-So the only scene loaded at start is Main; Battle is a child instance.
+When the player presses **Start Battle**, the engine loads:
+
+```
+BattleScene (Control, battle_scene.gd)
+  ├── SciFiBackground, Margin (UI), EndScreen (CanvasLayer)
+  └── BattleManager (created in code)
+```
 
 ## Battle scene tree
 
@@ -41,6 +50,10 @@ BattleScene (Control, battle_scene.gd)
                     └── LogPanel (PanelContainer; fixed min height 220px)
                           └── LogScroll (ScrollContainer)
                                 └── Log (Label; battle log, scrollable)
+  └── EndScreen (CanvasLayer; visible when battle ends)
+              ├── Overlay (ColorRect; full viewport)
+              └── Center (CenterContainer)
+                    └── Panel (Victory! / Defeat! + Back to Main Menu button)
 ```
 
 BattleManager is **not** in the scene file; it is created in code in `battle_scene.gd` and added as a child of BattleScene (so it runs in the same tree but has no visual node).
