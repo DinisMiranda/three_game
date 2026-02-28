@@ -42,7 +42,7 @@ func _ready() -> void:
 		texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 
 # --- Called by battle_scene after instantiating the slot. Sets stats and texture. ---
-# We try several ways to get a texture so the sprite shows even when Godot's normal load fails.
+# Texture can come from: 1) argument, 2) scene default (battler_slot.tscn has it), 3) load fallbacks.
 func setup(stats: BattlerStats, texture: Texture2D) -> void:
 	_stats = stats
 	var tex: Texture2D = texture
@@ -53,11 +53,11 @@ func setup(stats: BattlerStats, texture: Texture2D) -> void:
 	if tex == null:
 		tex = _make_fallback_texture()
 	if texture_rect:
-		texture_rect.texture = tex
+		# Only assign if we got a texture; otherwise keep the scene default (ext_resource in .tscn)
+		if tex != null:
+			texture_rect.texture = tex
 		texture_rect.flip_h = not is_party  # enemies face left
-		# Force a visible area; some setups need this for the texture to draw
-		texture_rect.custom_minimum_size = Vector2(80, 100)
-		texture_rect.size = Vector2(80, 100)
+		texture_rect.custom_minimum_size = Vector2(96, 120)
 	refresh()
 
 func _make_bar_style(fill: bool) -> StyleBoxFlat:
