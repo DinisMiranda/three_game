@@ -19,6 +19,9 @@ var _placeholder_texture: Texture2D
 @onready var stats_list: VBoxContainer = $Margin/VBox/ArenaRow/PartyStatsPanel/StatsVBox/StatsList
 @onready var log_scroll: ScrollContainer = $Margin/VBox/BottomRow/LogPanel/LogScroll
 @onready var log_label: Label = $Margin/VBox/BottomRow/LogPanel/LogScroll/Log
+@onready var end_screen: CanvasLayer = $EndScreen
+@onready var end_title: Label = $EndScreen/Center/Panel/VBox/EndTitle
+@onready var back_to_menu_btn: Button = $EndScreen/Center/Panel/VBox/BackToMenuBtn
 @onready var actions_panel: PanelContainer = $Margin/VBox/BottomRow/ActionsPanel
 @onready var attack_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn
 @onready var end_turn_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn
@@ -62,6 +65,8 @@ func _ready() -> void:
 	battle_manager.battle_ended.connect(_on_battle_ended)
 	attack_btn.pressed.connect(_on_attack_pressed)
 	end_turn_btn.pressed.connect(_on_end_turn_pressed)
+	back_to_menu_btn.pressed.connect(_on_back_to_menu_pressed)
+	_apply_end_screen_theme()
 	_start_sample_battle()
 
 # --- Apply dark panels, cyan borders, and text/button styles to all main UI elements ---
@@ -99,6 +104,21 @@ func _apply_sci_fi_theme() -> void:
 	(log_style as StyleBoxFlat).bg_color = Color(0.04, 0.05, 0.08, 0.98)
 	$Margin/VBox/BottomRow/LogPanel.add_theme_stylebox_override("panel", log_style)
 	log_label.add_theme_color_override("font_color", _COLOR_LOG)
+
+func _apply_end_screen_theme() -> void:
+	var panel = $EndScreen/Center/Panel
+	if panel is PanelContainer:
+		var s = StyleBoxFlat.new()
+		s.bg_color = _COLOR_PANEL
+		s.border_color = _COLOR_BORDER
+		s.set_border_width_all(2)
+		s.set_content_margin_all(24)
+		panel.add_theme_stylebox_override("panel", s)
+	end_title.add_theme_color_override("font_color", _COLOR_ACCENT)
+	end_title.add_theme_font_size_override("font_size", 36)
+	back_to_menu_btn.add_theme_color_override("font_color", _COLOR_TEXT)
+	back_to_menu_btn.add_theme_stylebox_override("normal", _make_btn_style(false))
+	back_to_menu_btn.add_theme_stylebox_override("hover", _make_btn_style(true))
 
 func _make_btn_style(hover: bool) -> StyleBoxFlat:
 	var s = StyleBoxFlat.new()
@@ -397,14 +417,20 @@ func _on_battle_ended(party_wins: bool) -> void:
 	actions_panel.visible = false
 	if party_wins:
 		_log("Victory! All enemies defeated.")
+		end_title.text = "Victory!"
 	else:
 		_log("Defeat! Party was defeated.")
-	end_turn_btn.text = "Restart"
-	end_turn_btn.pressed.disconnect(_on_end_turn_pressed)
-	end_turn_btn.pressed.connect(_on_restart_pressed)
+		end_title.text = "Defeat!"
+	# Size overlay and center to viewport (CanvasLayer children need manual sizing)
+	var vp = get_viewport().get_visible_rect().size
+	$EndScreen/Overlay.set_position(Vector2.ZERO)
+	$EndScreen/Overlay.set_size(vp)
+	$EndScreen/Center.set_position(Vector2.ZERO)
+	$EndScreen/Center.set_size(vp)
+	end_screen.visible = true
 
-func _on_restart_pressed() -> void:
-	get_tree().reload_current_scene()
+func _on_back_to_menu_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/main_menu/main_menu.tscn")
 
 # --- Attack button: play attack animation on attacker, then damage, refresh, advance_turn ---
 func _on_attack_pressed() -> void:

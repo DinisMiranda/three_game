@@ -16,7 +16,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="Three Game"
 config/description="Turn-based 4v1-4 battle game. Turn order by speed."
-run/main_scene="res://scenes/main/main.tscn"
+run/main_scene="res://scenes/main_menu/main_menu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 
 [display]

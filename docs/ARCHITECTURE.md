@@ -13,15 +13,18 @@ There is no separate “game state” object; the source of truth is the BattleM
 ## Who creates what
 
 ```
-Main (main.gd)
-  └── Battle (battle_scene.tscn + battle_scene.gd)
-        ├── SciFiBackground (sci_fi_background.gd)  ← draws gradient + grid
-        ├── MarginContainer (UI)
-        │     └── VBox: TurnOrderBar, ArenaRow (Party + Enemies + Stats), BottomRow (Actions + Log)
-        └── BattleManager (battle_manager.gd)  ← created in code, add_child
+MainMenu (main_menu.tscn + main_menu.gd)  ← run/main_scene; "Start Battle" loads battle_scene
+Battle (battle_scene.tscn + battle_scene.gd)  ← loaded from main menu
+  ├── SciFiBackground (sci_fi_background.gd)  ← draws gradient + grid
+  ├── MarginContainer (UI)
+  │     └── VBox: TurnOrderBar, ArenaRow (Party + Enemies + Stats), BottomRow (Actions + Log)
+  ├── EndScreen (CanvasLayer)  ← victory/defeat overlay; "Back to Main Menu" loads main_menu
+  └── BattleManager (battle_manager.gd)  ← created in code, add_child
 ```
 
+- The game starts at **MainMenu**; pressing **Start Battle** runs `change_scene_to_file("res://scenes/battle/battle_scene.tscn")`.
 - **BattleScene** creates the **BattleManager** in `_ready()` and adds it as a child (for lifecycle only; it’s not a visible node).
+- When the battle ends, **BattleScene** shows **EndScreen** (Victory/Defeat and **Back to Main Menu**); that button loads the main menu scene.
 - **BattleScene** creates all **BattlerSlot** instances in `_build_arena()`. Slots are **added to the tree first** (`add_child(slot)`), then `setup(stats, texture_idle, texture_attack)` is called so that `@onready` nodes (e.g. `TextureRect`) are ready and the correct idle texture applies immediately (party faces right, enemies face left).
 - **BattlerStats** are created in `_start_sample_battle()` and given to `battle_manager.setup_battle(party, enemies)`.
 
@@ -32,7 +35,7 @@ BattleManager emits:
   turn_order_updated(order)  → BattleScene rebuilds the turn bar labels
   turn_started(index, is_party) → BattleScene shows actions (if party) or runs _ai_turn() (if enemy)
   turn_ended(...)           → (currently unused in UI)
-  battle_ended(party_wins)  → BattleScene shows victory/defeat and turns End Turn into Restart
+  battle_ended(party_wins)  → BattleScene shows EndScreen (Victory/Defeat) with Back to Main Menu
 
 BattleScene calls BattleManager:
   setup_battle(party, enemies)

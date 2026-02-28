@@ -144,3 +144,39 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "(battle log)"
 autowrap_mode = 2
+
+[node name="EndScreen" type="CanvasLayer" parent="."]
+visible = false
+
+[node name="Overlay" type="ColorRect" parent="EndScreen"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.02, 0.06, 0.85)
+
+[node name="Center" type="CenterContainer" parent="EndScreen"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="EndScreen/Center"]
+layout_mode = 2
+custom_minimum_size = Vector2(400, 0)
+
+[node name="VBox" type="VBoxContainer" parent="EndScreen/Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="EndTitle" type="Label" parent="EndScreen/Center/Panel/VBox"]
+layout_mode = 2
+text = "Victory!"
+horizontal_alignment = 1
+
+[node name="BackToMenuBtn" type="Button" parent="EndScreen/Center/Panel/VBox"]
+layout_mode = 2
+text = "Back to Main Menu"

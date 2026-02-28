@@ -20,10 +20,11 @@ This folder explains how the project is built and how each part works.
 
 ## High-level flow
 
-1. **Main** (`scenes/main/main.tscn`) is the entry scene; it has **Battle** as a child.
-2. **Battle** (`scenes/battle/battle_scene.tscn`) creates a **BattleManager** (logic) and builds the arena from **BattlerSlot** instances (party left, enemies right).
+1. **Main menu** (`scenes/main_menu/main_menu.tscn`) is the entry scene; **Start Battle** loads the battle scene.
+2. **Battle** (`scenes/battle/battle_scene.tscn`) creates a **BattleManager** (logic) and builds the arena from **BattlerSlot** instances (party left, enemies right). Dead battlers are hidden (slots set not visible).
 3. **BattleManager** decides turn order by **speed** each round and emits signals; the battle scene listens and updates the UI (turn bar, slots, log, actions).
 4. On **player turn**: you click an enemy to target, then **Attack** or **End Turn**. On **enemy turn**: a simple AI attacks the first alive party member after a short delay.
+5. When the battle ends, an **end screen** appears (Victory! or Defeat!) with **Back to Main Menu** to return to the main menu.
 
 For more detail, use the links above.
 
