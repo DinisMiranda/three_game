@@ -1,0 +1,16 @@
+63f7b34db8d8cdea90c76aacccf841ec
+::res://::1772309448
+README.md::TextFile::-1::1772309361::0::1::::<><><>0<>0<><>::
+::res://resources/::1772309245
+battler_stats.gd::GDScript::2798744651665100510::1772309245::0::1::::BattlerStats<>Resource<><>0<>0<><>::
+::res://scenes/::1772309339
+::res://scenes/battle/::1772309324
+battle_scene.tscn::PackedScene::-1::1772309324::0::1::::<><><>0<>0<><>::res://scripts/battle/battle_scene.gd
+::res://scenes/main/::1772309339
+main.tscn::PackedScene::-1::1772309339::0::1::::<><><>0<>0<><>::res://scripts/main/main.gd<>res://scenes/battle/battle_scene.tscn
+::res://scripts/::1772309341
+::res://scripts/battle/::1772309308
+battle_manager.gd::GDScript::5710286714666576995::1772309274::0::1::::BattleManager<>Node<><>0<>0<><>::
+battle_scene.gd::GDScript::2257737686193858121::1772309332::0::1::::<>Control<><>0<>0<><>::
+::res://scripts/main/::1772309341
+main.gd::GDScript::6211672492937443637::1772309341::0::1::::<>Control<><>0<>0<><>::
