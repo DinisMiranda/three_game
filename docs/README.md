@@ -26,3 +26,14 @@ This folder explains how the project is built and how each part works.
 4. On **player turn**: you click an enemy to target, then **Attack** or **End Turn**. On **enemy turn**: a simple AI attacks the first alive party member after a short delay.
 
 For more detail, use the links above.
+
+## Keeping docs in sync
+
+When you change battle logic, UI, or add features, update the relevant docs so they stay accurate:
+
+- **ARCHITECTURE.md** — who creates what, signal flow, where styling lives
+- **BATTLE_SYSTEM.md** — turn flow, attack resolution, where it’s implemented
+- **SCENES_AND_UI.md** — scene tree, BattlerSlot layout, theme and turn bar
+- **FILE_REFERENCE.md** — purpose of each script, scene, and asset
+
+Use **English** for all documentation and in-code comments.
