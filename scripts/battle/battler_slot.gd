@@ -8,6 +8,9 @@ signal slot_clicked(slot_index: int, is_party: bool)
 
 # Path used if the battle scene didn't pass a texture (fallback load inside this node)
 const PLACEHOLDER_PATH := "res://assets/character_placeholder.png"
+const _IDLE_SIZE := Vector2(160, 200)
+const _ATTACK_SIZE := Vector2(192, 240)   # slightly larger during attack animation
+const _ATTACK_DURATION := 0.75            # attack animation duration (seconds)
 
 @export var slot_index: int = 0
 @export var is_party: bool = true
@@ -20,6 +23,7 @@ const PLACEHOLDER_PATH := "res://assets/character_placeholder.png"
 var _stats: BattlerStats
 var _texture_idle: Texture2D
 var _texture_attack: Texture2D
+var _default_panel_style: StyleBoxFlat  # stored to restore when turning off turn highlight
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -30,6 +34,7 @@ func _ready() -> void:
 	panel_style.bg_color = Color(0.08, 0.09, 0.12, 0.95)
 	panel_style.border_color = Color(0.0, 0.85, 1.0, 0.5)
 	panel_style.set_border_width_all(1)
+	_default_panel_style = panel_style.duplicate()
 	add_theme_stylebox_override("panel", panel_style)
 	if name_label:
 		name_label.add_theme_color_override("font_color", Color(0.9, 0.92, 0.95, 1))
@@ -43,8 +48,8 @@ func _ready() -> void:
 		texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 
-# --- setup with two textures: idle (direção correta) e attack (para animação). ---
-# idle_party = olhar para a direita, idle_enemy = olhar para a esquerda (sem usar flip).
+# --- Setup with two textures: idle (correct facing) and attack (for animation). ---
+# idle_party = face right, idle_enemy = face left (no flip used).
 func setup(stats: BattlerStats, texture_idle: Texture2D, texture_attack: Texture2D = null) -> void:
 	_stats = stats
 	var idle: Texture2D = texture_idle
@@ -59,16 +64,29 @@ func setup(stats: BattlerStats, texture_idle: Texture2D, texture_attack: Texture
 	if texture_rect:
 		texture_rect.texture = _texture_idle
 		texture_rect.flip_h = false
-		texture_rect.custom_minimum_size = Vector2(160, 200)
+		texture_rect.custom_minimum_size = _IDLE_SIZE
 	refresh()
 
-# --- Reproduz a animação de ataque: mostra sprite de ataque, espera, volta ao idle. ---
+# --- Play attack animation: show larger attack sprite, wait, then back to idle. ---
 func play_attack_animation() -> void:
 	if not texture_rect or not _texture_attack:
 		return
 	texture_rect.texture = _texture_attack
-	await get_tree().create_timer(0.45).timeout
+	texture_rect.custom_minimum_size = _ATTACK_SIZE
+	await get_tree().create_timer(_ATTACK_DURATION).timeout
 	texture_rect.texture = _texture_idle
+	texture_rect.custom_minimum_size = _IDLE_SIZE
+
+# --- Highlight this slot when it's this character's turn (thick amber border). ---
+func set_turn_highlight(active: bool) -> void:
+	if active:
+		var hi = StyleBoxFlat.new()
+		hi.bg_color = _default_panel_style.bg_color
+		hi.border_color = Color(1.0, 0.75, 0.2, 1.0)
+		hi.set_border_width_all(3)
+		add_theme_stylebox_override("panel", hi)
+	else:
+		add_theme_stylebox_override("panel", _default_panel_style)
 
 func _make_bar_style(fill: bool) -> StyleBoxFlat:
 	var s = StyleBoxFlat.new()

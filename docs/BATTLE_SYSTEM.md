@@ -29,7 +29,7 @@ How turns, turn order, and combat work.
 
 4. **Attack (player)**  
    - User selected target → `_selected_target`.  
-   - On Attack: `perform_attack(get_current_battler(), _selected_target)` → damage applied to target’s `BattlerStats`; then `advance_turn()`.
+   - On Attack: BattleScene plays the attacker’s slot animation (`play_attack_animation()`: larger sprite, attack texture, 0.75s), then `perform_attack(get_current_battler(), _selected_target)` → damage applied to target’s `BattlerStats`; then `advance_turn()`.
 
 ## Data structures
 
@@ -40,7 +40,8 @@ How turns, turn order, and combat work.
 ## Where it’s implemented
 
 - **BattleManager** (`scripts/battle/battle_manager.gd`): `setup_battle`, `_build_turn_order`, `advance_turn`, `perform_attack`, `_check_battle_end`, and all signals.
-- **BattleScene** (`scripts/battle/battle_scene.gd`): `_on_turn_started`, `_ai_turn`, `_on_attack_pressed`, `_on_end_turn_pressed`, and the logic that shows/hides the action panel and runs the AI.
+- **BattleScene** (`scripts/battle/battle_scene.gd`): `_on_turn_started`, `_ai_turn`, `_on_attack_pressed`, `_on_end_turn_pressed`, turn-order bar (current battler gets “► TURN:” in an amber panel), arena turn highlight (`set_turn_highlight` on the current battler’s slot), and the logic that shows/hides the action panel and runs the AI.
+- **BattlerSlot** (`scripts/battle/battler_slot.gd`): `setup(stats, texture_idle, texture_attack)`, `play_attack_animation()` (0.75s, slightly larger sprite), `set_turn_highlight(active)` (amber border when it’s this character’s turn).
 - **BattlerStats** (`resources/battler_stats.gd`): `take_damage`, `heal`, `is_alive`.
 
 To add skills, items, or different targeting, you’d extend BattleManager (e.g. new methods or signals) and wire them in BattleScene the same way as Attack/End Turn.

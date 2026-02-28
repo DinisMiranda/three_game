@@ -5,9 +5,9 @@ extends Control
 
 const BattlerSlotScene = preload("res://scenes/battle/battler_slot.tscn")
 
-# Idle: party olha direita, enemies olha esquerda. Attack: sprite de ataque.
-var _texture_idle_party: Texture2D   # res://assets/sevro_pixel_no_bg.png (olhar direita)
-var _texture_idle_enemy: Texture2D   # res://assets/sevro_pixel_no_bg-removebg-preview.png (olhar esquerda)
+# Idle: party faces right, enemies face left. Attack: attack sprite.
+var _texture_idle_party: Texture2D   # res://assets/sevro_pixel_no_bg.png (face right)
+var _texture_idle_enemy: Texture2D   # res://assets/sevro_pixel_no_bg-removebg-preview.png (face left)
 var _texture_attack: Texture2D       # res://assets/sevro_atack_no_bg.png
 var _placeholder_texture: Texture2D  # fallback se os acima falharem
 
@@ -38,7 +38,7 @@ func _ready() -> void:
 	_placeholder_texture = load("res://assets/character_placeholder.png") as Texture2D
 	if _placeholder_texture == null:
 		_placeholder_texture = preload("res://assets/character_placeholder.png") as Texture2D
-	# Sevro: duas direções (party = direita, enemy = esquerda) + ataque
+	# Sevro: two facing directions (party = right, enemy = left) + attack sprite
 	_texture_idle_party = load("res://assets/sevro_pixel_no_bg.png") as Texture2D
 	_texture_idle_enemy = load("res://assets/sevro_pixel_no_bg-removebg-preview.png") as Texture2D
 	_texture_attack = load("res://assets/sevro_atack_no_bg.png") as Texture2D
@@ -164,10 +164,10 @@ func _build_arena() -> void:
 	var idle_enemy = _texture_idle_enemy if _texture_idle_enemy else _placeholder_texture
 	var attack_tex = _texture_attack if _texture_attack else _placeholder_texture
 
-	# Party: idle olhar direita + sprite de ataque
+	# Party: idle face right + attack sprite
 	var party_back_row = _make_row(party_slots_container, true)
 	var party_front_row = _make_row(party_slots_container, false)
-	# Adicionar à árvore antes de setup() para @onready (texture_rect) estar disponível e a textura aplicar logo.
+	# Add to tree before setup() so @onready (texture_rect) is ready and texture applies immediately.
 	for i in [0, 1]:
 		if i < party.size():
 			var slot: BattlerSlot = BattlerSlotScene.instantiate()
@@ -185,7 +185,7 @@ func _build_arena() -> void:
 			slot.setup(party[i], idle_party, attack_tex)
 			_party_slots.append(slot)
 
-	# Enemies: idle olhar esquerda + sprite de ataque
+	# Enemies: idle face left + attack sprite
 	var n = enemies.size()
 	var enemy_back_row = _make_row(enemy_slots_container, true)
 	var enemy_front_row = _make_row(enemy_slots_container, false)
@@ -254,7 +254,7 @@ func _refresh_party_stats_panel() -> void:
 		row.add_child(hp_l)
 		stats_list.add_child(row)
 
-# --- Rebuild the turn order bar: labels for each battler, [NEXT] + accent color for current ---
+# --- Rebuild the turn order bar: labels for each battler; current gets "TURN" panel + amber ---
 func _on_turn_order_updated(_order_arg = null) -> void:
 	var order: Array = []
 	var party = battle_manager.get_party()
@@ -282,15 +282,34 @@ func _on_turn_order_updated(_order_arg = null) -> void:
 	for i in order.size():
 		var entry: Dictionary = order[i]
 		var s: BattlerStats = entry.stats
-		var chip = Label.new()
 		var side = "P" if entry.is_party else "E"
-		chip.text = "%s %s" % [side, s.display_name]
-		if i == cur_idx:
-			chip.text += " [NEXT]"
+		var is_current = (i == cur_idx)
+		if is_current:
+			var box = PanelContainer.new()
+			var style = StyleBoxFlat.new()
+			style.bg_color = Color(0.12, 0.1, 0.05, 0.95)
+			style.border_color = _COLOR_NEXT
+			style.set_border_width_all(2)
+			style.set_content_margin_all(6)
+			box.add_theme_stylebox_override("panel", style)
+			var chip = Label.new()
+			chip.text = "  ► TURN: %s %s  " % [side, s.display_name]
 			chip.add_theme_color_override("font_color", _COLOR_NEXT)
+			chip.add_theme_font_size_override("font_size", 16)
+			box.add_child(chip)
+			turn_order_list.add_child(box)
 		else:
+			var chip = Label.new()
+			chip.text = "%s %s" % [side, s.display_name]
 			chip.add_theme_color_override("font_color", _COLOR_TEXT)
-		turn_order_list.add_child(chip)
+			turn_order_list.add_child(chip)
+
+	# Highlight in the arena the slot whose turn it is (amber border)
+	var attacker_slot = _get_attacker_slot()
+	for slot in _party_slots:
+		slot.set_turn_highlight(slot == attacker_slot)
+	for slot in _enemy_slots:
+		slot.set_turn_highlight(slot == attacker_slot)
 
 # --- When user clicks an enemy slot: set _selected_target and highlight that slot ---
 func _on_enemy_slot_clicked(slot_index: int, is_party: bool) -> void:
@@ -338,7 +357,7 @@ func _on_turn_started(battler_index: int, is_party: bool) -> void:
 func _on_turn_ended(_battler_index: int, _is_party: bool) -> void:
 	pass
 
-# --- Devolve o BattlerSlot do atacante atual (para animação de ataque). ---
+# --- Returns the BattlerSlot for the current attacker (for attack animation). ---
 func _get_attacker_slot() -> BattlerSlot:
 	var current = battle_manager.get_current_battler()
 	if current.is_empty():
@@ -381,7 +400,7 @@ func _on_battle_ended(party_wins: bool) -> void:
 func _on_restart_pressed() -> void:
 	get_tree().reload_current_scene()
 
-# --- Attack button: animação de ataque no atacante, depois dano, refresh, advance_turn ---
+# --- Attack button: play attack animation on attacker, then damage, refresh, advance_turn ---
 func _on_attack_pressed() -> void:
 	if _selected_target.is_empty():
 		_log("Select a target: click an enemy on the right.")

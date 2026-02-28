@@ -56,23 +56,23 @@ Rows are built in `_build_arena()` with `_make_row(container, behind)`. When `be
 ```
 BattlerSlot (PanelContainer, battler_slot.gd)
   └── HBox (HBoxContainer)
-        ├── TextureRect   (sprite; 80×100 min, keep aspect centered; flip_h for enemies)
+        ├── TextureRect   (sprite; 160×200 idle, 192×240 during attack; keep aspect centered; party/enemy use different idle textures for facing)
         └── Info (VBoxContainer)
               ├── NameLabel
               └── HPBar (ProgressBar)
 ```
 
-Slots are instanced from `scenes/battle/battler_slot.tscn` and configured with `setup(stats, texture)`.
+Slots are instanced from `scenes/battle/battler_slot.tscn`. BattleScene adds each slot to the tree first, then calls `setup(stats, texture_idle, texture_attack)` with party idle (face right), enemy idle (face left), and a shared attack texture. The attack animation uses a slightly larger size (192×240) for 0.75s.
 
 ## Sci-fi theme (colors and styles)
 
 Applied in `battle_scene.gd` (`_apply_sci_fi_theme()` and related):
 
 - **Panels**: Dark background (`_COLOR_PANEL`), thin cyan border (`_COLOR_BORDER`), no corner radius, 12px content margin.
-- **Labels**: Light gray text (`_COLOR_TEXT`); turn bar and stats title use accent (`_COLOR_ACCENT`); "[NEXT]" uses amber (`_COLOR_NEXT`); log uses green (`_COLOR_LOG`).
+- **Labels**: Light gray text (`_COLOR_TEXT`); turn bar and stats title use accent (`_COLOR_ACCENT`); the **current turn** in the turn bar is shown in a small panel with amber border and “► TURN: P Name” / “► TURN: E Name” in amber (`_COLOR_NEXT`), larger font; log uses green (`_COLOR_LOG`).
 - **Buttons**: Dark background, cyan border; slightly lighter on hover (`_make_btn_style`).
 - **Progress bars**: Dark background style, cyan fill style (in battle scene for stats panel; in battler_slot.gd for slot HP bars).
-- **BattlerSlot**: Its own panel style (dark + cyan border) and HP bar style in `_ready()`.
+- **BattlerSlot**: Its own panel style (dark + cyan border) and HP bar style in `_ready()`. When it’s that character’s turn, BattleScene calls `set_turn_highlight(true)` and the slot gets a thick amber border; otherwise the default style is restored.
 
 Background is drawn in `sci_fi_background.gd`: gradient (dark to blue-black), 48px grid, thin cyan line at the bottom.
 

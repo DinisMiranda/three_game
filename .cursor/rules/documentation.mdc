@@ -1,0 +1,14 @@
+---
+description: Keep docs in English and update them when changing battle/UI or adding features
+alwaysApply: true
+---
+
+# Documentation
+
+- **Language:** All project documentation and in-code comments must be in **English** (no Portuguese in docs or comments).
+- **Keep docs in sync:** When you change battle logic, UI, scenes, or add features, update the relevant file in `docs/` so behaviour and structure are accurately described:
+  - `docs/ARCHITECTURE.md` — who creates what, signal flow, styling
+  - `docs/BATTLE_SYSTEM.md` — turn flow, attack resolution, where it’s implemented
+  - `docs/SCENES_AND_UI.md` — scene tree, BattlerSlot layout, theme, turn bar
+  - `docs/FILE_REFERENCE.md` — purpose of each script, scene, asset
+- **Index:** `docs/README.md` has quick links and a short “Keeping docs in sync” section; update it if you add new doc files.
