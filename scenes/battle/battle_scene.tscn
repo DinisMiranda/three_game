@@ -133,9 +133,14 @@ text = "End Turn"
 [node name="LogPanel" type="PanelContainer" parent="Margin/VBox/BottomRow"]
 layout_mode = 2
 size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 220)
 
-[node name="Log" type="Label" parent="Margin/VBox/BottomRow/LogPanel"]
+[node name="LogScroll" type="ScrollContainer" parent="Margin/VBox/BottomRow/LogPanel"]
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="Log" type="Label" parent="Margin/VBox/BottomRow/LogPanel/LogScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "(battle log)"
 autowrap_mode = 2

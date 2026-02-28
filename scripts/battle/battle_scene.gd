@@ -17,7 +17,8 @@ var _placeholder_texture: Texture2D
 @onready var party_slots_container: VBoxContainer = $Margin/VBox/ArenaRow/PartyArena/PartySlots
 @onready var enemy_slots_container: VBoxContainer = $Margin/VBox/ArenaRow/EnemyArena/EnemySlots
 @onready var stats_list: VBoxContainer = $Margin/VBox/ArenaRow/PartyStatsPanel/StatsVBox/StatsList
-@onready var log_label: Label = $Margin/VBox/BottomRow/LogPanel/Log
+@onready var log_scroll: ScrollContainer = $Margin/VBox/BottomRow/LogPanel/LogScroll
+@onready var log_label: Label = $Margin/VBox/BottomRow/LogPanel/LogScroll/Log
 @onready var actions_panel: PanelContainer = $Margin/VBox/BottomRow/ActionsPanel
 @onready var attack_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn
 @onready var end_turn_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn
@@ -426,8 +427,12 @@ func _on_attack_pressed() -> void:
 func _on_end_turn_pressed() -> void:
 	battle_manager.advance_turn()
 
+const _LOG_MAX_LINES := 50
+
 func _log(msg: String) -> void:
 	log_label.text = msg + "\n" + log_label.text
 	var lines = log_label.text.split("\n")
-	if lines.size() > 10:
-		log_label.text = "\n".join(lines.slice(0, 10))
+	if lines.size() > _LOG_MAX_LINES:
+		log_label.text = "\n".join(lines.slice(0, _LOG_MAX_LINES))
+	# Keep scroll at top so newest message is visible; player can scroll down to read older
+	log_scroll.scroll_vertical = 0
