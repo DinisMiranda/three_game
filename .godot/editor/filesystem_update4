@@ -1,1 +1,3 @@
 res://scripts/battle/battle_scene.gd
+res://scenes/battle/battler_slot.tscn
+res://scripts/battle/battler_slot.gd

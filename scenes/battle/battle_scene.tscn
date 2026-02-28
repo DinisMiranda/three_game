@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://battle_scene_001"]
+[gd_scene load_steps=3 format=3 uid="uid://battle_scene_001"]
 
 [ext_resource type="Script" path="res://scripts/battle/battle_scene.gd" id="1_battle"]
+[ext_resource type="Script" path="res://scripts/battle/sci_fi_background.gd" id="2_scifi"]
 
 [node name="BattleScene" type="Control"]
 layout_mode = 3
@@ -11,14 +12,14 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_battle")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="SciFiBackground" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.12, 0.14, 0.2, 1)
+script = ExtResource("2_scifi")
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -27,10 +28,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 32
 
 [node name="VBox" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
@@ -65,10 +66,10 @@ theme_override_constants/separation = 8
 layout_mode = 2
 text = "Party (4)"
 
-[node name="PartySlots" type="FlowContainer" parent="Margin/VBox/ArenaRow/PartyArena"]
+[node name="PartySlots" type="VBoxContainer" parent="Margin/VBox/ArenaRow/PartyArena"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
 [node name="EnemyArena" type="VBoxContainer" parent="Margin/VBox/ArenaRow"]
 layout_mode = 2
@@ -79,10 +80,10 @@ theme_override_constants/separation = 8
 layout_mode = 2
 text = "Enemies (1-4)"
 
-[node name="EnemySlots" type="FlowContainer" parent="Margin/VBox/ArenaRow/EnemyArena"]
+[node name="EnemySlots" type="VBoxContainer" parent="Margin/VBox/ArenaRow/EnemyArena"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
 [node name="PartyStatsPanel" type="PanelContainer" parent="Margin/VBox/ArenaRow"]
 layout_mode = 2

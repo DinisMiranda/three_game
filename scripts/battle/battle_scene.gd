@@ -3,11 +3,13 @@ extends Control
 ## Placeholder sprite for all; enemies are flipped. Click enemy to target.
 
 const BattlerSlotScene = preload("res://scenes/battle/battler_slot.tscn")
-const PlaceholderTexture = preload("res://assets/character_placeholder.png")
+
+# Load placeholder at runtime so Godot's import is used (fixes missing image on some setups)
+var _placeholder_texture: Texture2D
 
 @onready var turn_order_list: HBoxContainer = $Margin/VBox/TurnOrderBar/TurnOrderHBox/TurnOrderList
-@onready var party_slots_container: FlowContainer = $Margin/VBox/ArenaRow/PartyArena/PartySlots
-@onready var enemy_slots_container: FlowContainer = $Margin/VBox/ArenaRow/EnemyArena/EnemySlots
+@onready var party_slots_container: VBoxContainer = $Margin/VBox/ArenaRow/PartyArena/PartySlots
+@onready var enemy_slots_container: VBoxContainer = $Margin/VBox/ArenaRow/EnemyArena/EnemySlots
 @onready var stats_list: VBoxContainer = $Margin/VBox/ArenaRow/PartyStatsPanel/StatsVBox/StatsList
 @onready var log_label: Label = $Margin/VBox/BottomRow/LogPanel/Log
 @onready var actions_panel: PanelContainer = $Margin/VBox/BottomRow/ActionsPanel
@@ -19,7 +21,19 @@ var _selected_target: Dictionary = {}
 var _party_slots: Array[BattlerSlot] = []
 var _enemy_slots: Array[BattlerSlot] = []
 
+# Sci-fi palette (Red Rising / Sun Eater / Dungeon Crawler Carl)
+const _COLOR_PANEL := Color(0.08, 0.09, 0.12, 0.95)
+const _COLOR_BORDER := Color(0.0, 0.85, 1.0, 0.6)
+const _COLOR_TEXT := Color(0.9, 0.92, 0.95, 1)
+const _COLOR_ACCENT := Color(0.0, 0.9, 1.0, 1)
+const _COLOR_LOG := Color(0.0, 1.0, 0.55, 0.95)
+const _COLOR_NEXT := Color(1.0, 0.75, 0.2, 1)
+
 func _ready() -> void:
+	_placeholder_texture = load("res://assets/character_placeholder.png") as Texture2D
+	if _placeholder_texture == null:
+		_placeholder_texture = preload("res://assets/character_placeholder.png") as Texture2D
+	_apply_sci_fi_theme()
 	battle_manager = BattleManager.new()
 	add_child(battle_manager)
 	battle_manager.turn_started.connect(_on_turn_started)
@@ -29,6 +43,49 @@ func _ready() -> void:
 	attack_btn.pressed.connect(_on_attack_pressed)
 	end_turn_btn.pressed.connect(_on_end_turn_pressed)
 	_start_sample_battle()
+
+func _apply_sci_fi_theme() -> void:
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = _COLOR_PANEL
+	panel_style.border_color = _COLOR_BORDER
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(0)
+	panel_style.set_content_margin_all(12)
+
+	var turn_bar = $Margin/VBox/TurnOrderBar
+	if turn_bar is PanelContainer:
+		turn_bar.add_theme_stylebox_override("panel", panel_style.duplicate())
+	$Margin/VBox/TurnOrderBar/TurnOrderHBox/TurnOrderLabel.add_theme_color_override("font_color", _COLOR_TEXT)
+
+	$Margin/VBox/ArenaRow/PartyArena/PartyLabel.add_theme_color_override("font_color", _COLOR_TEXT)
+	$Margin/VBox/ArenaRow/EnemyArena/EnemyLabel.add_theme_color_override("font_color", _COLOR_TEXT)
+
+	var stats_panel_style = panel_style.duplicate()
+	$Margin/VBox/ArenaRow/PartyStatsPanel.add_theme_stylebox_override("panel", stats_panel_style)
+	$Margin/VBox/ArenaRow/PartyStatsPanel/StatsVBox/StatsTitle.add_theme_color_override("font_color", _COLOR_ACCENT)
+
+	var actions_style = panel_style.duplicate()
+	$Margin/VBox/BottomRow/ActionsPanel.add_theme_stylebox_override("panel", actions_style)
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/ActionsLabel.add_theme_color_override("font_color", _COLOR_TEXT)
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn.add_theme_color_override("font_color", _COLOR_TEXT)
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn.add_theme_color_override("font_color", _COLOR_TEXT)
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
+
+	var log_style = panel_style.duplicate()
+	(log_style as StyleBoxFlat).bg_color = Color(0.04, 0.05, 0.08, 0.98)
+	$Margin/VBox/BottomRow/LogPanel.add_theme_stylebox_override("panel", log_style)
+	log_label.add_theme_color_override("font_color", _COLOR_LOG)
+
+func _make_btn_style(hover: bool) -> StyleBoxFlat:
+	var s = StyleBoxFlat.new()
+	s.bg_color = Color(0.12, 0.14, 0.18, 1) if not hover else Color(0.18, 0.22, 0.28, 1)
+	s.border_color = _COLOR_BORDER
+	s.set_border_width_all(1)
+	s.set_content_margin_all(8)
+	return s
 
 func _start_sample_battle() -> void:
 	var party: Array = []
@@ -59,6 +116,18 @@ func _start_sample_battle() -> void:
 	_refresh_party_stats_panel()
 	_log("Battle start! Turn order is based on speed. Click an enemy to target.")
 
+func _make_row(container: VBoxContainer, behind: bool) -> HBoxContainer:
+	var h = HBoxContainer.new()
+	h.add_theme_constant_override("separation", 8)
+	if behind:
+		var m = MarginContainer.new()
+		m.add_theme_constant_override("margin_left", 28)
+		m.add_child(h)
+		container.add_child(m)
+	else:
+		container.add_child(h)
+	return h
+
 func _build_arena() -> void:
 	# Clear existing
 	for c in party_slots_container.get_children():
@@ -70,24 +139,53 @@ func _build_arena() -> void:
 
 	var party = battle_manager.get_party()
 	var enemies = battle_manager.get_enemies()
-	var tex = PlaceholderTexture
+	var tex = _placeholder_texture
+	if tex == null:
+		push_warning("Placeholder texture not found at res://assets/character_placeholder.png")
 
-	for i in party.size():
-		var slot: BattlerSlot = BattlerSlotScene.instantiate()
-		slot.slot_index = i
-		slot.is_party = true
-		slot.setup(party[i], tex)
-		party_slots_container.add_child(slot)
-		_party_slots.append(slot)
+	# Party: > formation — back row (2) then front row (2), back row indented
+	var party_back_row = _make_row(party_slots_container, true)
+	var party_front_row = _make_row(party_slots_container, false)
+	for i in [0, 1]:
+		if i < party.size():
+			var slot: BattlerSlot = BattlerSlotScene.instantiate()
+			slot.slot_index = i
+			slot.is_party = true
+			slot.setup(party[i], tex)
+			party_back_row.add_child(slot)
+			_party_slots.append(slot)
+	for i in [2, 3]:
+		if i < party.size():
+			var slot: BattlerSlot = BattlerSlotScene.instantiate()
+			slot.slot_index = i
+			slot.is_party = true
+			slot.setup(party[i], tex)
+			party_front_row.add_child(slot)
+			_party_slots.append(slot)
 
-	for i in enemies.size():
-		var slot: BattlerSlot = BattlerSlotScene.instantiate()
-		slot.slot_index = i
-		slot.is_party = false
-		slot.setup(enemies[i], tex)
-		slot.slot_clicked.connect(_on_enemy_slot_clicked)
-		enemy_slots_container.add_child(slot)
-		_enemy_slots.append(slot)
+	# Enemies: < formation — back row then front row, back row indented
+	var n = enemies.size()
+	var enemy_back_row = _make_row(enemy_slots_container, true)
+	var enemy_front_row = _make_row(enemy_slots_container, false)
+	if n >= 3:
+		for i in [2, 3]:
+			if i < n:
+				var slot: BattlerSlot = BattlerSlotScene.instantiate()
+				slot.slot_index = i
+				slot.is_party = false
+				slot.setup(enemies[i], tex)
+				slot.slot_clicked.connect(_on_enemy_slot_clicked)
+				enemy_back_row.add_child(slot)
+				_enemy_slots.append(slot)
+	for i in [0, 1]:
+		if i < n:
+			var slot: BattlerSlot = BattlerSlotScene.instantiate()
+			slot.slot_index = i
+			slot.is_party = false
+			slot.setup(enemies[i], tex)
+			slot.slot_clicked.connect(_on_enemy_slot_clicked)
+			enemy_front_row.add_child(slot)
+			_enemy_slots.append(slot)
 	_on_turn_order_updated(battle_manager.get_current_battler())
 
 func _refresh_arena_slots() -> void:
@@ -105,21 +203,31 @@ func _refresh_party_stats_panel() -> void:
 	for c in stats_list.get_children():
 		c.queue_free()
 	var party = battle_manager.get_party()
+	var bar_bg = StyleBoxFlat.new()
+	bar_bg.bg_color = Color(0.06, 0.07, 0.1, 1)
+	bar_bg.set_corner_radius_all(2)
+	var bar_fill = StyleBoxFlat.new()
+	bar_fill.bg_color = _COLOR_ACCENT
+	bar_fill.set_corner_radius_all(2)
 	for i in party.size():
 		var s: BattlerStats = party[i]
 		var row = HBoxContainer.new()
 		var name_l = Label.new()
 		name_l.text = s.display_name + ":"
-		name_l.custom_minimum_size.x = 70
+		name_l.custom_minimum_size.x = 80
+		name_l.add_theme_color_override("font_color", _COLOR_TEXT)
 		row.add_child(name_l)
 		var bar = ProgressBar.new()
 		bar.max_value = float(s.max_hp)
 		bar.value = float(s.current_hp)
 		bar.show_percentage = false
 		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		bar.add_theme_stylebox_override("background", bar_bg)
+		bar.add_theme_stylebox_override("fill", bar_fill)
 		row.add_child(bar)
 		var hp_l = Label.new()
-		hp_l.text = "%d/%d" % [s.current_hp, s.max_hp]
+		hp_l.text = " %d/%d" % [s.current_hp, s.max_hp]
+		hp_l.add_theme_color_override("font_color", _COLOR_TEXT)
 		row.add_child(hp_l)
 		stats_list.add_child(row)
 
@@ -156,7 +264,9 @@ func _on_turn_order_updated(_order_arg = null) -> void:
 		chip.text = "%s %s" % [side, s.display_name]
 		if i == cur_idx:
 			chip.text += " [NEXT]"
-			chip.add_theme_color_override("font_color", Color.YELLOW)
+			chip.add_theme_color_override("font_color", _COLOR_NEXT)
+		else:
+			chip.add_theme_color_override("font_color", _COLOR_TEXT)
 		turn_order_list.add_child(chip)
 
 func _on_enemy_slot_clicked(slot_index: int, is_party: bool) -> void:

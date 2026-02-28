@@ -15,7 +15,7 @@ layout_mode = 2
 size_flags_horizontal = 0
 custom_minimum_size = Vector2(80, 100)
 expand_mode = 1
-stretch_mode = 5
+stretch_mode = 4
 
 [node name="Info" type="VBoxContainer" parent="HBox"]
 layout_mode = 2
