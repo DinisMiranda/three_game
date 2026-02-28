@@ -29,8 +29,8 @@ What each important file does.
 | File | Purpose |
 |------|--------|
 | `scripts/battle/battle_manager.gd` | **BattleManager** (Node). Core battle logic: stores party and enemies, builds turn order by speed, `advance_turn`, `perform_attack`, win/lose. Emits: `turn_started`, `turn_ended`, `battle_ended`, `turn_order_updated`. No UI. |
-| `scripts/battle/battle_scene.gd` | Attached to BattleScene root. Creates BattleManager, loads placeholder texture, applies sci-fi theme, starts sample battle, builds arena (party/enemy slots), wires signals to UI (turn bar, log, actions). Handles target selection (click enemy), Attack, End Turn, AI turn, Restart. |
-| `scripts/battle/battler_slot.gd` | **BattlerSlot** (PanelContainer). One character slot: texture (with fallback if image missing), name label, HP bar. Applies sci-fi panel/bar style. Emits `slot_clicked(slot_index, is_party)` on click when alive. Used for both party and enemies (enemies get texture flipped). |
+| `scripts/battle/battle_scene.gd` | Attached to BattleScene root. Creates BattleManager, loads three textures (party idle, enemy idle, attack), applies sci-fi theme, starts sample battle, builds arena (add_child then setup so textures apply). Rebuilds turn bar with “► TURN:” panel for current battler; highlights current slot with amber border. Handles target selection (click enemy), Attack (plays attack animation then damage), End Turn, AI turn, Restart. |
+| `scripts/battle/battler_slot.gd` | **BattlerSlot** (PanelContainer). One character slot: two textures (idle + attack), name label, HP bar. `setup(stats, texture_idle, texture_attack)`; `play_attack_animation()` shows attack sprite at larger size for 0.75s; `set_turn_highlight(active)` toggles amber border. Applies sci-fi panel/bar style. Emits `slot_clicked(slot_index, is_party)` on click when alive. Party and enemies use different idle textures (face right / face left). |
 | `scripts/battle/sci_fi_background.gd` | Attached to SciFiBackground Control. Implements `_draw()`: dark gradient, grid lines, bottom accent line. No logic. |
 
 ## Scenes
@@ -45,7 +45,10 @@ What each important file does.
 
 | File | Purpose |
 |------|--------|
-| `assets/character_placeholder.png` | Default sprite for all battlers. Party use it as-is; enemies use it with horizontal flip. If this fails to load, BattlerSlot shows a generated checker texture. |
+| `assets/character_placeholder.png` | Fallback sprite if Sevro assets fail to load. |
+| `assets/sevro_pixel_no_bg.png` | Party idle (face right). |
+| `assets/sevro_pixel_no_bg-removebg-preview.png` | Enemy idle (face left). |
+| `assets/sevro_atack_no_bg.png` | Attack sprite used for both sides during attack animation. |
 | `assets/character_placeholder.png.import` | Godot import config for the PNG (e.g. texture type, compression). |
 
 ## Docs

@@ -22,7 +22,7 @@ Main (main.gd)
 ```
 
 - **BattleScene** creates the **BattleManager** in `_ready()` and adds it as a child (for lifecycle only; it’s not a visible node).
-- **BattleScene** creates all **BattlerSlot** instances in `_build_arena()` and adds them to `PartySlots` and `EnemySlots` containers.
+- **BattleScene** creates all **BattlerSlot** instances in `_build_arena()`. Slots are **added to the tree first** (`add_child(slot)`), then `setup(stats, texture_idle, texture_attack)` is called so that `@onready` nodes (e.g. `TextureRect`) are ready and the correct idle texture applies immediately (party faces right, enemies face left).
 - **BattlerStats** are created in `_start_sample_battle()` and given to `battle_manager.setup_battle(party, enemies)`.
 
 ## Signal flow
@@ -54,7 +54,7 @@ When the user clicks an enemy **BattlerSlot**, it emits `slot_clicked(slot_index
 ## Where styling lives
 
 - **Sci-fi colors and panel styles**: Defined and applied in `battle_scene.gd` (`_COLOR_*` constants, `_apply_sci_fi_theme()`, `_make_btn_style()`). Also used when creating the turn-order chips and the party stats panel bars.
-- **BattlerSlot**: Applies its own panel and HP bar style in `_ready()` so every slot looks the same without the battle scene having to style each one.
+- **BattlerSlot**: Applies its own panel and HP bar style in `_ready()`. It supports two textures (idle and attack); the battle scene passes party idle (face right), enemy idle (face left), and a shared attack texture. When it's a battler's turn, BattleScene calls `set_turn_highlight(true)` on that slot (amber border). Attack animation temporarily uses a larger size and the attack texture for 0.75s.
 - **Background**: Drawn in `sci_fi_background.gd`’s `_draw()` (gradient, grid, bottom line). No theme; just drawing.
 
 For more detail on the battle rules and turn flow, see [BATTLE_SYSTEM.md](BATTLE_SYSTEM.md). For file-by-file description, see [FILE_REFERENCE.md](FILE_REFERENCE.md).
