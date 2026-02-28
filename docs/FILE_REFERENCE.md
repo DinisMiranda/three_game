@@ -48,7 +48,8 @@ What each important file does.
 | `assets/character_placeholder.png` | Fallback sprite if Sevro assets fail to load. |
 | `assets/sevro_pixel_no_bg.png` | Party idle (face right). |
 | `assets/sevro_pixel_no_bg-removebg-preview.png` | Enemy idle (face left). |
-| `assets/sevro_atack_no_bg.png` | Attack sprite used for both sides during attack animation. |
+| `assets/sevro_atack_no_bg.png` | Enemy attack sprite (face left). |
+| `assets/sevro_atack_no_bg_1-removebg-preview.png` | Party attack sprite (face right). |
 | `assets/character_placeholder.png.import` | Godot import config for the PNG (e.g. texture type, compression). |
 
 ## Docs
