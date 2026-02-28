@@ -121,11 +121,14 @@ func _start_sample_battle() -> void:
 	_log("Battle start! Turn order is based on speed. Click an enemy to target.")
 
 # --- Returns an HBoxContainer for a row of slots. If behind=true, wrap in MarginContainer (indent). ---
+# Rows get size_flags_vertical = EXPAND so they fill the arena height and share space equally.
 func _make_row(container: VBoxContainer, behind: bool) -> HBoxContainer:
 	var h = HBoxContainer.new()
-	h.add_theme_constant_override("separation", 8)
+	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	h.add_theme_constant_override("separation", 24)
 	if behind:
 		var m = MarginContainer.new()
+		m.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		m.add_theme_constant_override("margin_left", 28)
 		m.add_child(h)
 		container.add_child(m)
