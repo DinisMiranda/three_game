@@ -5,11 +5,12 @@ extends Control
 
 const BattlerSlotScene = preload("res://scenes/battle/battler_slot.tscn")
 
-# Idle: party faces right, enemies face left. Attack: attack sprite.
-var _texture_idle_party: Texture2D   # res://assets/sevro_pixel_no_bg.png (face right)
-var _texture_idle_enemy: Texture2D   # res://assets/sevro_pixel_no_bg-removebg-preview.png (face left)
-var _texture_attack: Texture2D       # res://assets/sevro_atack_no_bg.png
-var _placeholder_texture: Texture2D  # fallback se os acima falharem
+# Idle: party faces right, enemies face left. Attack: one sprite per side (facing).
+var _texture_idle_party: Texture2D
+var _texture_idle_enemy: Texture2D
+var _texture_attack_party: Texture2D   # attack facing right (player)
+var _texture_attack_enemy: Texture2D   # attack facing left (enemies)
+var _placeholder_texture: Texture2D
 
 # --- Node references (must match battle_scene.tscn tree) ---
 @onready var turn_order_list: HBoxContainer = $Margin/VBox/TurnOrderBar/TurnOrderHBox/TurnOrderList
@@ -38,16 +39,19 @@ func _ready() -> void:
 	_placeholder_texture = load("res://assets/character_placeholder.png") as Texture2D
 	if _placeholder_texture == null:
 		_placeholder_texture = preload("res://assets/character_placeholder.png") as Texture2D
-	# Sevro: two facing directions (party = right, enemy = left) + attack sprite
+	# Sevro: two facing directions (party = right, enemy = left) + attack sprite per side
 	_texture_idle_party = load("res://assets/sevro_pixel_no_bg.png") as Texture2D
 	_texture_idle_enemy = load("res://assets/sevro_pixel_no_bg-removebg-preview.png") as Texture2D
-	_texture_attack = load("res://assets/sevro_atack_no_bg.png") as Texture2D
+	_texture_attack_party = load("res://assets/sevro_atack_no_bg_1-removebg-preview.png") as Texture2D   # face right
+	_texture_attack_enemy = load("res://assets/sevro_atack_no_bg.png") as Texture2D   # face left
 	if _texture_idle_party == null:
 		_texture_idle_party = _placeholder_texture
 	if _texture_idle_enemy == null:
 		_texture_idle_enemy = _placeholder_texture
-	if _texture_attack == null:
-		_texture_attack = _placeholder_texture
+	if _texture_attack_party == null:
+		_texture_attack_party = _placeholder_texture
+	if _texture_attack_enemy == null:
+		_texture_attack_enemy = _placeholder_texture
 	_apply_sci_fi_theme()
 	battle_manager = BattleManager.new()
 	add_child(battle_manager)
@@ -162,9 +166,10 @@ func _build_arena() -> void:
 	var enemies = battle_manager.get_enemies()
 	var idle_party = _texture_idle_party if _texture_idle_party else _placeholder_texture
 	var idle_enemy = _texture_idle_enemy if _texture_idle_enemy else _placeholder_texture
-	var attack_tex = _texture_attack if _texture_attack else _placeholder_texture
+	var attack_party = _texture_attack_party if _texture_attack_party else _placeholder_texture
+	var attack_enemy = _texture_attack_enemy if _texture_attack_enemy else _placeholder_texture
 
-	# Party: idle face right + attack sprite
+	# Party: idle face right + attack face right
 	var party_back_row = _make_row(party_slots_container, true)
 	var party_front_row = _make_row(party_slots_container, false)
 	# Add to tree before setup() so @onready (texture_rect) is ready and texture applies immediately.
@@ -174,7 +179,7 @@ func _build_arena() -> void:
 			slot.slot_index = i
 			slot.is_party = true
 			party_back_row.add_child(slot)
-			slot.setup(party[i], idle_party, attack_tex)
+			slot.setup(party[i], idle_party, attack_party)
 			_party_slots.append(slot)
 	for i in [2, 3]:
 		if i < party.size():
@@ -182,10 +187,10 @@ func _build_arena() -> void:
 			slot.slot_index = i
 			slot.is_party = true
 			party_front_row.add_child(slot)
-			slot.setup(party[i], idle_party, attack_tex)
+			slot.setup(party[i], idle_party, attack_party)
 			_party_slots.append(slot)
 
-	# Enemies: idle face left + attack sprite
+	# Enemies: idle face left + attack face left
 	var n = enemies.size()
 	var enemy_back_row = _make_row(enemy_slots_container, true)
 	var enemy_front_row = _make_row(enemy_slots_container, false)
@@ -197,7 +202,7 @@ func _build_arena() -> void:
 				slot.is_party = false
 				slot.slot_clicked.connect(_on_enemy_slot_clicked)
 				enemy_back_row.add_child(slot)
-				slot.setup(enemies[i], idle_enemy, attack_tex)
+				slot.setup(enemies[i], idle_enemy, attack_enemy)
 				_enemy_slots.append(slot)
 	for i in [0, 1]:
 		if i < n:
@@ -206,7 +211,7 @@ func _build_arena() -> void:
 			slot.is_party = false
 			slot.slot_clicked.connect(_on_enemy_slot_clicked)
 			enemy_front_row.add_child(slot)
-			slot.setup(enemies[i], idle_enemy, attack_tex)
+			slot.setup(enemies[i], idle_enemy, attack_enemy)
 			_enemy_slots.append(slot)
 	_on_turn_order_updated(battle_manager.get_current_battler())
 
