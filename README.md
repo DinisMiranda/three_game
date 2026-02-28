@@ -57,6 +57,13 @@
 
 Full index: [docs/README.md](docs/README.md).
 
+## Cursor AI (optional)
+
+Project uses the [Autonomous Principal Engineer](https://gist.github.com/aashari/07cc9c1b6c0debbeb4f4d94a3a81339e) prompting framework:
+
+- **Doctrine** is in [.cursor/rules/](.cursor/rules/) and applies automatically (research-first, trust code over docs, etc.).
+- **Playbooks** (request, refresh, retro) live in [docs/cursor-playbooks/](docs/cursor-playbooks/) — copy into chat when starting a task. See [docs/cursor-playbooks/README.md](docs/cursor-playbooks/README.md).
+
 ## More information
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to contribute (issues, PRs, Conventional Commits).

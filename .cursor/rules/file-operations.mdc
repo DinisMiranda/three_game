@@ -1,0 +1,11 @@
+---
+description: Use file tools for file content; use shell only for system commands
+alwaysApply: true
+---
+
+# File operations vs shell
+
+- **Reading/editing/searching file content:** Use the workspace file tools (read, edit, write, grep). Do not use `cat`, `head`, `tail`, `sed`, `awk`, or `echo`/heredoc to read or modify files.
+- **System operations:** Use shell for git, package managers, running processes, ports, CLI tools.
+
+Reason: File tools are atomic and handle permissions; shell-based file editing can fail partway and leave no rollback.
