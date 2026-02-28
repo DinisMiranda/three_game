@@ -11,6 +11,7 @@ This folder explains how the project is built and how each part works.
 | [**FILE_REFERENCE.md**](FILE_REFERENCE.md) | Every important file and what it does |
 | [**SCENES_AND_UI.md**](SCENES_AND_UI.md) | Scene tree, UI layout, sci-fi theme |
 | [**PLACEHOLDER_IMAGE.md**](PLACEHOLDER_IMAGE.md) | Why the character image might not show; load strategies and fallback |
+| [**cursor-playbooks/README.md**](cursor-playbooks/README.md) | Cursor AI playbooks (request, refresh, retro) and how to use them |
 
 ## Run the game
 
