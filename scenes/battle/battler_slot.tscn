@@ -1,0 +1,32 @@
+[gd_scene load_steps=2 format=3 uid="uid://battler_slot_001"]
+
+[ext_resource type="Script" path="res://scripts/battle/battler_slot.gd" id="1_script"]
+
+[node name="BattlerSlot" type="PanelContainer"]
+custom_minimum_size = Vector2(140, 120)
+layout_mode = 2
+script = ExtResource("1_script")
+
+[node name="HBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="HBox"]
+layout_mode = 2
+size_flags_horizontal = 0
+custom_minimum_size = Vector2(80, 100)
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Info" type="VBoxContainer" parent="HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NameLabel" type="Label" parent="HBox/Info"]
+layout_mode = 2
+text = "Name"
+
+[node name="HPBar" type="ProgressBar" parent="HBox/Info"]
+layout_mode = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false

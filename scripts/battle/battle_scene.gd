@@ -1,16 +1,23 @@
 extends Control
-## Battle scene: 4 vs 1-4 enemies, turn-based, turn order by speed.
+## Octopath-style battle: turn order bar at top, party left, enemies right.
+## Placeholder sprite for all; enemies are flipped. Click enemy to target.
 
-@onready var turn_order_list: Control = $UI/VBox/Content/Left/TurnOrderList
-@onready var log_label: Label = $UI/VBox/Content/Right/Log
-@onready var actions_panel: PanelContainer = $UI/VBox/Content/Right/ActionsPanel
-@onready var party_list: ItemList = $UI/VBox/Content/Center/PartyList
-@onready var enemy_list: ItemList = $UI/VBox/Content/Center/EnemyList
-@onready var attack_btn: Button = $UI/VBox/Content/Right/ActionsPanel/VBox/AttackBtn
-@onready var end_turn_btn: Button = $UI/VBox/Content/Right/ActionsPanel/VBox/EndTurnBtn
+const BattlerSlotScene = preload("res://scenes/battle/battler_slot.tscn")
+const PlaceholderTexture = preload("res://assets/character_placeholder.png")
+
+@onready var turn_order_list: HBoxContainer = $Margin/VBox/TurnOrderBar/TurnOrderHBox/TurnOrderList
+@onready var party_slots_container: FlowContainer = $Margin/VBox/ArenaRow/PartyArena/PartySlots
+@onready var enemy_slots_container: FlowContainer = $Margin/VBox/ArenaRow/EnemyArena/EnemySlots
+@onready var stats_list: VBoxContainer = $Margin/VBox/ArenaRow/PartyStatsPanel/StatsVBox/StatsList
+@onready var log_label: Label = $Margin/VBox/BottomRow/LogPanel/Log
+@onready var actions_panel: PanelContainer = $Margin/VBox/BottomRow/ActionsPanel
+@onready var attack_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn
+@onready var end_turn_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn
 
 var battle_manager: BattleManager
-var _selected_target: Dictionary = {}  # { "stats", "index", "is_party" }
+var _selected_target: Dictionary = {}
+var _party_slots: Array[BattlerSlot] = []
+var _enemy_slots: Array[BattlerSlot] = []
 
 func _ready() -> void:
 	battle_manager = BattleManager.new()
@@ -21,8 +28,6 @@ func _ready() -> void:
 	battle_manager.battle_ended.connect(_on_battle_ended)
 	attack_btn.pressed.connect(_on_attack_pressed)
 	end_turn_btn.pressed.connect(_on_end_turn_pressed)
-	party_list.item_selected.connect(_on_party_item_selected)
-	enemy_list.item_selected.connect(_on_enemy_item_selected)
 	_start_sample_battle()
 
 func _start_sample_battle() -> void:
@@ -34,7 +39,7 @@ func _start_sample_battle() -> void:
 		s.current_hp = s.max_hp
 		s.attack = 12 + i
 		s.defense = 4
-		s.speed = 8 + i * 2  # Different speeds so order varies
+		s.speed = 8 + i * 2
 		s.is_party = true
 		party.append(s)
 	var enemies: Array = []
@@ -50,34 +55,130 @@ func _start_sample_battle() -> void:
 		s.is_party = false
 		enemies.append(s)
 	battle_manager.setup_battle(party, enemies)
-	_refresh_party_and_enemy_lists()
-	_log("Battle start! Turn order is based on speed.")
+	_build_arena()
+	_refresh_party_stats_panel()
+	_log("Battle start! Turn order is based on speed. Click an enemy to target.")
 
-func _refresh_party_and_enemy_lists() -> void:
-	party_list.clear()
-	for i in battle_manager.get_party().size():
-		var s: BattlerStats = battle_manager.get_party()[i]
-		var tag = " (DEAD)" if not s.is_alive() else ""
-		party_list.add_item("%s HP:%d/%d Spd:%d%s" % [s.display_name, s.current_hp, s.max_hp, s.speed, tag])
-	enemy_list.clear()
-	for i in battle_manager.get_enemies().size():
-		var s: BattlerStats = battle_manager.get_enemies()[i]
-		var tag = " (DEAD)" if not s.is_alive() else ""
-		enemy_list.add_item("%s HP:%d/%d Spd:%d%s" % [s.display_name, s.current_hp, s.max_hp, s.speed, tag])
+func _build_arena() -> void:
+	# Clear existing
+	for c in party_slots_container.get_children():
+		c.queue_free()
+	for c in enemy_slots_container.get_children():
+		c.queue_free()
+	_party_slots.clear()
+	_enemy_slots.clear()
 
-func _on_turn_order_updated(order: Array) -> void:
-	_update_turn_order_display(order)
+	var party = battle_manager.get_party()
+	var enemies = battle_manager.get_enemies()
+	var tex = PlaceholderTexture
 
-func _update_turn_order_display(order: Array) -> void:
+	for i in party.size():
+		var slot: BattlerSlot = BattlerSlotScene.instantiate()
+		slot.slot_index = i
+		slot.is_party = true
+		slot.setup(party[i], tex)
+		party_slots_container.add_child(slot)
+		_party_slots.append(slot)
+
+	for i in enemies.size():
+		var slot: BattlerSlot = BattlerSlotScene.instantiate()
+		slot.slot_index = i
+		slot.is_party = false
+		slot.setup(enemies[i], tex)
+		slot.slot_clicked.connect(_on_enemy_slot_clicked)
+		enemy_slots_container.add_child(slot)
+		_enemy_slots.append(slot)
+	_on_turn_order_updated(battle_manager.get_current_battler())
+
+func _refresh_arena_slots() -> void:
+	var party = battle_manager.get_party()
+	var enemies = battle_manager.get_enemies()
+	for i in _party_slots.size():
+		if i < party.size():
+			_party_slots[i].refresh()
+	for i in _enemy_slots.size():
+		if i < enemies.size():
+			_enemy_slots[i].refresh()
+	_refresh_party_stats_panel()
+
+func _refresh_party_stats_panel() -> void:
+	for c in stats_list.get_children():
+		c.queue_free()
+	var party = battle_manager.get_party()
+	for i in party.size():
+		var s: BattlerStats = party[i]
+		var row = HBoxContainer.new()
+		var name_l = Label.new()
+		name_l.text = s.display_name + ":"
+		name_l.custom_minimum_size.x = 70
+		row.add_child(name_l)
+		var bar = ProgressBar.new()
+		bar.max_value = float(s.max_hp)
+		bar.value = float(s.current_hp)
+		bar.show_percentage = false
+		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(bar)
+		var hp_l = Label.new()
+		hp_l.text = "%d/%d" % [s.current_hp, s.max_hp]
+		row.add_child(hp_l)
+		stats_list.add_child(row)
+
+func _on_turn_order_updated(_order_arg = null) -> void:
+	# Build turn order from manager
+	var order: Array = []
+	var party = battle_manager.get_party()
+	var enemies = battle_manager.get_enemies()
+	for i in party.size():
+		if party[i].is_alive():
+			order.append({ "stats": party[i], "index": i, "is_party": true })
+	for i in enemies.size():
+		if enemies[i].is_alive():
+			order.append({ "stats": enemies[i], "index": i, "is_party": false })
+	order.sort_custom(func(a, b): return a.stats.speed > b.stats.speed)
+
 	for c in turn_order_list.get_children():
 		c.queue_free()
+
+	var current = battle_manager.get_current_battler()
+	var cur_idx = -1
+	if not current.is_empty():
+		for i in order.size():
+			var e = order[i]
+			if e.is_party == current.is_party and e.index == current.index:
+				cur_idx = i
+				break
+
 	for i in order.size():
 		var entry: Dictionary = order[i]
 		var s: BattlerStats = entry.stats
-		var side = "Party" if entry.is_party else "Enemy"
-		var label = Label.new()
-		label.text = "%d. %s (%s) Spd:%d" % [i + 1, s.display_name, side, s.speed]
-		turn_order_list.add_child(label)
+		var chip = Label.new()
+		var side = "P" if entry.is_party else "E"
+		chip.text = "%s %s" % [side, s.display_name]
+		if i == cur_idx:
+			chip.text += " [NEXT]"
+			chip.add_theme_color_override("font_color", Color.YELLOW)
+		turn_order_list.add_child(chip)
+
+func _on_enemy_slot_clicked(slot_index: int, is_party: bool) -> void:
+	if is_party:
+		return
+	var enemies = battle_manager.get_enemies()
+	if slot_index < 0 or slot_index >= enemies.size():
+		return
+	var s: BattlerStats = enemies[slot_index]
+	if not s.is_alive():
+		return
+	_selected_target = { "stats": s, "index": slot_index, "is_party": false }
+	_highlight_selected_enemy()
+	_log("Target: %s" % s.display_name)
+
+func _highlight_selected_enemy() -> void:
+	for i in _enemy_slots.size():
+		var slot: BattlerSlot = _enemy_slots[i]
+		if slot.get_stats() == _selected_target.get("stats", null):
+			slot.modulate = Color(1.2, 1.2, 1.0)
+		else:
+			slot.modulate = Color.WHITE
 
 func _on_turn_started(battler_index: int, is_party: bool) -> void:
 	var current = battle_manager.get_current_battler()
@@ -88,16 +189,19 @@ func _on_turn_started(battler_index: int, is_party: bool) -> void:
 		battle_manager.advance_turn()
 		return
 	_log("%s's turn (Speed: %d)" % [s.display_name, s.speed])
-	_refresh_party_and_enemy_lists()
-	# If it's party turn, show actions; else auto-advance after a short delay (AI)
+	_refresh_arena_slots()
+	_on_turn_order_updated(null)
 	if is_party:
 		actions_panel.visible = true
 		_selected_target = {}
+		_highlight_selected_enemy()
 	else:
 		actions_panel.visible = false
-		# Simple AI: pick first alive party member and attack
 		await get_tree().create_timer(0.8).timeout
 		_ai_turn()
+
+func _on_turn_ended(_battler_index: int, _is_party: bool) -> void:
+	pass
 
 func _ai_turn() -> void:
 	var party = battle_manager.get_party()
@@ -108,12 +212,9 @@ func _ai_turn() -> void:
 			var target = { "stats": s, "index": i, "is_party": true }
 			var dmg = battle_manager.perform_attack(attacker, target)
 			_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, s.display_name, dmg])
-			_refresh_party_and_enemy_lists()
+			_refresh_arena_slots()
 			break
 	battle_manager.advance_turn()
-
-func _on_turn_ended(_battler_index: int, _is_party: bool) -> void:
-	pass
 
 func _on_battle_ended(party_wins: bool) -> void:
 	actions_panel.visible = false
@@ -130,39 +231,23 @@ func _on_restart_pressed() -> void:
 
 func _on_attack_pressed() -> void:
 	if _selected_target.is_empty():
-		_log("Select a target (click an enemy in the list).")
+		_log("Select a target: click an enemy on the right.")
 		return
 	var attacker = battle_manager.get_current_battler()
 	if attacker.is_empty() or not attacker.stats.is_alive():
 		return
 	var dmg = battle_manager.perform_attack(attacker, _selected_target)
 	_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, _selected_target.stats.display_name, dmg])
-	_refresh_party_and_enemy_lists()
+	_refresh_arena_slots()
 	_selected_target = {}
+	_highlight_selected_enemy()
 	battle_manager.advance_turn()
 
 func _on_end_turn_pressed() -> void:
 	battle_manager.advance_turn()
 
-func _on_party_item_selected(index: int) -> void:
-	# Optional: select party member for heal/target
-	enemy_list.deselect_all()
-	_selected_target = {}
-	party_list.select(index)
-
-func _on_enemy_item_selected(index: int) -> void:
-	var enemies = battle_manager.get_enemies()
-	if index < 0 or index >= enemies.size():
-		return
-	var s: BattlerStats = enemies[index]
-	if not s.is_alive():
-		return
-	_selected_target = { "stats": s, "index": index, "is_party": false }
-	party_list.deselect_all()
-
 func _log(msg: String) -> void:
 	log_label.text = msg + "\n" + log_label.text
-	# Keep last 8 lines
 	var lines = log_label.text.split("\n")
-	if lines.size() > 8:
-		log_label.text = "\n".join(lines.slice(0, 8))
+	if lines.size() > 10:
+		log_label.text = "\n".join(lines.slice(0, 10))
