@@ -1,40 +1,64 @@
-# Three Game — Turn-based battle (Godot 4)
+# Three Game
 
-A **4 vs 1–4** turn-based battle game. Turn order is determined by **character speed** (higher speed acts first each round).
+> Turn-based battle game (Godot 4): 4 vs 1–4 enemies, turn order by speed. Sci-fi style UI.
 
-## Requirements
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-- **Godot 4.3** (or 4.x; adjust `config/features` in `project.godot` if needed)
+`godot` `godot4` `turn-based` `battle` `gdscript`
+
+## Repository structure
+
+```
+.
+├── README.md
+├── LICENSE
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── SECURITY.md
+├── .gitignore
+├── project.godot
+├── .github/           # CODEOWNERS, issue/PR templates
+├── assets/            # Sprites, placeholder image
+├── docs/              # Project documentation
+│   ├── README.md      # Doc index
+│   ├── ARCHITECTURE.md
+│   ├── BATTLE_SYSTEM.md
+│   ├── FILE_REFERENCE.md
+│   ├── SCENES_AND_UI.md
+│   └── PLACEHOLDER_IMAGE.md
+├── resources/         # BattlerStats, etc.
+├── scenes/            # main, battle, battler_slot
+└── scripts/           # battle, main
+```
 
 ## How to run
 
-1. Open the project in Godot (open the folder containing `project.godot`).
+1. Open the project in **Godot 4.x** (folder containing `project.godot`).
 2. Press **F5** or click **Run Project**. The main scene loads and starts a sample battle.
+
+**Requirements:** Godot 4.3+ (adjust `config/features` in `project.godot` if needed).
 
 ## How it works
 
-- **Party**: 4 characters (fixed).
-- **Enemies**: 1–4 (random in the sample battle).
-- **Turn order**: At the start of each round, all alive party members and enemies are sorted by **speed** (descending). They act in that order. When everyone has acted, a new round starts and order is recalculated.
-- **On your turn**: Select an enemy in the list, then click **Attack** (or **End Turn** to skip).
-- **Enemy turns**: Enemies take a simple AI turn (attack first alive party member) after a short delay.
-
-## Project layout
-
-- `resources/battler_stats.gd` — Stats resource (HP, attack, defense, **speed**, etc.).
-- `scripts/battle/battle_manager.gd` — Turn order by speed, round flow, attack resolution.
-- `scripts/battle/battle_scene.gd` — Battle UI, input, sample battle setup.
-- `scenes/main/main.tscn` — Entry scene (loads battle).
-- `scenes/battle/battle_scene.tscn` — Battle UI scene.
+- **Party:** 4 characters (left). **Enemies:** 1–4 (right). Formation: two rows (">" and "<").
+- **Turn order:** Each round, all alive battlers are sorted by **speed** (higher first). When everyone has acted, order is recalculated.
+- **Your turn:** Click an enemy to target → **Attack** or **End Turn**. **Enemy turn:** Simple AI attacks first alive party member.
 
 ## Documentation
 
-- **In code**: Scripts and resources have inline comments explaining what each part does.
-- **In docs/**: Markdown files that explain the whole project:
-  - [docs/README.md](docs/README.md) — Doc index and quick links.
-  - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — How scripts and scenes connect.
-  - [docs/BATTLE_SYSTEM.md](docs/BATTLE_SYSTEM.md) — Turn order, rounds, combat.
-  - [docs/FILE_REFERENCE.md](docs/FILE_REFERENCE.md) — What each file does.
-  - [docs/SCENES_AND_UI.md](docs/SCENES_AND_UI.md) — Scene tree and UI layout.
+| Area        | Docs |
+|------------|------|
+| Overview   | [docs/README.md](docs/README.md) — index and quick links |
+| Architecture | [ARCHITECTURE.md](docs/ARCHITECTURE.md) — scripts, scenes, signals |
+| Battle     | [BATTLE_SYSTEM.md](docs/BATTLE_SYSTEM.md) — turn order, combat, data |
+| Files      | [FILE_REFERENCE.md](docs/FILE_REFERENCE.md) — what each file does |
+| UI         | [SCENES_AND_UI.md](docs/SCENES_AND_UI.md) — scene tree, layout, theme |
+| Placeholder image | [PLACEHOLDER_IMAGE.md](docs/PLACEHOLDER_IMAGE.md) — why it might not show, load strategies |
 
-You can extend this with more actions, skills, or a main menu that starts the battle.
+Full index: [docs/README.md](docs/README.md).
+
+## More information
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to contribute (issues, PRs, Conventional Commits).
+- [SECURITY.md](SECURITY.md) — how to report security issues.
+- [CHANGELOG.md](CHANGELOG.md) — notable changes by version.
