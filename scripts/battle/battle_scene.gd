@@ -1,12 +1,14 @@
 extends Control
-## Octopath-style battle: turn order bar at top, party left, enemies right.
-## Placeholder sprite for all; enemies are flipped. Click enemy to target.
+## Battle screen: layout (party left, enemies right), UI, input, and sample battle setup.
+## Creates the BattleManager, builds the arena from BattlerSlots, applies sci-fi theme,
+## and wires turn/attack/target/restart to the UI.
 
 const BattlerSlotScene = preload("res://scenes/battle/battler_slot.tscn")
 
-# Load placeholder at runtime so Godot's import is used (fixes missing image on some setups)
+# Loaded in _ready(); passed to each BattlerSlot. If missing, slots try their own load/fallback.
 var _placeholder_texture: Texture2D
 
+# --- Node references (must match battle_scene.tscn tree) ---
 @onready var turn_order_list: HBoxContainer = $Margin/VBox/TurnOrderBar/TurnOrderHBox/TurnOrderList
 @onready var party_slots_container: VBoxContainer = $Margin/VBox/ArenaRow/PartyArena/PartySlots
 @onready var enemy_slots_container: VBoxContainer = $Margin/VBox/ArenaRow/EnemyArena/EnemySlots
@@ -17,11 +19,11 @@ var _placeholder_texture: Texture2D
 @onready var end_turn_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn
 
 var battle_manager: BattleManager
-var _selected_target: Dictionary = {}
+var _selected_target: Dictionary = {}  # { "stats", "index", "is_party" } for current attack target
 var _party_slots: Array[BattlerSlot] = []
 var _enemy_slots: Array[BattlerSlot] = []
 
-# Sci-fi palette (Red Rising / Sun Eater / Dungeon Crawler Carl)
+# Sci-fi palette used by _apply_sci_fi_theme and turn order / stats
 const _COLOR_PANEL := Color(0.08, 0.09, 0.12, 0.95)
 const _COLOR_BORDER := Color(0.0, 0.85, 1.0, 0.6)
 const _COLOR_TEXT := Color(0.9, 0.92, 0.95, 1)
@@ -44,6 +46,7 @@ func _ready() -> void:
 	end_turn_btn.pressed.connect(_on_end_turn_pressed)
 	_start_sample_battle()
 
+# --- Apply dark panels, cyan borders, and text/button styles to all main UI elements ---
 func _apply_sci_fi_theme() -> void:
 	var panel_style = StyleBoxFlat.new()
 	panel_style.bg_color = _COLOR_PANEL
@@ -87,6 +90,7 @@ func _make_btn_style(hover: bool) -> StyleBoxFlat:
 	s.set_content_margin_all(8)
 	return s
 
+# --- Create 4 heroes and 1–4 enemies, give to BattleManager, then build arena and UI ---
 func _start_sample_battle() -> void:
 	var party: Array = []
 	for i in 4:
@@ -116,6 +120,7 @@ func _start_sample_battle() -> void:
 	_refresh_party_stats_panel()
 	_log("Battle start! Turn order is based on speed. Click an enemy to target.")
 
+# --- Returns an HBoxContainer for a row of slots. If behind=true, wrap in MarginContainer (indent). ---
 func _make_row(container: VBoxContainer, behind: bool) -> HBoxContainer:
 	var h = HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
@@ -128,8 +133,8 @@ func _make_row(container: VBoxContainer, behind: bool) -> HBoxContainer:
 		container.add_child(h)
 	return h
 
+# --- Clear slots, then create party formation (>) and enemy formation (<) with BattlerSlots ---
 func _build_arena() -> void:
-	# Clear existing
 	for c in party_slots_container.get_children():
 		c.queue_free()
 	for c in enemy_slots_container.get_children():
@@ -143,7 +148,7 @@ func _build_arena() -> void:
 	if tex == null:
 		push_warning("Placeholder texture not found at res://assets/character_placeholder.png")
 
-	# Party: > formation — back row (2) then front row (2), back row indented
+	# Party: back row (indented) = indices 0,1; front row = 2,3
 	var party_back_row = _make_row(party_slots_container, true)
 	var party_front_row = _make_row(party_slots_container, false)
 	for i in [0, 1]:
@@ -163,7 +168,7 @@ func _build_arena() -> void:
 			party_front_row.add_child(slot)
 			_party_slots.append(slot)
 
-	# Enemies: < formation — back row then front row, back row indented
+	# Enemies: back row = 2,3 (if 3+ enemies); front row = 0,1
 	var n = enemies.size()
 	var enemy_back_row = _make_row(enemy_slots_container, true)
 	var enemy_front_row = _make_row(enemy_slots_container, false)
@@ -199,6 +204,7 @@ func _refresh_arena_slots() -> void:
 			_enemy_slots[i].refresh()
 	_refresh_party_stats_panel()
 
+# --- Rebuild the right-hand party status list: name, HP bar, HP numbers ---
 func _refresh_party_stats_panel() -> void:
 	for c in stats_list.get_children():
 		c.queue_free()
@@ -231,8 +237,8 @@ func _refresh_party_stats_panel() -> void:
 		row.add_child(hp_l)
 		stats_list.add_child(row)
 
+# --- Rebuild the turn order bar: labels for each battler, [NEXT] + accent color for current ---
 func _on_turn_order_updated(_order_arg = null) -> void:
-	# Build turn order from manager
 	var order: Array = []
 	var party = battle_manager.get_party()
 	var enemies = battle_manager.get_enemies()
@@ -269,6 +275,7 @@ func _on_turn_order_updated(_order_arg = null) -> void:
 			chip.add_theme_color_override("font_color", _COLOR_TEXT)
 		turn_order_list.add_child(chip)
 
+# --- When user clicks an enemy slot: set _selected_target and highlight that slot ---
 func _on_enemy_slot_clicked(slot_index: int, is_party: bool) -> void:
 	if is_party:
 		return
@@ -290,6 +297,7 @@ func _highlight_selected_enemy() -> void:
 		else:
 			slot.modulate = Color.WHITE
 
+# --- BattleManager said "this character's turn". Update UI; if party, show actions; if enemy, run AI after delay. ---
 func _on_turn_started(battler_index: int, is_party: bool) -> void:
 	var current = battle_manager.get_current_battler()
 	if current.is_empty():
@@ -313,6 +321,7 @@ func _on_turn_started(battler_index: int, is_party: bool) -> void:
 func _on_turn_ended(_battler_index: int, _is_party: bool) -> void:
 	pass
 
+# --- Simple AI: current enemy attacks first alive party member, then we advance_turn ---
 func _ai_turn() -> void:
 	var party = battle_manager.get_party()
 	for i in party.size():
@@ -339,6 +348,7 @@ func _on_battle_ended(party_wins: bool) -> void:
 func _on_restart_pressed() -> void:
 	get_tree().reload_current_scene()
 
+# --- Attack button: deal damage to _selected_target, refresh, clear target, advance_turn ---
 func _on_attack_pressed() -> void:
 	if _selected_target.is_empty():
 		_log("Select a target: click an enemy on the right.")

@@ -1,0 +1,60 @@
+# Architecture
+
+How the project is structured and how the main pieces connect.
+
+## Overview
+
+- **Data**: `BattlerStats` (Resource) holds one character’s stats (HP, attack, defense, speed, etc.).
+- **Logic**: `BattleManager` (Node) owns party and enemies, builds turn order by speed, resolves attacks, and emits signals.
+- **UI**: `BattleScene` (Control) owns the layout, creates `BattlerSlot` instances for each character, applies the sci-fi theme, and reacts to BattleManager signals and button/clicks.
+
+There is no separate “game state” object; the source of truth is the BattleManager’s arrays of `BattlerStats` and the current turn index.
+
+## Who creates what
+
+```
+Main (main.gd)
+  └── Battle (battle_scene.tscn + battle_scene.gd)
+        ├── SciFiBackground (sci_fi_background.gd)  ← draws gradient + grid
+        ├── MarginContainer (UI)
+        │     └── VBox: TurnOrderBar, ArenaRow (Party + Enemies + Stats), BottomRow (Actions + Log)
+        └── BattleManager (battle_manager.gd)  ← created in code, add_child
+```
+
+- **BattleScene** creates the **BattleManager** in `_ready()` and adds it as a child (for lifecycle only; it’s not a visible node).
+- **BattleScene** creates all **BattlerSlot** instances in `_build_arena()` and adds them to `PartySlots` and `EnemySlots` containers.
+- **BattlerStats** are created in `_start_sample_battle()` and given to `battle_manager.setup_battle(party, enemies)`.
+
+## Signal flow
+
+```
+BattleManager emits:
+  turn_order_updated(order)  → BattleScene rebuilds the turn bar labels
+  turn_started(index, is_party) → BattleScene shows actions (if party) or runs _ai_turn() (if enemy)
+  turn_ended(...)           → (currently unused in UI)
+  battle_ended(party_wins)  → BattleScene shows victory/defeat and turns End Turn into Restart
+
+BattleScene calls BattleManager:
+  setup_battle(party, enemies)
+  get_current_battler()
+  get_party() / get_enemies()
+  perform_attack(attacker_dict, target_dict)
+  advance_turn()
+```
+
+When the user clicks an enemy **BattlerSlot**, it emits `slot_clicked(slot_index, is_party)`. BattleScene’s `_on_enemy_slot_clicked` sets `_selected_target`. When the user presses **Attack**, BattleScene calls `battle_manager.perform_attack(current_battler, _selected_target)` then `advance_turn()`.
+
+## Data flow
+
+- **Party / enemies**: Arrays of `BattlerStats` inside BattleManager. BattleScene never stores its own copy; it always reads via `get_party()` and `get_enemies()`.
+- **Turn order**: Built inside BattleManager in `_build_turn_order()` (alive only, sorted by speed). BattleScene rebuilds the turn bar in `_on_turn_order_updated()` using the same logic (alive + sort by speed) so the bar matches the manager.
+- **Current battler**: BattleManager’s `_current_turn_index` into `_turn_order`. Exposed as `get_current_battler()` returning a dict `{ "stats", "index", "is_party" }`.
+- **Target**: BattleScene’s `_selected_target` dict, set when the user clicks an enemy slot. Cleared after an attack or when a new turn starts.
+
+## Where styling lives
+
+- **Sci-fi colors and panel styles**: Defined and applied in `battle_scene.gd` (`_COLOR_*` constants, `_apply_sci_fi_theme()`, `_make_btn_style()`). Also used when creating the turn-order chips and the party stats panel bars.
+- **BattlerSlot**: Applies its own panel and HP bar style in `_ready()` so every slot looks the same without the battle scene having to style each one.
+- **Background**: Drawn in `sci_fi_background.gd`’s `_draw()` (gradient, grid, bottom line). No theme; just drawing.
+
+For more detail on the battle rules and turn flow, see [BATTLE_SYSTEM.md](BATTLE_SYSTEM.md). For file-by-file description, see [FILE_REFERENCE.md](FILE_REFERENCE.md).

@@ -27,4 +27,14 @@ A **4 vs 1–4** turn-based battle game. Turn order is determined by **character
 - `scenes/main/main.tscn` — Entry scene (loads battle).
 - `scenes/battle/battle_scene.tscn` — Battle UI scene.
 
+## Documentation
+
+- **In code**: Scripts and resources have inline comments explaining what each part does.
+- **In docs/**: Markdown files that explain the whole project:
+  - [docs/README.md](docs/README.md) — Doc index and quick links.
+  - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — How scripts and scenes connect.
+  - [docs/BATTLE_SYSTEM.md](docs/BATTLE_SYSTEM.md) — Turn order, rounds, combat.
+  - [docs/FILE_REFERENCE.md](docs/FILE_REFERENCE.md) — What each file does.
+  - [docs/SCENES_AND_UI.md](docs/SCENES_AND_UI.md) — Scene tree and UI layout.
+
 You can extend this with more actions, skills, or a main menu that starts the battle.
