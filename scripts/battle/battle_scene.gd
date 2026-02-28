@@ -5,8 +5,11 @@ extends Control
 
 const BattlerSlotScene = preload("res://scenes/battle/battler_slot.tscn")
 
-# Loaded in _ready(); passed to each BattlerSlot. If missing, slots try their own load/fallback.
-var _placeholder_texture: Texture2D
+# Idle: party olha direita, enemies olha esquerda. Attack: sprite de ataque.
+var _texture_idle_party: Texture2D   # res://assets/sevro_pixel_no_bg.png (olhar direita)
+var _texture_idle_enemy: Texture2D   # res://assets/sevro_pixel_no_bg-removebg-preview.png (olhar esquerda)
+var _texture_attack: Texture2D       # res://assets/sevro_atack_no_bg.png
+var _placeholder_texture: Texture2D  # fallback se os acima falharem
 
 # --- Node references (must match battle_scene.tscn tree) ---
 @onready var turn_order_list: HBoxContainer = $Margin/VBox/TurnOrderBar/TurnOrderHBox/TurnOrderList
@@ -35,6 +38,16 @@ func _ready() -> void:
 	_placeholder_texture = load("res://assets/character_placeholder.png") as Texture2D
 	if _placeholder_texture == null:
 		_placeholder_texture = preload("res://assets/character_placeholder.png") as Texture2D
+	# Sevro: duas direções (party = direita, enemy = esquerda) + ataque
+	_texture_idle_party = load("res://assets/sevro_pixel_no_bg.png") as Texture2D
+	_texture_idle_enemy = load("res://assets/sevro_pixel_no_bg-removebg-preview.png") as Texture2D
+	_texture_attack = load("res://assets/sevro_atack_no_bg.png") as Texture2D
+	if _texture_idle_party == null:
+		_texture_idle_party = _placeholder_texture
+	if _texture_idle_enemy == null:
+		_texture_idle_enemy = _placeholder_texture
+	if _texture_attack == null:
+		_texture_attack = _placeholder_texture
 	_apply_sci_fi_theme()
 	battle_manager = BattleManager.new()
 	add_child(battle_manager)
@@ -147,31 +160,32 @@ func _build_arena() -> void:
 
 	var party = battle_manager.get_party()
 	var enemies = battle_manager.get_enemies()
-	var tex = _placeholder_texture
-	if tex == null:
-		push_warning("Placeholder texture not found at res://assets/character_placeholder.png")
+	var idle_party = _texture_idle_party if _texture_idle_party else _placeholder_texture
+	var idle_enemy = _texture_idle_enemy if _texture_idle_enemy else _placeholder_texture
+	var attack_tex = _texture_attack if _texture_attack else _placeholder_texture
 
-	# Party: back row (indented) = indices 0,1; front row = 2,3
+	# Party: idle olhar direita + sprite de ataque
 	var party_back_row = _make_row(party_slots_container, true)
 	var party_front_row = _make_row(party_slots_container, false)
+	# Adicionar à árvore antes de setup() para @onready (texture_rect) estar disponível e a textura aplicar logo.
 	for i in [0, 1]:
 		if i < party.size():
 			var slot: BattlerSlot = BattlerSlotScene.instantiate()
 			slot.slot_index = i
 			slot.is_party = true
-			slot.setup(party[i], tex)
 			party_back_row.add_child(slot)
+			slot.setup(party[i], idle_party, attack_tex)
 			_party_slots.append(slot)
 	for i in [2, 3]:
 		if i < party.size():
 			var slot: BattlerSlot = BattlerSlotScene.instantiate()
 			slot.slot_index = i
 			slot.is_party = true
-			slot.setup(party[i], tex)
 			party_front_row.add_child(slot)
+			slot.setup(party[i], idle_party, attack_tex)
 			_party_slots.append(slot)
 
-	# Enemies: back row = 2,3 (if 3+ enemies); front row = 0,1
+	# Enemies: idle olhar esquerda + sprite de ataque
 	var n = enemies.size()
 	var enemy_back_row = _make_row(enemy_slots_container, true)
 	var enemy_front_row = _make_row(enemy_slots_container, false)
@@ -181,18 +195,18 @@ func _build_arena() -> void:
 				var slot: BattlerSlot = BattlerSlotScene.instantiate()
 				slot.slot_index = i
 				slot.is_party = false
-				slot.setup(enemies[i], tex)
 				slot.slot_clicked.connect(_on_enemy_slot_clicked)
 				enemy_back_row.add_child(slot)
+				slot.setup(enemies[i], idle_enemy, attack_tex)
 				_enemy_slots.append(slot)
 	for i in [0, 1]:
 		if i < n:
 			var slot: BattlerSlot = BattlerSlotScene.instantiate()
 			slot.slot_index = i
 			slot.is_party = false
-			slot.setup(enemies[i], tex)
 			slot.slot_clicked.connect(_on_enemy_slot_clicked)
 			enemy_front_row.add_child(slot)
+			slot.setup(enemies[i], idle_enemy, attack_tex)
 			_enemy_slots.append(slot)
 	_on_turn_order_updated(battle_manager.get_current_battler())
 
@@ -324,6 +338,19 @@ func _on_turn_started(battler_index: int, is_party: bool) -> void:
 func _on_turn_ended(_battler_index: int, _is_party: bool) -> void:
 	pass
 
+# --- Devolve o BattlerSlot do atacante atual (para animação de ataque). ---
+func _get_attacker_slot() -> BattlerSlot:
+	var current = battle_manager.get_current_battler()
+	if current.is_empty():
+		return null
+	if current.is_party:
+		if current.index >= 0 and current.index < _party_slots.size():
+			return _party_slots[current.index]
+	else:
+		if current.index >= 0 and current.index < _enemy_slots.size():
+			return _enemy_slots[current.index]
+	return null
+
 # --- Simple AI: current enemy attacks first alive party member, then we advance_turn ---
 func _ai_turn() -> void:
 	var party = battle_manager.get_party()
@@ -331,6 +358,9 @@ func _ai_turn() -> void:
 		var s: BattlerStats = party[i]
 		if s.is_alive():
 			var attacker = battle_manager.get_current_battler()
+			var attacker_slot: BattlerSlot = _get_attacker_slot()
+			if attacker_slot:
+				await attacker_slot.play_attack_animation()
 			var target = { "stats": s, "index": i, "is_party": true }
 			var dmg = battle_manager.perform_attack(attacker, target)
 			_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, s.display_name, dmg])
@@ -351,7 +381,7 @@ func _on_battle_ended(party_wins: bool) -> void:
 func _on_restart_pressed() -> void:
 	get_tree().reload_current_scene()
 
-# --- Attack button: deal damage to _selected_target, refresh, clear target, advance_turn ---
+# --- Attack button: animação de ataque no atacante, depois dano, refresh, advance_turn ---
 func _on_attack_pressed() -> void:
 	if _selected_target.is_empty():
 		_log("Select a target: click an enemy on the right.")
@@ -359,6 +389,9 @@ func _on_attack_pressed() -> void:
 	var attacker = battle_manager.get_current_battler()
 	if attacker.is_empty() or not attacker.stats.is_alive():
 		return
+	var attacker_slot: BattlerSlot = _get_attacker_slot()
+	if attacker_slot:
+		await attacker_slot.play_attack_animation()
 	var dmg = battle_manager.perform_attack(attacker, _selected_target)
 	_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, _selected_target.stats.display_name, dmg])
 	_refresh_arena_slots()

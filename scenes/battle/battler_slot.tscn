@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" path="res://assets/character_placeholder.png" id="2_placeholder"]
 
 [node name="BattlerSlot" type="PanelContainer"]
-custom_minimum_size = Vector2(140, 120)
+custom_minimum_size = Vector2(220, 220)
 layout_mode = 2
 script = ExtResource("1_script")
 
@@ -14,7 +14,7 @@ layout_mode = 2
 [node name="TextureRect" type="TextureRect" parent="HBox"]
 layout_mode = 2
 size_flags_horizontal = 0
-custom_minimum_size = Vector2(96, 120)
+custom_minimum_size = Vector2(160, 200)
 expand_mode = 1
 stretch_mode = 4
 texture = ExtResource("2_placeholder")

@@ -18,6 +18,8 @@ const PLACEHOLDER_PATH := "res://assets/character_placeholder.png"
 @onready var hp_bar: ProgressBar = $HBox/Info/HPBar
 
 var _stats: BattlerStats
+var _texture_idle: Texture2D
+var _texture_attack: Texture2D
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -35,30 +37,38 @@ func _ready() -> void:
 		hp_bar.add_theme_stylebox_override("background", _make_bar_style(false))
 		hp_bar.add_theme_stylebox_override("fill", _make_bar_style(true))
 
-	# So the texture always has space and keeps aspect ratio
+	# Space for the sprite; keep aspect ratio. Size updated in setup() to match.
 	if texture_rect:
-		texture_rect.custom_minimum_size = Vector2(80, 100)
+		texture_rect.custom_minimum_size = Vector2(160, 200)
 		texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 
-# --- Called by battle_scene after instantiating the slot. Sets stats and texture. ---
-# Texture can come from: 1) argument, 2) scene default (battler_slot.tscn has it), 3) load fallbacks.
-func setup(stats: BattlerStats, texture: Texture2D) -> void:
+# --- setup with two textures: idle (direção correta) e attack (para animação). ---
+# idle_party = olhar para a direita, idle_enemy = olhar para a esquerda (sem usar flip).
+func setup(stats: BattlerStats, texture_idle: Texture2D, texture_attack: Texture2D = null) -> void:
 	_stats = stats
-	var tex: Texture2D = texture
-	if tex == null:
-		tex = _load_placeholder_here()
-	if tex == null:
-		tex = _load_placeholder_from_file()
-	if tex == null:
-		tex = _make_fallback_texture()
+	var idle: Texture2D = texture_idle
+	if idle == null:
+		idle = _load_placeholder_here()
+	if idle == null:
+		idle = _load_placeholder_from_file()
+	if idle == null:
+		idle = _make_fallback_texture()
+	_texture_idle = idle
+	_texture_attack = texture_attack if texture_attack != null else idle
 	if texture_rect:
-		# Only assign if we got a texture; otherwise keep the scene default (ext_resource in .tscn)
-		if tex != null:
-			texture_rect.texture = tex
-		texture_rect.flip_h = not is_party  # enemies face left
-		texture_rect.custom_minimum_size = Vector2(96, 120)
+		texture_rect.texture = _texture_idle
+		texture_rect.flip_h = false
+		texture_rect.custom_minimum_size = Vector2(160, 200)
 	refresh()
+
+# --- Reproduz a animação de ataque: mostra sprite de ataque, espera, volta ao idle. ---
+func play_attack_animation() -> void:
+	if not texture_rect or not _texture_attack:
+		return
+	texture_rect.texture = _texture_attack
+	await get_tree().create_timer(0.45).timeout
+	texture_rect.texture = _texture_idle
 
 func _make_bar_style(fill: bool) -> StyleBoxFlat:
 	var s = StyleBoxFlat.new()
