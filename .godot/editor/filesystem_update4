@@ -1,3 +1,6 @@
 res://scripts/battle/battle_scene.gd
 res://scenes/battle/battler_slot.tscn
 res://scripts/battle/battler_slot.gd
+res://resources/battler_stats.gd
+res://scripts/battle/battle_manager.gd
+res://scripts/main/main.gd
