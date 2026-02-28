@@ -57,3 +57,4 @@ What each important file does.
 | `docs/BATTLE_SYSTEM.md` | Turn order, round flow, attack formula, win/lose, data structures. |
 | `docs/FILE_REFERENCE.md` | This file. |
 | `docs/SCENES_AND_UI.md` | Scene tree and UI layout, formation, theme. |
+| `docs/PLACEHOLDER_IMAGE.md` | Why the placeholder image might not show; the three load strategies and the fallback texture. |

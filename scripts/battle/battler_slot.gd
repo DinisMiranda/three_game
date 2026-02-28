@@ -42,16 +42,22 @@ func _ready() -> void:
 		texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 
 # --- Called by battle_scene after instantiating the slot. Sets stats and texture. ---
+# We try several ways to get a texture so the sprite shows even when Godot's normal load fails.
 func setup(stats: BattlerStats, texture: Texture2D) -> void:
 	_stats = stats
 	var tex: Texture2D = texture
 	if tex == null:
 		tex = _load_placeholder_here()
 	if tex == null:
+		tex = _load_placeholder_from_file()
+	if tex == null:
 		tex = _make_fallback_texture()
 	if texture_rect:
 		texture_rect.texture = tex
 		texture_rect.flip_h = not is_party  # enemies face left
+		# Force a visible area; some setups need this for the texture to draw
+		texture_rect.custom_minimum_size = Vector2(80, 100)
+		texture_rect.size = Vector2(80, 100)
 	refresh()
 
 func _make_bar_style(fill: bool) -> StyleBoxFlat:
@@ -63,12 +69,26 @@ func _make_bar_style(fill: bool) -> StyleBoxFlat:
 		s.bg_color = Color(0.06, 0.07, 0.1, 1)
 	return s
 
-# --- Try loading the placeholder image in this node's context (sometimes fixes path issues) ---
+# --- 1) Godot's resource loader (uses imported .ctex). Can fail if import is missing or path wrong. ---
 func _load_placeholder_here() -> Texture2D:
 	var r = ResourceLoader.load(PLACEHOLDER_PATH, "Texture2D", ResourceLoader.CACHE_MODE_REUSE)
 	return r as Texture2D
 
-# --- If no image loads, show a 64x64 checker pattern so the slot is never empty ---
+# --- 2) Read the PNG file as raw bytes and decode with Image.load_png_from_buffer(). ---
+#    Bypasses Godot's import; often works when load() doesn't (e.g. export, different project path).
+func _load_placeholder_from_file() -> Texture2D:
+	var file = FileAccess.open(PLACEHOLDER_PATH, FileAccess.READ)
+	if file == null:
+		return null
+	var bytes = file.get_buffer(file.get_length())
+	file.close()
+	var img = Image.new()
+	var err = img.load_png_from_buffer(bytes)
+	if err != OK:
+		return null
+	return ImageTexture.create_from_image(img)
+
+# --- 3) If no image loads, show a 64x64 checker pattern so the slot is never empty ---
 func _make_fallback_texture() -> Texture2D:
 	var img = Image.create(64, 64, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0.1, 0.12, 0.18, 1))

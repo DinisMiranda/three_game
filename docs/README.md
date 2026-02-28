@@ -10,6 +10,7 @@ This folder explains how the project is built and how each part works.
 | [**BATTLE_SYSTEM.md**](BATTLE_SYSTEM.md) | Turn order, round flow, attack resolution, and data flow |
 | [**FILE_REFERENCE.md**](FILE_REFERENCE.md) | Every important file and what it does |
 | [**SCENES_AND_UI.md**](SCENES_AND_UI.md) | Scene tree, UI layout, and sci-fi theme |
+| [**PLACEHOLDER_IMAGE.md**](PLACEHOLDER_IMAGE.md) | Why the character image might not show and how we load it (3 strategies + fallback) |
 
 ## Run the game
 
