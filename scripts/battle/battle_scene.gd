@@ -128,7 +128,7 @@ func _make_btn_style(hover: bool) -> StyleBoxFlat:
 	s.set_content_margin_all(8)
 	return s
 
-# --- Create 4 heroes and 1–4 enemies, give to BattleManager, then build arena and UI ---
+# --- Create 4 heroes and 1 enemy, give to BattleManager, then build arena and UI ---
 func _start_sample_battle() -> void:
 	var party: Array = []
 	for i in 4:
@@ -142,8 +142,7 @@ func _start_sample_battle() -> void:
 		s.is_party = true
 		party.append(s)
 	var enemies: Array = []
-	var n_enemies = randi_range(1, 4)
-	for i in n_enemies:
+	for i in 1:
 		var s = BattlerStats.new()
 		s.display_name = "Enemy %d" % (i + 1)
 		s.max_hp = 50 + i * 15

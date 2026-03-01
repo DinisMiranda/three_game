@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://battle_scene_001"]
 
 [ext_resource type="Script" path="res://scripts/battle/battle_scene.gd" id="1_battle"]
-[ext_resource type="Script" path="res://scripts/battle/sci_fi_background.gd" id="2_scifi"]
+[ext_resource type="Texture2D" path="res://assets/e32ee0a6-a11a-4f0a-b8be-ec9723487b2b.png" id="2_bg"]
 
 [node name="BattleScene" type="Control"]
 layout_mode = 3
@@ -12,14 +12,16 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_battle")
 
-[node name="SciFiBackground" type="Control" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("2_scifi")
+texture = ExtResource("2_bg")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -80,7 +82,7 @@ theme_override_constants/separation = 12
 
 [node name="EnemyLabel" type="Label" parent="Margin/VBox/ArenaRow/EnemyArena"]
 layout_mode = 2
-text = "Enemies (1-4)"
+text = "Enemy"
 
 [node name="EnemySlots" type="VBoxContainer" parent="Margin/VBox/ArenaRow/EnemyArena"]
 layout_mode = 2

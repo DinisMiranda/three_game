@@ -8,7 +8,7 @@ The game starts at **MainMenu** (`scenes/main_menu/main_menu.tscn`). **Start Bat
 
 ```
 MainMenu (Control, main_menu.gd)
-  ├── Background (ColorRect)
+  ├── Background (TextureRect; shared background image, stretch keep aspect covered)
   └── Margin / VBox: Title, StartBtn
 ```
 
@@ -24,7 +24,7 @@ BattleScene (Control, battle_scene.gd)
 
 ```
 BattleScene (Control, battle_scene.gd)
-  ├── SciFiBackground (Control, sci_fi_background.gd)   ← fullscreen, draws gradient + grid
+  ├── Background (TextureRect; shared background image, stretch keep aspect covered)
   └── Margin (MarginContainer, margins 32)
         └── VBox (VBoxContainer)
               ├── TurnOrderBar (PanelContainer)
@@ -36,7 +36,7 @@ BattleScene (Control, battle_scene.gd)
               │     │     ├── PartyLabel   "Party (4)"
               │     │     └── PartySlots   (VBoxContainer; battle_scene adds rows of BattlerSlots)
               │     ├── EnemyArena (VBoxContainer)
-              │     │     ├── EnemyLabel   "Enemies (1-4)"
+              │     │     ├── EnemyLabel   "Enemy"
               │     │     └── EnemySlots   (VBoxContainer; same)
               │     └── PartyStatsPanel (PanelContainer)
               │           └── StatsVBox
@@ -61,7 +61,7 @@ BattleManager is **not** in the scene file; it is created in code in `battle_sce
 ## Arena formation (">" and "<")
 
 - **Party (left)**: Two rows. **Back row** (top, indented 28px): slots for indices 0 and 1. **Front row** (bottom): slots for 2 and 3. So formation ">" (two behind, two in front).
-- **Enemies (right)**: Same idea. **Back row**: indices 2 and 3 (only if there are 3+ enemies). **Front row**: indices 0 and 1. So formation "<".
+- **Enemies (right)**: Same formation when multiple; currently the sample battle uses **one enemy** (front row, index 0).
 
 Rows are built in `_build_arena()` with `_make_row(container, behind)`. When `behind == true`, the row is wrapped in a MarginContainer with `margin_left = 28`.
 
@@ -88,7 +88,7 @@ Applied in `battle_scene.gd` (`_apply_sci_fi_theme()` and related):
 - **Progress bars**: Dark background style, cyan fill style (in battle scene for stats panel; in battler_slot.gd for slot HP bars).
 - **BattlerSlot**: Its own panel style (dark + cyan border) and HP bar style in `_ready()`. When it’s that character’s turn, BattleScene calls `set_turn_highlight(true)` and the slot gets a thick amber border; otherwise the default style is restored.
 
-Background is drawn in `sci_fi_background.gd`: gradient (dark to blue-black), 48px grid, thin cyan line at the bottom.
+Battle background is the fullscreen texture only (no grid overlay).
 
 ## Window and stretch
 

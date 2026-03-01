@@ -40,7 +40,7 @@
 
 ## How it works
 
-- **Party:** 4 characters (left). **Enemies:** 1–4 (right). Formation: two rows (">" and "<").
+- **Party:** 4 characters (left). **Enemy:** 1 (right) for now. Formation: two rows (">" and "<").
 - **Turn order:** Each round, all alive battlers are sorted by **speed** (higher first). When everyone has acted, order is recalculated.
 - **Your turn:** Click an enemy to target → **Attack** or **End Turn**. **Enemy turn:** Simple AI attacks first alive party member.
 

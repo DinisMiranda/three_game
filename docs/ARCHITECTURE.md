@@ -15,8 +15,7 @@ There is no separate “game state” object; the source of truth is the BattleM
 ```
 MainMenu (main_menu.tscn + main_menu.gd)  ← run/main_scene; "Start Battle" loads battle_scene
 Battle (battle_scene.tscn + battle_scene.gd)  ← loaded from main menu
-  ├── SciFiBackground (sci_fi_background.gd)  ← draws gradient + grid
-  ├── MarginContainer (UI)
+  ├── Background (TextureRect), MarginContainer (UI)
   │     └── VBox: TurnOrderBar, ArenaRow (Party + Enemies + Stats), BottomRow (Actions + Log)
   ├── EndScreen (CanvasLayer)  ← victory/defeat overlay; "Back to Main Menu" loads main_menu
   └── BattleManager (battle_manager.gd)  ← created in code, add_child
