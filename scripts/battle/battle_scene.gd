@@ -4,6 +4,7 @@ extends Control
 ## and wires turn/attack/target/restart to the UI.
 
 const BattlerSlotScene = preload("res://scenes/battle/battler_slot.tscn")
+const OptionsMenuScene = preload("res://scenes/ui/options_menu.tscn")
 
 # Idle: party faces right, enemies face left. Attack: one sprite per side (facing).
 var _texture_idle_party: Texture2D
@@ -30,6 +31,7 @@ var battle_manager: BattleManager
 var _selected_target: Dictionary = {}  # { "stats", "index", "is_party" } for current attack target
 var _party_slots: Array[BattlerSlot] = []
 var _enemy_slots: Array[BattlerSlot] = []
+var _options_menu: CanvasLayer
 
 # Sci-fi palette used by _apply_sci_fi_theme and turn order / stats
 const _COLOR_PANEL := Color(0.08, 0.09, 0.12, 0.95)
@@ -67,6 +69,8 @@ func _ready() -> void:
 	end_turn_btn.pressed.connect(_on_end_turn_pressed)
 	back_to_menu_btn.pressed.connect(_on_back_to_menu_pressed)
 	_apply_end_screen_theme()
+	_options_menu = OptionsMenuScene.instantiate()
+	add_child(_options_menu)
 	MusicPlayer.play_battle()
 	_start_sample_battle()
 
@@ -452,6 +456,11 @@ func _on_attack_pressed() -> void:
 
 func _on_end_turn_pressed() -> void:
 	battle_manager.advance_turn()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel") and not _options_menu.visible:
+		_options_menu.show_menu()
+		get_viewport().set_input_as_handled()
 
 const _LOG_MAX_LINES := 50
 
