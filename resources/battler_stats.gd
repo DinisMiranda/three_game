@@ -11,6 +11,10 @@ class_name BattlerStats
 @export var defense: int = 5
 @export var speed: int = 10  ## Higher = earlier in turn order
 @export var is_party: bool = true  ## true = ally (1 of 4), false = enemy (1–4)
+@export var is_ranged: bool = false  ## If true, can attack flying targets; melee cannot.
+
+## Runtime state: when true, only ranged attackers can target this battler (cleared at start of owner's next turn).
+var is_flying: bool = false
 
 # --- Damage: raw amount is reduced by defense; we clamp so HP never goes negative ---
 func take_damage(amount: int) -> int:
@@ -37,4 +41,6 @@ func duplicate_stats() -> BattlerStats:
 	s.defense = defense
 	s.speed = speed
 	s.is_party = is_party
+	s.is_ranged = is_ranged
+	# is_flying left false for fresh battle
 	return s
