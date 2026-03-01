@@ -221,9 +221,9 @@ func _build_arena() -> void:
 		var slot: BattlerSlot = BattlerSlotScene.instantiate()
 		slot.slot_index = i
 		slot.is_party = true
-		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if idx == 0:
 			party_back_row.add_child(slot)
+			party_back_row.alignment = BoxContainer.ALIGNMENT_CENTER
 		else:
 			party_front_row.add_child(slot)
 		slot.setup(party[i], idle_i, attack_party)
