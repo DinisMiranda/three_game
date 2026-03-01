@@ -19,6 +19,7 @@ const _ATTACK_DURATION := 0.75            # attack animation duration (seconds)
 @onready var name_label: Label = $VBox/NameLabel
 @onready var flying_label: Label = $VBox/FlyingLabel
 @onready var hp_bar: ProgressBar = $VBox/HPBar
+@onready var energy_bar: ProgressBar = $VBox/EnergyBar
 
 var _stats: BattlerStats
 var _texture_idle: Texture2D
@@ -77,6 +78,8 @@ func setup(stats: BattlerStats, texture_idle: Texture2D, texture_attack: Texture
 		texture_rect.custom_minimum_size = _idle_size
 	if hp_bar:
 		hp_bar.custom_minimum_size.x = _idle_size.x
+	if energy_bar:
+		energy_bar.custom_minimum_size.x = _idle_size.x
 	refresh()
 
 # --- Play attack animation: show larger attack sprite, wait, then back to idle. ---
@@ -107,6 +110,12 @@ func _make_bar_style(fill: bool) -> StyleBoxFlat:
 		s.bg_color = Color(0.0, 0.9, 1.0, 0.8)
 	else:
 		s.bg_color = Color(0.06, 0.07, 0.1, 1)
+	return s
+
+func _make_energy_bar_style() -> StyleBoxFlat:
+	var s = StyleBoxFlat.new()
+	s.set_corner_radius_all(2)
+	s.bg_color = Color(0.95, 0.75, 0.2, 0.9)
 	return s
 
 # --- 1) Godot's resource loader (uses imported .ctex). Can fail if import is missing or path wrong. ---
@@ -149,6 +158,10 @@ func refresh() -> void:
 		hp_bar.max_value = float(_stats.max_hp)
 		hp_bar.value = float(_stats.current_hp)
 		hp_bar.visible = _stats.is_alive()
+	if energy_bar:
+		energy_bar.max_value = float(_stats.max_energy)
+		energy_bar.value = float(_stats.current_energy)
+		energy_bar.visible = _stats.is_alive()
 	visible = _stats.is_alive()
 
 func set_flying(flying: bool) -> void:
