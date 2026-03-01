@@ -31,9 +31,15 @@ var _placeholder_texture: Texture2D
 @onready var ability_buttons_container: HBoxContainer = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityButtonsContainer
 @onready var ability_back_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn
 
-# Hero index -> list of { "id": String, "name": String }. Hero 2 (index 1) has Fly.
+# Hero index -> list of { "id": String, "name": String }. Two abilities per hero.
 const HERO_ABILITIES: Dictionary = {
-	1: [{ "id": "fly", "name": "Fly" }]
+	0: [{ "id": "slash", "name": "Slash" }, { "id": "guard", "name": "Guard" }],
+	1: [{ "id": "fly", "name": "Fly" }, { "id": "snipe", "name": "Snipe" }],
+	2: [{ "id": "strike", "name": "Strike" }, { "id": "shield", "name": "Shield" }]
+}
+# Enemy index -> list of { "id": String, "name": String }. Enemy 1 (index 0) is ranged and has abilities.
+const ENEMY_ABILITIES: Dictionary = {
+	0: [{ "id": "ranged_shot", "name": "Ranged Shot" }, { "id": "barrage", "name": "Barrage" }]
 }
 
 var battle_manager: BattleManager
@@ -57,7 +63,7 @@ func _ready() -> void:
 	# Heroes: 3 idle sprites (face right). Enemies: per-enemy idle sprites (face left).
 	_texture_idle_party.clear()
 	var hero_paths := [
-		"res://assets/sevro_pixel_no_bg.png",
+		"res://assets/sevro_pixel_no_bg-removebg-preview.png",
 		"res://assets/hero 2 no bg.png",
 		"res://assets/hero 3 no bg copy.png"
 	]
@@ -169,6 +175,8 @@ func _start_sample_battle() -> void:
 		s.display_name = "Hero %d" % (i + 1)
 		s.max_hp = 80 + i * 10
 		s.current_hp = s.max_hp
+		s.max_energy = 100
+		s.current_energy = 100
 		s.attack = 12 + i
 		s.defense = 4
 		s.speed = 8 + i * 2
@@ -180,10 +188,13 @@ func _start_sample_battle() -> void:
 		s.display_name = "Enemy %d" % (i + 1)
 		s.max_hp = 50 + i * 15
 		s.current_hp = s.max_hp
+		s.max_energy = 100
+		s.current_energy = 100
 		s.attack = 8 + i
 		s.defense = 3
 		s.speed = 5 + i * 3
 		s.is_party = false
+		s.is_ranged = true
 		enemies.append(s)
 	battle_manager.setup_battle(party, enemies)
 	_build_arena()
@@ -318,7 +329,7 @@ func _refresh_party_stats_panel() -> void:
 		bar.add_theme_stylebox_override("fill", bar_fill)
 		row.add_child(bar)
 		var hp_l = Label.new()
-		hp_l.text = " %d/%d" % [s.current_hp, s.max_hp]
+		hp_l.text = " %d/%d  E:%d/%d" % [s.current_hp, s.max_hp, s.current_energy, s.max_energy]
 		hp_l.add_theme_color_override("font_color", _COLOR_TEXT)
 		row.add_child(hp_l)
 		stats_list.add_child(row)
@@ -445,22 +456,48 @@ func _get_attacker_slot() -> BattlerSlot:
 			return _enemy_slots[current.index]
 	return null
 
-# --- Simple AI: current enemy attacks first alive party member it can hit (skips flying if enemy is melee), then advance_turn ---
+# --- AI: current enemy may use an ability (if has energy and valid target) or basic attack. ---
 func _ai_turn() -> void:
 	var party = battle_manager.get_party()
 	var attacker = battle_manager.get_current_battler()
+	var abilities: Array = ENEMY_ABILITIES.get(attacker.index, [])
+	var use_ability: bool = abilities.size() > 0 and randf() < 0.5
+	var chosen_ability: Dictionary = {}
+	if use_ability:
+		for ab in abilities:
+			if battle_manager.can_use_ability(attacker, ab.id):
+				chosen_ability = ab
+				break
+	var target: Dictionary = {}
+	for i in party.size():
+		var s: BattlerStats = party[i]
+		if s.is_alive():
+			target = { "stats": s, "index": i, "is_party": true }
+			if battle_manager.can_attack_target(attacker, target):
+				break
+	if target.is_empty():
+		battle_manager.advance_turn()
+		return
+	var attacker_slot: BattlerSlot = _get_attacker_slot()
+	if not chosen_ability.is_empty() and chosen_ability.id in ["ranged_shot", "barrage"]:
+		if attacker_slot:
+			await attacker_slot.play_attack_animation()
+		battle_manager.perform_ability(attacker, chosen_ability.id, target)
+		_log("%s uses %s on %s!" % [attacker.stats.display_name, chosen_ability.name, target.stats.display_name])
+		_refresh_arena_slots()
+		battle_manager.advance_turn()
+		return
 	for i in party.size():
 		var s: BattlerStats = party[i]
 		if not s.is_alive():
 			continue
-		var target = { "stats": s, "index": i, "is_party": true }
-		if not battle_manager.can_attack_target(attacker, target):
+		var t = { "stats": s, "index": i, "is_party": true }
+		if not battle_manager.can_attack_target(attacker, t):
 			_log("%s can't reach %s (flying)!" % [attacker.stats.display_name, s.display_name])
 			continue
-		var attacker_slot: BattlerSlot = _get_attacker_slot()
 		if attacker_slot:
 			await attacker_slot.play_attack_animation()
-		var dmg = battle_manager.perform_attack(attacker, target)
+		var dmg = battle_manager.perform_attack(attacker, t)
 		_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, s.display_name, dmg])
 		_refresh_arena_slots()
 		battle_manager.advance_turn()
@@ -522,28 +559,33 @@ func _on_abilities_pressed() -> void:
 	for c in ability_buttons_container.get_children():
 		c.queue_free()
 	for ab in abilities:
+		var cost: int = battle_manager.get_ability_cost(ab.id)
+		var can_afford: bool = battle_manager.can_use_ability(current, ab.id)
 		var btn = Button.new()
-		btn.text = ab.name
-		btn.add_theme_color_override("font_color", _COLOR_TEXT)
+		btn.text = "%s (%d)" % [ab.name, cost]
+		btn.disabled = not can_afford
+		btn.add_theme_color_override("font_color", _COLOR_TEXT if can_afford else Color(0.5, 0.5, 0.5, 1))
 		btn.add_theme_stylebox_override("normal", _make_btn_style(false))
 		btn.add_theme_stylebox_override("hover", _make_btn_style(true))
-		var aid: String = ab.id
-		btn.pressed.connect(_on_ability_used.bind(aid))
+		btn.pressed.connect(_on_ability_used.bind(ab.id, ab.name))
 		ability_buttons_container.add_child(btn)
 
 func _on_ability_back_pressed() -> void:
 	ability_sub_panel.visible = false
 
-func _on_ability_used(ability_id: String) -> void:
+func _on_ability_used(ability_id: String, ability_name: String) -> void:
 	var current = battle_manager.get_current_battler()
 	if current.is_empty():
 		ability_sub_panel.visible = false
 		return
-	if not battle_manager.perform_ability(current, ability_id):
+	if not battle_manager.can_use_ability(current, ability_id):
+		_log("Not enough energy for %s." % ability_name)
 		ability_sub_panel.visible = false
 		return
-	var name_str: String = "Fly" if ability_id == "fly" else ability_id
-	_log("%s uses %s!" % [current.stats.display_name, name_str])
+	if not battle_manager.perform_ability(current, ability_id, {}):
+		ability_sub_panel.visible = false
+		return
+	_log("%s uses %s!" % [current.stats.display_name, ability_name])
 	if ability_id == "fly":
 		_log("%s is flying! Only ranged attacks can hit her." % current.stats.display_name)
 	_refresh_arena_slots()

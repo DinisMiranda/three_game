@@ -13,8 +13,24 @@ class_name BattlerStats
 @export var is_party: bool = true  ## true = ally (1 of 4), false = enemy (1–4)
 @export var is_ranged: bool = false  ## If true, can attack flying targets; melee cannot.
 
+## Energy for abilities. Restored at start of each turn (see BattleManager). Abilities cost energy.
+@export var max_energy: int = 100
+var current_energy: int = 100
+
 ## Runtime state: when true, only ranged attackers can target this battler (cleared at start of owner's next turn).
 var is_flying: bool = false
+
+func has_energy(cost: int) -> bool:
+	return current_energy >= cost
+
+func spend_energy(cost: int) -> bool:
+	if not has_energy(cost):
+		return false
+	current_energy = maxi(0, current_energy - cost)
+	return true
+
+func restore_energy(amount: int) -> void:
+	current_energy = mini(max_energy, current_energy + amount)
 
 # --- Damage: raw amount is reduced by defense; we clamp so HP never goes negative ---
 func take_damage(amount: int) -> int:
@@ -42,5 +58,6 @@ func duplicate_stats() -> BattlerStats:
 	s.speed = speed
 	s.is_party = is_party
 	s.is_ranged = is_ranged
-	# is_flying left false for fresh battle
+	s.max_energy = max_energy
+	s.current_energy = current_energy
 	return s

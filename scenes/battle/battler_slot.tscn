@@ -28,6 +28,13 @@ max_value = 100.0
 value = 100.0
 show_percentage = false
 
+[node name="EnergyBar" type="ProgressBar" parent="VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 10)
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
 [node name="TextureRect" type="TextureRect" parent="VBox"]
 layout_mode = 2
 custom_minimum_size = Vector2(200, 260)

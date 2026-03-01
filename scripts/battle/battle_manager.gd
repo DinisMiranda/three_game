@@ -11,6 +11,13 @@ signal turn_order_updated(order: Array)                  # full order for this r
 
 const PARTY_SIZE := 3
 const MAX_ENEMIES := 4
+const ENERGY_RESTORE_PER_TURN := 20
+
+# Ability id -> energy cost. Used by both party and enemies.
+const ABILITY_COSTS: Dictionary = {
+	"fly": 25, "snipe": 30, "slash": 15, "guard": 20, "strike": 25, "shield": 20,
+	"ranged_shot": 20, "barrage": 35
+}
 
 # --- Internal state ---
 # Party and enemies are arrays of BattlerStats (by index 0..3 and 0..n)
@@ -80,9 +87,18 @@ func _emit_turn_started(idx: int) -> void:
 	if idx < 0 or idx >= _turn_order.size():
 		return
 	var b = _turn_order[idx]
-	# Clear flying at start of this battler's turn (flying lasts until your next turn).
 	b.stats.is_flying = false
+	b.stats.restore_energy(ENERGY_RESTORE_PER_TURN)
 	turn_started.emit(b.index, b.is_party)
+
+func get_ability_cost(ability_id: String) -> int:
+	return ABILITY_COSTS.get(ability_id, 0)
+
+func can_use_ability(battler: Dictionary, ability_id: String) -> bool:
+	if battler.is_empty():
+		return false
+	var cost: int = get_ability_cost(ability_id)
+	return battler.stats.has_energy(cost)
 
 # --- True if attacker can deal damage to target (flying targets only hittable by ranged). ---
 func can_attack_target(attacker: Dictionary, target: Dictionary) -> bool:
@@ -104,12 +120,31 @@ func perform_attack(attacker: Dictionary, target: Dictionary) -> int:
 	var damage = maxi(1, atk_stats.attack - (tgt_stats.defense / 2))
 	return tgt_stats.take_damage(damage)
 
-# --- Apply an ability by id (e.g. "fly" sets the attacker's is_flying = true). ---
-func perform_ability(attacker: Dictionary, ability_id: String) -> bool:
+# --- Apply an ability. Costs energy; optional target for attack abilities. Returns true if used. ---
+func perform_ability(attacker: Dictionary, ability_id: String, target: Dictionary = {}) -> bool:
 	if attacker.is_empty():
 		return false
+	var cost: int = get_ability_cost(ability_id)
+	if not attacker.stats.has_energy(cost):
+		return false
+	if not attacker.stats.spend_energy(cost):
+		return false
+	# Self / buff abilities
 	if ability_id == "fly":
 		attacker.stats.is_flying = true
+		return true
+	if ability_id in ["guard", "shield"]:
+		return true
+	# Targeted attack abilities (enemy or party)
+	if ability_id == "ranged_shot" and not target.is_empty():
+		perform_attack(attacker, target)
+		return true
+	if ability_id == "barrage" and not target.is_empty():
+		perform_attack(attacker, target)
+		perform_attack(attacker, target)
+		return true
+	# Party-only abilities that consume turn but have no extra effect yet
+	if ability_id in ["slash", "snipe", "strike"]:
 		return true
 	return false
 
