@@ -1,9 +1,9 @@
-[gd_scene load_steps=2 format=3 uid="uid://main_scene_001"]
+[gd_scene format=3 uid="uid://l36evlhvice"]
 
-[ext_resource type="Script" path="res://scripts/main/main.gd" id="1_main"]
-[ext_resource type="PackedScene" uid="uid://battle_scene_001" path="res://scenes/battle/battle_scene.tscn" id="2_battle"]
+[ext_resource type="Script" uid="uid://cuq8lrhlpy0ab" path="res://scripts/main/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/battle/battle_scene.tscn" id="2_battle"]
 
-[node name="Main" type="Control"]
+[node name="Main" type="Control" unique_id=912620340]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,10 +12,10 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main")
 
-[node name="Battle" parent="." instance=ExtResource("2_battle")]
+[node name="Battle" parent="." unique_id=510585916 instance=ExtResource("2_battle")]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+anchors_preset = -1
+anchor_right = 1.4200001
+anchor_bottom = 1.478
+offset_right = -0.40014648
+offset_bottom = -0.23999023
