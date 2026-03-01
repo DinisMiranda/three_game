@@ -67,6 +67,7 @@ func _ready() -> void:
 	end_turn_btn.pressed.connect(_on_end_turn_pressed)
 	back_to_menu_btn.pressed.connect(_on_back_to_menu_pressed)
 	_apply_end_screen_theme()
+	MusicPlayer.play_battle()
 	_start_sample_battle()
 
 # --- Apply dark panels, cyan borders, and text/button styles to all main UI elements ---

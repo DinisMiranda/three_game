@@ -12,6 +12,7 @@ const _COLOR_ACCENT := Color(0.0, 0.9, 1.0, 1)
 func _ready() -> void:
 	start_btn.pressed.connect(_on_start_pressed)
 	_apply_theme()
+	MusicPlayer.play_menu()
 
 func _apply_theme() -> void:
 	title_label.add_theme_color_override("font_color", _COLOR_ACCENT)

@@ -6,7 +6,7 @@ What each important file does.
 
 | File | Purpose |
 |------|--------|
-| `project.godot` | Godot project config: app name, main scene (`scenes/main_menu/main_menu.tscn`), window size (1920×1080), stretch mode, input actions. |
+| `project.godot` | Godot project config: app name, main scene (`scenes/main_menu/main_menu.tscn`), window size (1920×1080), stretch mode, input actions, autoload `MusicPlayer`. |
 | `README.md` | Short project description and how to run. |
 | `LICENSE` | MIT license. |
 
@@ -18,11 +18,17 @@ What each important file does.
 
 ## Scripts
 
+### Audio
+
+| File | Purpose |
+|------|--------|
+| `scripts/audio/music_player.gd` | **MusicPlayer** (autoload). Plays BGM: `play_menu()` (menu.ogg / background.ogg), `play_battle()` (battle.ogg / background.ogg). Loops OGG/MP3. Add files under `assets/music/`. |
+
 ### Main menu
 
 | File | Purpose |
 |------|--------|
-| `scripts/main_menu/main_menu.gd` | Attached to MainMenu root. Shows title and **Start Battle** button; on press, `change_scene_to_file("res://scenes/battle/battle_scene.tscn")`. Sci-fi theme. |
+| `scripts/main_menu/main_menu.gd` | Attached to MainMenu root. Shows title and **Start Battle** button; on press, `change_scene_to_file("res://scenes/battle/battle_scene.tscn")`. Calls `MusicPlayer.play_menu()`. Sci-fi theme. |
 | `scenes/main_menu/main_menu.tscn` | Root: MainMenu (Control + main_menu.gd). Background ColorRect, Margin, VBox with Title and StartBtn. |
 
 ### Main (legacy)
@@ -59,6 +65,7 @@ What each important file does.
 | `assets/sevro_atack_no_bg.png` | Enemy attack sprite (face left). |
 | `assets/sevro_atack_no_bg_1-removebg-preview.png` | Party attack sprite (face right). |
 | `assets/e32ee0a6-a11a-4f0a-b8be-ec9723487b2b.png` | Shared fullscreen background image (main menu and battle scene; stretch keep aspect covered). |
+| `assets/music/` | Folder for BGM: **menu.ogg**, **battle.ogg**, or single **background.ogg** (see `assets/music/README.md`). |
 | `assets/character_placeholder.png.import` | Godot import config for the PNG (e.g. texture type, compression). |
 
 ## Docs
