@@ -25,7 +25,16 @@ var _placeholder_texture: Texture2D
 @onready var back_to_menu_btn: Button = $EndScreen/Center/Panel/VBox/BackToMenuBtn
 @onready var actions_panel: PanelContainer = $Margin/VBox/BottomRow/ActionsPanel
 @onready var attack_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn
+@onready var abilities_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn
 @onready var end_turn_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn
+@onready var ability_sub_panel: VBoxContainer = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel
+@onready var ability_buttons_container: HBoxContainer = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityButtonsContainer
+@onready var ability_back_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn
+
+# Hero index -> list of { "id": String, "name": String }. Hero 2 (index 1) has Fly.
+const HERO_ABILITIES: Dictionary = {
+	1: [{ "id": "fly", "name": "Fly" }]
+}
 
 var battle_manager: BattleManager
 var _selected_target: Dictionary = {}  # { "stats", "index", "is_party" } for current attack target
@@ -76,7 +85,9 @@ func _ready() -> void:
 	battle_manager.turn_order_updated.connect(_on_turn_order_updated)
 	battle_manager.battle_ended.connect(_on_battle_ended)
 	attack_btn.pressed.connect(_on_attack_pressed)
+	abilities_btn.pressed.connect(_on_abilities_pressed)
 	end_turn_btn.pressed.connect(_on_end_turn_pressed)
+	ability_back_btn.pressed.connect(_on_ability_back_pressed)
 	back_to_menu_btn.pressed.connect(_on_back_to_menu_pressed)
 	_apply_end_screen_theme()
 	_options_menu = OptionsMenuScene.instantiate()
@@ -111,9 +122,16 @@ func _apply_sci_fi_theme() -> void:
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn.add_theme_color_override("font_color", _COLOR_TEXT)
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn.add_theme_color_override("font_color", _COLOR_TEXT)
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn.add_theme_color_override("font_color", _COLOR_TEXT)
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityLabel.add_theme_color_override("font_color", _COLOR_TEXT)
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn.add_theme_color_override("font_color", _COLOR_TEXT)
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
 
 	var log_style = panel_style.duplicate()
 	(log_style as StyleBoxFlat).bg_color = Color(0.04, 0.05, 0.08, 0.98)
@@ -377,10 +395,14 @@ func _on_enemy_slot_clicked(slot_index: int, is_party: bool) -> void:
 	_log("Target: %s" % s.display_name)
 
 func _highlight_selected_enemy() -> void:
+	var attacker = battle_manager.get_current_battler()
 	for i in _enemy_slots.size():
 		var slot: BattlerSlot = _enemy_slots[i]
+		var tgt = { "stats": slot.get_stats(), "index": i, "is_party": false }
 		if slot.get_stats() == _selected_target.get("stats", null):
 			slot.modulate = Color(1.2, 1.2, 1.0)
+		elif not attacker.is_empty() and not battle_manager.can_attack_target(attacker, tgt):
+			slot.modulate = Color(0.5, 0.5, 0.55)
 		else:
 			slot.modulate = Color.WHITE
 
@@ -398,10 +420,12 @@ func _on_turn_started(battler_index: int, is_party: bool) -> void:
 	_on_turn_order_updated(null)
 	if is_party:
 		actions_panel.visible = true
+		ability_sub_panel.visible = false
 		_selected_target = {}
 		_highlight_selected_enemy()
 	else:
 		actions_panel.visible = false
+		ability_sub_panel.visible = false
 		await get_tree().create_timer(0.8).timeout
 		_ai_turn()
 
@@ -421,21 +445,26 @@ func _get_attacker_slot() -> BattlerSlot:
 			return _enemy_slots[current.index]
 	return null
 
-# --- Simple AI: current enemy attacks first alive party member, then we advance_turn ---
+# --- Simple AI: current enemy attacks first alive party member it can hit (skips flying if enemy is melee), then advance_turn ---
 func _ai_turn() -> void:
 	var party = battle_manager.get_party()
+	var attacker = battle_manager.get_current_battler()
 	for i in party.size():
 		var s: BattlerStats = party[i]
-		if s.is_alive():
-			var attacker = battle_manager.get_current_battler()
-			var attacker_slot: BattlerSlot = _get_attacker_slot()
-			if attacker_slot:
-				await attacker_slot.play_attack_animation()
-			var target = { "stats": s, "index": i, "is_party": true }
-			var dmg = battle_manager.perform_attack(attacker, target)
-			_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, s.display_name, dmg])
-			_refresh_arena_slots()
-			break
+		if not s.is_alive():
+			continue
+		var target = { "stats": s, "index": i, "is_party": true }
+		if not battle_manager.can_attack_target(attacker, target):
+			_log("%s can't reach %s (flying)!" % [attacker.stats.display_name, s.display_name])
+			continue
+		var attacker_slot: BattlerSlot = _get_attacker_slot()
+		if attacker_slot:
+			await attacker_slot.play_attack_animation()
+		var dmg = battle_manager.perform_attack(attacker, target)
+		_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, s.display_name, dmg])
+		_refresh_arena_slots()
+		battle_manager.advance_turn()
+		return
 	battle_manager.advance_turn()
 
 func _on_battle_ended(party_wins: bool) -> void:
@@ -457,13 +486,16 @@ func _on_battle_ended(party_wins: bool) -> void:
 func _on_back_to_menu_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/main_menu/main_menu.tscn")
 
-# --- Attack button: play attack animation on attacker, then damage, refresh, advance_turn ---
+# --- Attack button: play attack animation on attacker, then damage (if target not flying or attacker ranged), refresh, advance_turn ---
 func _on_attack_pressed() -> void:
 	if _selected_target.is_empty():
 		_log("Select a target: click an enemy on the right.")
 		return
 	var attacker = battle_manager.get_current_battler()
 	if attacker.is_empty() or not attacker.stats.is_alive():
+		return
+	if not battle_manager.can_attack_target(attacker, _selected_target):
+		_log("Can't reach %s (flying) with a melee attack!" % _selected_target.stats.display_name)
 		return
 	var attacker_slot: BattlerSlot = _get_attacker_slot()
 	if attacker_slot:
@@ -476,6 +508,46 @@ func _on_attack_pressed() -> void:
 	battle_manager.advance_turn()
 
 func _on_end_turn_pressed() -> void:
+	battle_manager.advance_turn()
+
+func _on_abilities_pressed() -> void:
+	var current = battle_manager.get_current_battler()
+	if current.is_empty() or not current.is_party:
+		return
+	var abilities: Array = HERO_ABILITIES.get(current.index, [])
+	if abilities.is_empty():
+		_log("%s has no abilities." % current.stats.display_name)
+		return
+	ability_sub_panel.visible = true
+	for c in ability_buttons_container.get_children():
+		c.queue_free()
+	for ab in abilities:
+		var btn = Button.new()
+		btn.text = ab.name
+		btn.add_theme_color_override("font_color", _COLOR_TEXT)
+		btn.add_theme_stylebox_override("normal", _make_btn_style(false))
+		btn.add_theme_stylebox_override("hover", _make_btn_style(true))
+		var aid: String = ab.id
+		btn.pressed.connect(_on_ability_used.bind(aid))
+		ability_buttons_container.add_child(btn)
+
+func _on_ability_back_pressed() -> void:
+	ability_sub_panel.visible = false
+
+func _on_ability_used(ability_id: String) -> void:
+	var current = battle_manager.get_current_battler()
+	if current.is_empty():
+		ability_sub_panel.visible = false
+		return
+	if not battle_manager.perform_ability(current, ability_id):
+		ability_sub_panel.visible = false
+		return
+	var name_str: String = "Fly" if ability_id == "fly" else ability_id
+	_log("%s uses %s!" % [current.stats.display_name, name_str])
+	if ability_id == "fly":
+		_log("%s is flying! Only ranged attacks can hit her." % current.stats.display_name)
+	_refresh_arena_slots()
+	ability_sub_panel.visible = false
 	battle_manager.advance_turn()
 
 func _unhandled_input(event: InputEvent) -> void:

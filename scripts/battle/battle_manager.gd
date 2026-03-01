@@ -80,18 +80,38 @@ func _emit_turn_started(idx: int) -> void:
 	if idx < 0 or idx >= _turn_order.size():
 		return
 	var b = _turn_order[idx]
+	# Clear flying at start of this battler's turn (flying lasts until your next turn).
+	b.stats.is_flying = false
 	turn_started.emit(b.index, b.is_party)
 
-# --- Resolve one attack: damage = max(1, attack - defense/2), applied to target's take_damage ---
-func perform_attack(attacker: Dictionary, target: Dictionary) -> int:
+# --- True if attacker can deal damage to target (flying targets only hittable by ranged). ---
+func can_attack_target(attacker: Dictionary, target: Dictionary) -> bool:
 	if attacker.is_empty() or target.is_empty():
+		return false
+	var tgt_stats: BattlerStats = target.stats
+	if not tgt_stats.is_alive():
+		return false
+	if tgt_stats.is_flying and not attacker.stats.is_ranged:
+		return false
+	return true
+
+# --- Resolve one attack: damage = max(1, attack - defense/2). Returns 0 if target is flying and attacker is melee. ---
+func perform_attack(attacker: Dictionary, target: Dictionary) -> int:
+	if not can_attack_target(attacker, target):
 		return 0
 	var atk_stats: BattlerStats = attacker.stats
 	var tgt_stats: BattlerStats = target.stats
-	if not atk_stats.is_alive() or not tgt_stats.is_alive():
-		return 0
 	var damage = maxi(1, atk_stats.attack - (tgt_stats.defense / 2))
 	return tgt_stats.take_damage(damage)
+
+# --- Apply an ability by id (e.g. "fly" sets the attacker's is_flying = true). ---
+func perform_ability(attacker: Dictionary, ability_id: String) -> bool:
+	if attacker.is_empty():
+		return false
+	if ability_id == "fly":
+		attacker.stats.is_flying = true
+		return true
+	return false
 
 func _party_has_alive() -> bool:
 	for s in _party:

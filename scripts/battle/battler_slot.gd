@@ -17,6 +17,7 @@ const _ATTACK_DURATION := 0.75            # attack animation duration (seconds)
 
 @onready var texture_rect: TextureRect = $VBox/TextureRect
 @onready var name_label: Label = $VBox/NameLabel
+@onready var flying_label: Label = $VBox/FlyingLabel
 @onready var hp_bar: ProgressBar = $VBox/HPBar
 
 var _stats: BattlerStats
@@ -38,6 +39,8 @@ func _ready() -> void:
 	add_theme_stylebox_override("panel", panel_style)
 	if name_label:
 		name_label.add_theme_color_override("font_color", Color(0.9, 0.92, 0.95, 1))
+	if flying_label:
+		flying_label.add_theme_color_override("font_color", Color(0.6, 0.85, 1.0, 1))
 	if hp_bar:
 		hp_bar.add_theme_stylebox_override("background", _make_bar_style(false))
 		hp_bar.add_theme_stylebox_override("fill", _make_bar_style(true))
@@ -135,17 +138,22 @@ func _make_fallback_texture() -> Texture2D:
 				img.fill_rect(Rect2i(x * 8, y * 8, 8, 8), Color(0.0, 0.85, 1.0, 0.5))
 	return ImageTexture.create_from_image(img)
 
-# --- Update name and HP bar from _stats; hide slot when dead (removed from display) ---
+# --- Update name, flying state, and HP bar from _stats; hide slot when dead ---
 func refresh() -> void:
 	if _stats == null:
 		return
 	if name_label:
 		name_label.text = _stats.display_name
+	set_flying(_stats.is_flying)
 	if hp_bar:
 		hp_bar.max_value = float(_stats.max_hp)
 		hp_bar.value = float(_stats.current_hp)
 		hp_bar.visible = _stats.is_alive()
 	visible = _stats.is_alive()
+
+func set_flying(flying: bool) -> void:
+	if flying_label:
+		flying_label.visible = flying
 
 func get_stats() -> BattlerStats:
 	return _stats
