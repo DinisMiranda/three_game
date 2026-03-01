@@ -174,10 +174,11 @@ func _start_sample_battle() -> void:
 
 # --- Returns an HBoxContainer for a row of slots. If behind=true, wrap in MarginContainer (indent). ---
 # If add_leading_spacer=true, prepend an expanding spacer (e.g. to push enemy slots to the right).
-# Rows get size_flags_vertical = EXPAND so they fill the arena height and share space equally.
-func _make_row(container: VBoxContainer, behind: bool, add_leading_spacer: bool = false) -> HBoxContainer:
+# top_margin: optional extra top margin (e.g. to push back row down so Hero 1 is "on the ground").
+func _make_row(container: VBoxContainer, behind: bool, add_leading_spacer: bool = false, top_margin: int = 0) -> HBoxContainer:
 	var h = HBoxContainer.new()
-	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Don't expand vertically — row height = content height, so we can align rows to bottom ("on the ground").
+	h.size_flags_vertical = 0
 	h.add_theme_constant_override("separation", 48)
 	if add_leading_spacer:
 		var spacer = Control.new()
@@ -185,8 +186,10 @@ func _make_row(container: VBoxContainer, behind: bool, add_leading_spacer: bool 
 		h.add_child(spacer)
 	if behind:
 		var m = MarginContainer.new()
-		m.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		m.size_flags_vertical = 0
 		m.add_theme_constant_override("margin_left", 28)
+		if top_margin > 0:
+			m.add_theme_constant_override("margin_top", top_margin)
 		m.add_child(h)
 		container.add_child(m)
 	else:
@@ -207,12 +210,12 @@ func _build_arena() -> void:
 	var attack_party = _texture_attack_party if _texture_attack_party else _placeholder_texture
 	var attack_enemy = _texture_attack_enemy if _texture_attack_enemy else _placeholder_texture
 
-	# Party: 3 heroes. Back row: Hero 1. Front row: Hero 2 (left), Hero 3 (right).
-	var party_back_row = _make_row(party_slots_container, true)
-	var party_front_row = _make_row(party_slots_container, false)
-	var party_order := [0, 1, 2]  # visual order: Hero 1, Hero 2, Hero 3
-	for idx in party_order.size():
-		var i: int = party_order[idx]
+	# Party: 3 heroes in one row on the ground — Hero 2 (left), Hero 1 (center), Hero 3 (right).
+	var party_row = _make_row(party_slots_container, false)
+	party_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var party_visual_order := [1, 0, 2]  # Hero 2, Hero 1, Hero 3 — Hero 1 in the middle
+	for idx in party_visual_order.size():
+		var i: int = party_visual_order[idx]
 		if i >= party.size():
 			continue
 		var idle_i: Texture2D = _placeholder_texture
@@ -221,15 +224,12 @@ func _build_arena() -> void:
 		var slot: BattlerSlot = BattlerSlotScene.instantiate()
 		slot.slot_index = i
 		slot.is_party = true
-		if idx == 0:
-			party_back_row.add_child(slot)
-			party_back_row.alignment = BoxContainer.ALIGNMENT_CENTER
-		else:
-			party_front_row.add_child(slot)
+		party_row.add_child(slot)
 		slot.setup(party[i], idle_i, attack_party)
 		_party_slots.append(slot)
 	# Keep _party_slots indexed by party index for _get_attacker_slot()
 	_party_slots.sort_custom(func(a, b): return a.slot_index < b.slot_index)
+	party_slots_container.alignment = BoxContainer.ALIGNMENT_END
 
 	# Enemies: idle face left + attack face left; leading spacer pushes them to the right
 	var n = enemies.size()
@@ -247,7 +247,7 @@ func _build_arena() -> void:
 				slot.is_party = false
 				slot.slot_clicked.connect(_on_enemy_slot_clicked)
 				enemy_back_row.add_child(slot)
-				slot.setup(enemies[i], get_enemy_idle.call(i), attack_enemy)
+				slot.setup(enemies[i], get_enemy_idle.call(i), attack_enemy, Vector2(380, 494))
 				_enemy_slots.append(slot)
 	for i in [0, 1]:
 		if i < n:
@@ -256,8 +256,9 @@ func _build_arena() -> void:
 			slot.is_party = false
 			slot.slot_clicked.connect(_on_enemy_slot_clicked)
 			enemy_front_row.add_child(slot)
-			slot.setup(enemies[i], get_enemy_idle.call(i), attack_enemy)
+			slot.setup(enemies[i], get_enemy_idle.call(i), attack_enemy, Vector2(380, 494))
 			_enemy_slots.append(slot)
+	enemy_slots_container.alignment = BoxContainer.ALIGNMENT_END
 	_on_turn_order_updated(battle_manager.get_current_battler())
 
 func _refresh_arena_slots() -> void:

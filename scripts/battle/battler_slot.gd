@@ -23,6 +23,8 @@ var _stats: BattlerStats
 var _texture_idle: Texture2D
 var _texture_attack: Texture2D
 var _default_panel_style: StyleBoxFlat  # stored to restore when turning off turn highlight
+var _idle_size: Vector2 = _IDLE_SIZE
+var _attack_size: Vector2 = _ATTACK_SIZE
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -48,8 +50,15 @@ func _ready() -> void:
 
 # --- Setup with two textures: idle (correct facing) and attack (for animation). ---
 # idle_party = face right, idle_enemy = face left (no flip used).
-func setup(stats: BattlerStats, texture_idle: Texture2D, texture_attack: Texture2D = null) -> void:
+# size_override: if non-zero, use this for sprite size (e.g. larger enemies).
+func setup(stats: BattlerStats, texture_idle: Texture2D, texture_attack: Texture2D = null, size_override: Vector2 = Vector2.ZERO) -> void:
 	_stats = stats
+	if size_override != Vector2.ZERO:
+		_idle_size = size_override
+		_attack_size = Vector2(size_override.x * 1.2, size_override.y * 1.2)
+	else:
+		_idle_size = _IDLE_SIZE
+		_attack_size = _ATTACK_SIZE
 	var idle: Texture2D = texture_idle
 	if idle == null:
 		idle = _load_placeholder_here()
@@ -62,7 +71,9 @@ func setup(stats: BattlerStats, texture_idle: Texture2D, texture_attack: Texture
 	if texture_rect:
 		texture_rect.texture = _texture_idle
 		texture_rect.flip_h = false
-		texture_rect.custom_minimum_size = _IDLE_SIZE
+		texture_rect.custom_minimum_size = _idle_size
+	if hp_bar:
+		hp_bar.custom_minimum_size.x = _idle_size.x
 	refresh()
 
 # --- Play attack animation: show larger attack sprite, wait, then back to idle. ---
@@ -70,10 +81,10 @@ func play_attack_animation() -> void:
 	if not texture_rect or not _texture_attack:
 		return
 	texture_rect.texture = _texture_attack
-	texture_rect.custom_minimum_size = _ATTACK_SIZE
+	texture_rect.custom_minimum_size = _attack_size
 	await get_tree().create_timer(_ATTACK_DURATION).timeout
 	texture_rect.texture = _texture_idle
-	texture_rect.custom_minimum_size = _IDLE_SIZE
+	texture_rect.custom_minimum_size = _idle_size
 
 # --- Highlight this slot when it's this character's turn (amber outline only, no box). ---
 func set_turn_highlight(active: bool) -> void:
