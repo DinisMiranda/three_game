@@ -8,17 +8,16 @@ signal slot_clicked(slot_index: int, is_party: bool)
 
 # Path used if the battle scene didn't pass a texture (fallback load inside this node)
 const PLACEHOLDER_PATH := "res://assets/character_placeholder.png"
-const _IDLE_SIZE := Vector2(160, 200)
-const _ATTACK_SIZE := Vector2(192, 240)   # slightly larger during attack animation
+const _IDLE_SIZE := Vector2(200, 260)
+const _ATTACK_SIZE := Vector2(240, 312)   # slightly larger during attack animation
 const _ATTACK_DURATION := 0.75            # attack animation duration (seconds)
 
 @export var slot_index: int = 0
 @export var is_party: bool = true
 
-@onready var texture_rect: TextureRect = $HBox/TextureRect
-@onready var info: VBoxContainer = $HBox/Info
-@onready var name_label: Label = $HBox/Info/NameLabel
-@onready var hp_bar: ProgressBar = $HBox/Info/HPBar
+@onready var texture_rect: TextureRect = $VBox/TextureRect
+@onready var name_label: Label = $VBox/NameLabel
+@onready var hp_bar: ProgressBar = $VBox/HPBar
 
 var _stats: BattlerStats
 var _texture_idle: Texture2D
@@ -29,11 +28,10 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	gui_input.connect(_on_gui_input)
 
-	# Sci-fi panel: dark background, thin cyan border
+	# No box: transparent panel, no border (turn highlight adds border only when active)
 	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.08, 0.09, 0.12, 0.95)
-	panel_style.border_color = Color(0.0, 0.85, 1.0, 0.5)
-	panel_style.set_border_width_all(1)
+	panel_style.bg_color = Color(0, 0, 0, 0)
+	panel_style.set_border_width_all(0)
 	_default_panel_style = panel_style.duplicate()
 	add_theme_stylebox_override("panel", panel_style)
 	if name_label:
@@ -44,7 +42,7 @@ func _ready() -> void:
 
 	# Space for the sprite; keep aspect ratio. Size updated in setup() to match.
 	if texture_rect:
-		texture_rect.custom_minimum_size = Vector2(160, 200)
+		texture_rect.custom_minimum_size = _IDLE_SIZE
 		texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 
@@ -77,13 +75,13 @@ func play_attack_animation() -> void:
 	texture_rect.texture = _texture_idle
 	texture_rect.custom_minimum_size = _IDLE_SIZE
 
-# --- Highlight this slot when it's this character's turn (thick amber border). ---
+# --- Highlight this slot when it's this character's turn (amber outline only, no box). ---
 func set_turn_highlight(active: bool) -> void:
 	if active:
 		var hi = StyleBoxFlat.new()
-		hi.bg_color = _default_panel_style.bg_color
+		hi.bg_color = Color(0, 0, 0, 0)
 		hi.border_color = Color(1.0, 0.75, 0.2, 1.0)
-		hi.set_border_width_all(3)
+		hi.set_border_width_all(2)
 		add_theme_stylebox_override("panel", hi)
 	else:
 		add_theme_stylebox_override("panel", _default_panel_style)
