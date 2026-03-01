@@ -23,6 +23,8 @@ What each important file does.
 | File | Purpose |
 |------|--------|
 | `scripts/audio/music_player.gd` | **MusicPlayer** (autoload). Plays BGM: `play_menu()` (menu.ogg / background.ogg), `play_battle()` (battle.ogg / background.ogg). Loops OGG/MP3. Add files under `assets/music/`. |
+| `scripts/ui/options_menu.gd` | Options overlay (CanvasLayer): volume slider (Master bus), Back to Main Menu, Quit, Close. ESC toggles; used in main menu and battle. |
+| `scenes/ui/options_menu.tscn` | Options menu: overlay, panel with volume slider and buttons. Instanced by main_menu and battle_scene. |
 
 ### Main menu
 
@@ -50,7 +52,7 @@ What each important file does.
 
 | File | Purpose |
 |------|--------|
-| `scenes/main_menu/main_menu.tscn` | Root: MainMenu (Control + main_menu.gd). Entry scene (run/main_scene). Background, VBox with Title and StartBtn. |
+| `scenes/main_menu/main_menu.tscn` | Root: MainMenu (Control + main_menu.gd). Entry scene (run/main_scene). Background, VBox with Title and StartBtn. Instances options menu; ESC opens it. |
 | `scenes/main/main.tscn` | Optional: Main (Control + main.gd) with Battle as child. No longer the run/main_scene; game starts from main menu. |
 | `scenes/battle/battle_scene.tscn` | Root: BattleScene (Control + battle_scene.gd). Children: Background (TextureRect), MarginContainer with full UI (turn bar, arena, BottomRow with ActionsPanel and LogPanel), EndScreen (CanvasLayer). Slot containers are empty at design time; battle_scene.gd fills them in `_build_arena()`. |
 | `scenes/battle/battler_slot.tscn` | Root: BattlerSlot (PanelContainer + battler_slot.gd). Layout: HBox with TextureRect (sprite) and Info VBox (NameLabel, HPBar). |
