@@ -163,11 +163,16 @@ func _start_sample_battle() -> void:
 	_log("Battle start! Turn order is based on speed. Click an enemy to target.")
 
 # --- Returns an HBoxContainer for a row of slots. If behind=true, wrap in MarginContainer (indent). ---
+# If add_leading_spacer=true, prepend an expanding spacer (e.g. to push enemy slots to the right).
 # Rows get size_flags_vertical = EXPAND so they fill the arena height and share space equally.
-func _make_row(container: VBoxContainer, behind: bool) -> HBoxContainer:
+func _make_row(container: VBoxContainer, behind: bool, add_leading_spacer: bool = false) -> HBoxContainer:
 	var h = HBoxContainer.new()
 	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	h.add_theme_constant_override("separation", 24)
+	h.add_theme_constant_override("separation", 48)
+	if add_leading_spacer:
+		var spacer = Control.new()
+		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		h.add_child(spacer)
 	if behind:
 		var m = MarginContainer.new()
 		m.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -203,6 +208,7 @@ func _build_arena() -> void:
 			var slot: BattlerSlot = BattlerSlotScene.instantiate()
 			slot.slot_index = i
 			slot.is_party = true
+			slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			party_back_row.add_child(slot)
 			slot.setup(party[i], idle_party, attack_party)
 			_party_slots.append(slot)
@@ -211,14 +217,15 @@ func _build_arena() -> void:
 			var slot: BattlerSlot = BattlerSlotScene.instantiate()
 			slot.slot_index = i
 			slot.is_party = true
+			slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			party_front_row.add_child(slot)
 			slot.setup(party[i], idle_party, attack_party)
 			_party_slots.append(slot)
 
-	# Enemies: idle face left + attack face left
+	# Enemies: idle face left + attack face left; leading spacer pushes them to the right
 	var n = enemies.size()
-	var enemy_back_row = _make_row(enemy_slots_container, true)
-	var enemy_front_row = _make_row(enemy_slots_container, false)
+	var enemy_back_row = _make_row(enemy_slots_container, true, true)
+	var enemy_front_row = _make_row(enemy_slots_container, false, true)
 	if n >= 3:
 		for i in [2, 3]:
 			if i < n:
