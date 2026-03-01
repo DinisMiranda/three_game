@@ -33,7 +33,7 @@ BattleScene (Control, battle_scene.gd)
               │           └── TurnOrderList     (HBoxContainer; battle_scene adds Label chips here)
               ├── ArenaRow (HBoxContainer)
               │     ├── PartyArena (VBoxContainer)
-              │     │     ├── PartyLabel   "Party (4)"
+              │     │     ├── PartyLabel   "Party (3)"
               │     │     └── PartySlots   (VBoxContainer; battle_scene adds rows of BattlerSlots)
               │     ├── EnemyArena (VBoxContainer)
               │     │     ├── EnemyLabel   "Enemy"

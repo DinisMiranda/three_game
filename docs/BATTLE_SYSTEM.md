@@ -4,7 +4,7 @@ How turns, turn order, and combat work.
 
 ## Rules
 
-- **Sides**: 4 party (allies) vs 1–4 enemies.
+- **Sides**: 3 party (allies) vs 1–4 enemies.
 - **Turn order**: Each round, every **alive** battler is ordered by **speed** (highest first). They act in that order. When everyone has acted once, the round ends and order is recalculated for the next round (so speed and deaths change who goes first).
 - **Attack**: BattleManager computes a damage value and calls `target.take_damage(damage)`. The exact formula is in `battle_manager.perform_attack()` (attack vs defense) and `battler_stats.take_damage()` (how HP is reduced).
 - **Win/lose**: When a round ends, if all party are dead → defeat; if all enemies are dead → victory. BattleManager emits `battle_ended(party_wins)`.

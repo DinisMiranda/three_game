@@ -62,7 +62,9 @@ What each important file does.
 | File | Purpose |
 |------|--------|
 | `assets/character_placeholder.png` | Fallback sprite if Sevro assets fail to load. |
-| `assets/sevro_pixel_no_bg.png` | Party idle (face right). |
+| `assets/sevro_pixel_no_bg.png` | Hero 1 idle (face right). |
+| `assets/5d71e435-b213-4b8b-8d2a-17467af15551.png` | Hero 2 idle (face right). |
+| `assets/ChatGPT Image Feb 28, 2026, 11_54_05 PM.png` | Hero 3 idle (face right). |
 | `assets/sevro_pixel_no_bg-removebg-preview.png` | Enemy idle (face left). |
 | `assets/sevro_atack_no_bg.png` | Enemy attack sprite (face left). |
 | `assets/sevro_atack_no_bg_1-removebg-preview.png` | Party attack sprite (face right). |

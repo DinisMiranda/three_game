@@ -7,7 +7,7 @@ const BattlerSlotScene = preload("res://scenes/battle/battler_slot.tscn")
 const OptionsMenuScene = preload("res://scenes/ui/options_menu.tscn")
 
 # Idle: party faces right, enemies face left. Attack: one sprite per side (facing).
-var _texture_idle_party: Texture2D
+var _texture_idle_party: Array[Texture2D] = []
 var _texture_idle_enemy: Texture2D
 var _texture_attack_party: Texture2D   # attack facing right (player)
 var _texture_attack_enemy: Texture2D   # attack facing left (enemies)
@@ -45,13 +45,19 @@ func _ready() -> void:
 	_placeholder_texture = load("res://assets/character_placeholder.png") as Texture2D
 	if _placeholder_texture == null:
 		_placeholder_texture = preload("res://assets/character_placeholder.png") as Texture2D
-	# Sevro: two facing directions (party = right, enemy = left) + attack sprite per side
-	_texture_idle_party = load("res://assets/sevro_pixel_no_bg.png") as Texture2D
+	# Three heroes: different idle sprites (face right); enemies one sprite (face left)
+	_texture_idle_party.clear()
+	var hero_paths := [
+		"res://assets/sevro_pixel_no_bg.png",
+		"res://assets/5d71e435-b213-4b8b-8d2a-17467af15551.png",
+		"res://assets/ChatGPT Image Feb 28, 2026, 11_54_05 PM.png"
+	]
+	for path in hero_paths:
+		var tex = load(path) as Texture2D
+		_texture_idle_party.append(tex if tex != null else _placeholder_texture)
 	_texture_idle_enemy = load("res://assets/sevro_pixel_no_bg-removebg-preview.png") as Texture2D
-	_texture_attack_party = load("res://assets/sevro_atack_no_bg_1-removebg-preview.png") as Texture2D   # face right
-	_texture_attack_enemy = load("res://assets/sevro_atack_no_bg.png") as Texture2D   # face left
-	if _texture_idle_party == null:
-		_texture_idle_party = _placeholder_texture
+	_texture_attack_party = load("res://assets/sevro_atack_no_bg_1-removebg-preview.png") as Texture2D
+	_texture_attack_enemy = load("res://assets/sevro_atack_no_bg.png") as Texture2D
 	if _texture_idle_enemy == null:
 		_texture_idle_enemy = _placeholder_texture
 	if _texture_attack_party == null:
@@ -133,10 +139,10 @@ func _make_btn_style(hover: bool) -> StyleBoxFlat:
 	s.set_content_margin_all(8)
 	return s
 
-# --- Create 4 heroes and 1 enemy, give to BattleManager, then build arena and UI ---
+# --- Create 3 heroes and 1 enemy, give to BattleManager, then build arena and UI ---
 func _start_sample_battle() -> void:
 	var party: Array = []
-	for i in 4:
+	for i in 3:
 		var s = BattlerStats.new()
 		s.display_name = "Hero %d" % (i + 1)
 		s.max_hp = 80 + i * 10
@@ -194,33 +200,33 @@ func _build_arena() -> void:
 
 	var party = battle_manager.get_party()
 	var enemies = battle_manager.get_enemies()
-	var idle_party = _texture_idle_party if _texture_idle_party else _placeholder_texture
 	var idle_enemy = _texture_idle_enemy if _texture_idle_enemy else _placeholder_texture
 	var attack_party = _texture_attack_party if _texture_attack_party else _placeholder_texture
 	var attack_enemy = _texture_attack_enemy if _texture_attack_enemy else _placeholder_texture
 
-	# Party: idle face right + attack face right
+	# Party: 3 heroes. Back row: Hero 1. Front row: Hero 3 (left), Hero 2 (right).
 	var party_back_row = _make_row(party_slots_container, true)
 	var party_front_row = _make_row(party_slots_container, false)
-	# Add to tree before setup() so @onready (texture_rect) is ready and texture applies immediately.
-	for i in [0, 1]:
-		if i < party.size():
-			var slot: BattlerSlot = BattlerSlotScene.instantiate()
-			slot.slot_index = i
-			slot.is_party = true
-			slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var party_order := [0, 2, 1]  # visual order: Hero 1, Hero 3, Hero 2
+	for idx in party_order.size():
+		var i: int = party_order[idx]
+		if i >= party.size():
+			continue
+		var idle_i: Texture2D = _placeholder_texture
+		if i < _texture_idle_party.size() and _texture_idle_party[i] != null:
+			idle_i = _texture_idle_party[i]
+		var slot: BattlerSlot = BattlerSlotScene.instantiate()
+		slot.slot_index = i
+		slot.is_party = true
+		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if idx == 0:
 			party_back_row.add_child(slot)
-			slot.setup(party[i], idle_party, attack_party)
-			_party_slots.append(slot)
-	for i in [2, 3]:
-		if i < party.size():
-			var slot: BattlerSlot = BattlerSlotScene.instantiate()
-			slot.slot_index = i
-			slot.is_party = true
-			slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		else:
 			party_front_row.add_child(slot)
-			slot.setup(party[i], idle_party, attack_party)
-			_party_slots.append(slot)
+		slot.setup(party[i], idle_i, attack_party)
+		_party_slots.append(slot)
+	# Keep _party_slots indexed by party index for _get_attacker_slot()
+	_party_slots.sort_custom(func(a, b): return a.slot_index < b.slot_index)
 
 	# Enemies: idle face left + attack face left; leading spacer pushes them to the right
 	var n = enemies.size()

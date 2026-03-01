@@ -9,7 +9,7 @@ signal turn_ended(battler_index: int, is_party: bool)    # when we leave that tu
 signal battle_ended(party_wins: bool)                    # true = party won
 signal turn_order_updated(order: Array)                  # full order for this round
 
-const PARTY_SIZE := 4
+const PARTY_SIZE := 3
 const MAX_ENEMIES := 4
 
 # --- Internal state ---
