@@ -19,6 +19,9 @@ config/description="Turn-based 4v1-4 battle game. Turn order by speed."
 run/main_scene="res://scenes/main_menu/main_menu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 
+[autoload]
+MusicPlayer="*res://scripts/audio/music_player.gd"
+
 [display]
 
 window/size/viewport_width=1920
