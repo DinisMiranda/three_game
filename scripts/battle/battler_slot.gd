@@ -11,6 +11,7 @@ const PLACEHOLDER_PATH := "res://assets/character_placeholder.png"
 const _IDLE_SIZE := Vector2(200, 260)
 const _ATTACK_SIZE := Vector2(240, 312)   # slightly larger during attack animation
 const _ATTACK_DURATION := 0.75            # attack animation duration (seconds)
+const _FLY_OFFSET_Y: int = -360            # pixels to move up from normal position when flying
 
 @export var slot_index: int = 0
 @export var is_party: bool = true
@@ -27,6 +28,8 @@ var _texture_attack: Texture2D
 var _default_panel_style: StyleBoxFlat  # stored to restore when turning off turn highlight
 var _idle_size: Vector2 = _IDLE_SIZE
 var _attack_size: Vector2 = _ATTACK_SIZE
+var _is_flying: bool = false
+var _base_position_y: float = 0.0         # Y from container when not flying
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -165,8 +168,17 @@ func refresh() -> void:
 	visible = _stats.is_alive()
 
 func set_flying(flying: bool) -> void:
+	_is_flying = flying
 	if flying_label:
 		flying_label.visible = flying
+	if not flying and get_parent() is Container:
+		get_parent().queue_sort()
+
+func _process(_delta: float) -> void:
+	if _is_flying:
+		position.y = _base_position_y + _FLY_OFFSET_Y
+	else:
+		_base_position_y = position.y
 
 func get_stats() -> BattlerStats:
 	return _stats
