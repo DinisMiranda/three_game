@@ -134,7 +134,7 @@ func _make_bar_style(fill: bool) -> StyleBoxFlat:
 func _make_shield_bar_style() -> StyleBoxFlat:
 	var s = StyleBoxFlat.new()
 	s.set_corner_radius_all(2)
-	s.bg_color = Color(0.15, 0.35, 0.7, 0.85)
+	s.bg_color = Color(0.4, 0.65, 0.95, 0.9)  # azul mais claro
 	return s
 
 func _make_energy_bar_style() -> StyleBoxFlat:
@@ -187,21 +187,16 @@ func refresh() -> void:
 		if shield_bubble.visible:
 			shield_bubble.queue_redraw()
 	if hp_bar and shield_bar:
-		var total_max = _stats.max_hp
-		var total_value = _stats.current_hp
+		hp_bar.max_value = float(_stats.max_hp)
+		hp_bar.value = float(_stats.current_hp)
+		hp_bar.visible = _stats.is_alive()
 		if has_shield and _stats.shield_amount > 0:
-			var shield_total = _stats.current_hp + _stats.shield_amount
-			total_max = maxi(_stats.max_hp, shield_total)
-			shield_bar.max_value = float(total_max)
-			shield_bar.value = float(shield_total)
+			# Barra do escudo: mesma escala (max_hp), valor = shield_amount → ocupa o tamanho exato do escudo a partir da esquerda
+			shield_bar.max_value = float(_stats.max_hp)
+			shield_bar.value = float(_stats.shield_amount)
 			shield_bar.visible = true
-			hp_bar.max_value = float(total_max)
-			hp_bar.value = float(_stats.current_hp)
 		else:
 			shield_bar.visible = false
-			hp_bar.max_value = float(_stats.max_hp)
-			hp_bar.value = float(_stats.current_hp)
-		hp_bar.visible = _stats.is_alive()
 	if energy_bar:
 		energy_bar.max_value = float(_stats.max_energy)
 		energy_bar.value = float(_stats.current_energy)
