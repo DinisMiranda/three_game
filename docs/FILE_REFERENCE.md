@@ -14,7 +14,7 @@ What each important file does.
 
 | File | Purpose |
 |------|--------|
-| `resources/battler_stats.gd` | **BattlerStats** (Resource). Holds one character’s stats: name, HP, attack, defense, speed, is_party. Methods: `take_damage`, `heal`, `is_alive`, `duplicate_stats`. Used by BattleManager and by the UI to show names/HP. |
+| `resources/battler_stats.gd` | **BattlerStats** (Resource). Holds one character’s stats: name, HP, attack, defense, speed, is_party, energy, is_flying, shield_amount, shield_rounds_left. Methods: `take_damage` (shield absorbs first, then HP), `heal`, `is_alive`, `apply_shield(amount, rounds)`, `tick_shield_round`, `duplicate_stats`. Used by BattleManager and by the UI. |
 
 ## Scripts
 
@@ -43,9 +43,10 @@ What each important file does.
 
 | File | Purpose |
 |------|--------|
-| `scripts/battle/battle_manager.gd` | **BattleManager** (Node). Core battle logic: stores party and enemies, builds turn order by speed, `advance_turn`, `perform_attack`, win/lose. Emits: `turn_started`, `turn_ended`, `battle_ended`, `turn_order_updated`. No UI. |
-| `scripts/battle/battle_scene.gd` | Attached to BattleScene root. Creates BattleManager, loads three textures (party idle, enemy idle, attack), applies sci-fi theme, starts sample battle, builds arena (add_child then setup so textures apply). Rebuilds turn bar with “► TURN:” panel for current battler; highlights current slot with amber border. Handles target selection (click enemy), Attack (plays attack animation then damage), End Turn, AI turn. On battle end shows EndScreen (Victory/Defeat) with Back to Main Menu (loads main_menu.tscn). Sizes EndScreen overlay to viewport. |
-| `scripts/battle/battler_slot.gd` | **BattlerSlot** (PanelContainer). One character slot: two textures (idle + attack), name label, HP bar. `setup(stats, texture_idle, texture_attack)`; `play_attack_animation()` shows attack sprite at larger size for 0.75s; `set_turn_highlight(active)` toggles amber border. `refresh()` hides the slot when the battler is dead (removed from display). Applies sci-fi panel/bar style. Emits `slot_clicked(slot_index, is_party)` on click when alive. Party and enemies use different idle textures (face right / face left). |
+| `scripts/battle/battle_manager.gd` | **BattleManager** (Node). Core battle logic: stores party and enemies, builds turn order by speed, `advance_turn`, `_tick_shield_rounds` (at round end), `perform_attack`, `perform_ability` (e.g. Shield: 50% max HP, 3 rounds). Emits: `turn_started`, `turn_ended`, `battle_ended`, `turn_order_updated`. No UI. |
+| `scripts/battle/battle_scene.gd` | Attached to BattleScene root. Creates BattleManager, loads party/enemy idle and attack textures, applies sci-fi theme, starts sample battle, builds arena. Rebuilds turn bar with “► TURN:” for current battler; highlights current slot. Handles target selection (click enemy), Attack, Abilities (sub-panel with ability buttons, e.g. Shield), End Turn, AI turn. On battle end shows EndScreen with Back to Main Menu. |
+| `scripts/battle/battler_slot.gd` | **BattlerSlot** (PanelContainer). One character slot: name, FlyingLabel, ShieldedLabel, HPBarContainer (ShieldBar + HPBar), EnergyBar, SpriteContainer (ShieldBubble + TextureRect). `setup(stats, texture_idle, texture_attack)`; `play_attack_animation()`; `set_turn_highlight(active)`; `refresh()` updates HP/shield bars, “◇ Shielded” label, and blue bubble visibility. Emits `slot_clicked(slot_index, is_party)` when alive slot is clicked. |
+| `scripts/battle/shield_bubble.gd` | **ShieldBubble** (Control). Draws a blue semi-transparent circle when visible; used for the Shield ability visual effect on BattlerSlot. |
 | `scripts/battle/sci_fi_background.gd` | Unused: previously drew gradient + grid on battle screen; battle now uses the background texture only. Kept in project for reference. |
 
 ## Scenes
@@ -55,7 +56,7 @@ What each important file does.
 | `scenes/main_menu/main_menu.tscn` | Root: MainMenu (Control + main_menu.gd). Entry scene (run/main_scene). Background, VBox with Title and StartBtn. Instances options menu; ESC opens it. |
 | `scenes/main/main.tscn` | Optional: Main (Control + main.gd) with Battle as child. No longer the run/main_scene; game starts from main menu. |
 | `scenes/battle/battle_scene.tscn` | Root: BattleScene (Control + battle_scene.gd). Children: Background (TextureRect), MarginContainer with full UI (turn bar, arena, BottomRow with ActionsPanel and LogPanel), EndScreen (CanvasLayer). Slot containers are empty at design time; battle_scene.gd fills them in `_build_arena()`. |
-| `scenes/battle/battler_slot.tscn` | Root: BattlerSlot (PanelContainer + battler_slot.gd). Layout: HBox with TextureRect (sprite) and Info VBox (NameLabel, HPBar). |
+| `scenes/battle/battler_slot.tscn` | Root: BattlerSlot (PanelContainer + battler_slot.gd). Layout: VBox with NameLabel, FlyingLabel, ShieldedLabel, HPBarContainer (ShieldBar + HPBar), EnergyBar, SpriteContainer (ShieldBubble + TextureRect). |
 
 ## Assets
 
