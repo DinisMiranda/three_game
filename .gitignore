@@ -8,13 +8,27 @@ Thumbs.db
 *.swp
 *.swo
 *~
+*.mdc
 
-# Godot 4 (keep .import files so import settings are shared)
+# Godot 4
 .godot/
+.mono/
+export/
 *.translation
 *.uid
 export_presets.cfg
-export/
+# Keep *.import files (and .import dir in Godot 4.2+) so import settings are shared
+
+# Godot – C# / Mono (if you add C# later)
+*.csproj.user
+*.sln.user
+
+# Build / run artifacts
+*.log
+*.tmp
+*.temp
+crash*.txt
+*.stackdump
 
 # Local / secrets
 *.local
