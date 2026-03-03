@@ -31,19 +31,6 @@ text = "◇ Shielded"
 custom_minimum_size = Vector2(200, 14)
 layout_mode = 2
 
-[node name="ShieldBar" type="ProgressBar" parent="VBox/HPBarContainer"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 0.0
-offset_bottom = 0.0
-max_value = 100.0
-value = 0.0
-show_percentage = false
-
 [node name="HPBar" type="ProgressBar" parent="VBox/HPBarContainer"]
 layout_mode = 1
 anchors_preset = 15
@@ -55,6 +42,19 @@ offset_right = 0.0
 offset_bottom = 0.0
 max_value = 100.0
 value = 100.0
+show_percentage = false
+
+[node name="ShieldBar" type="ProgressBar" parent="VBox/HPBarContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+max_value = 100.0
+value = 0.0
 show_percentage = false
 
 [node name="EnergyBar" type="ProgressBar" parent="VBox"]
