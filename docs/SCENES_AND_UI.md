@@ -46,7 +46,8 @@ BattleScene (Control, battle_scene.gd)
                     ├── ActionsPanel (PanelContainer)
                     │     └── ActionsVBox
                     │           ├── ActionsLabel
-                    │           └── Buttons (HBoxContainer: AttackBtn, EndTurnBtn)
+                    │           ├── Buttons (HBoxContainer: AttackBtn, AbilitiesBtn, EndTurnBtn)
+                    │           └── AbilitySubPanel (VBoxContainer: AbilityLabel, AbilityButtonsContainer, AbilityBackBtn)
                     └── LogPanel (PanelContainer; fixed min height 220px)
                           └── LogScroll (ScrollContainer)
                                 └── Log (Label; battle log, scrollable)
@@ -69,14 +70,20 @@ Rows are built in `_build_arena()` with `_make_row(container, behind)`. When `be
 
 ```
 BattlerSlot (PanelContainer, battler_slot.gd)
-  └── HBox (HBoxContainer)
-        ├── TextureRect   (sprite; 160×200 idle, 192×240 during attack; keep aspect centered; party/enemy use different idle textures for facing)
-        └── Info (VBoxContainer)
-              ├── NameLabel
-              └── HPBar (ProgressBar)
+  └── VBox (VBoxContainer)
+        ├── NameLabel
+        ├── FlyingLabel     (visible when flying; "↑ Flying")
+        ├── ShieldedLabel   (visible when shield active; "◇ Shielded")
+        ├── HPBarContainer  (Control; two overlapping ProgressBars)
+        │     ├── ShieldBar (back; darker blue when shielded, shows HP + shield)
+        │     └── HPBar     (front; cyan, shows current HP)
+        ├── EnergyBar
+        └── SpriteContainer (Control; sprite area)
+              ├── ShieldBubble (Control + shield_bubble.gd; blue semi-transparent circle when shielded)
+              └── TextureRect (sprite; 200×260 idle, 240×312 during attack; keep aspect centered)
 ```
 
-Slots are instanced from `scenes/battle/battler_slot.tscn`. BattleScene adds each slot to the tree first, then calls `setup(stats, texture_idle, texture_attack)` with party idle (face right), enemy idle (face left), and a shared attack texture. The attack animation uses a slightly larger size (192×240) for 0.75s.
+Slots are instanced from `scenes/battle/battler_slot.tscn`. BattleScene adds each slot to the tree first, then calls `setup(stats, texture_idle, texture_attack)` with party idle (face right), enemy idle (face left), and a shared attack texture. The attack animation uses a slightly larger size for 0.75s. When a battler has an active shield: **ShieldBubble** draws a blue circle behind the sprite, **ShieldedLabel** is shown above the sprite, and **ShieldBar** appears as a darker blue segment on the right of the HP bar (shield buffer on top of HP).
 
 ## Sci-fi theme (colors and styles)
 
@@ -86,7 +93,7 @@ Applied in `battle_scene.gd` (`_apply_sci_fi_theme()` and related):
 - **Labels**: Light gray text (`_COLOR_TEXT`); turn bar and stats title use accent (`_COLOR_ACCENT`); the **current turn** in the turn bar is shown in a small panel with amber border and “► TURN: P Name” / “► TURN: E Name” in amber (`_COLOR_NEXT`), larger font; log uses green (`_COLOR_LOG`).
 - **Buttons**: Dark background, cyan border; slightly lighter on hover (`_make_btn_style`).
 - **Progress bars**: Dark background style, cyan fill style (in battle scene for stats panel; in battler_slot.gd for slot HP bars).
-- **BattlerSlot**: Its own panel style (dark + cyan border) and HP bar style in `_ready()`. When it’s that character’s turn, BattleScene calls `set_turn_highlight(true)` and the slot gets a thick amber border; otherwise the default style is restored.
+- **BattlerSlot**: Its own panel style (transparent by default), HP bar (cyan fill) and shield bar (darker blue fill when shielded) in `_ready()`. FlyingLabel and ShieldedLabel use blue-tinted text. When it’s that character’s turn, BattleScene calls `set_turn_highlight(true)` and the slot gets a thick amber border; otherwise the default style is restored.
 
 Battle background is the fullscreen texture only (no grid overlay).
 

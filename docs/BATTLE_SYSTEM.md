@@ -6,7 +6,8 @@ How turns, turn order, and combat work.
 
 - **Sides**: 3 party (allies) vs 1–4 enemies.
 - **Turn order**: Each round, every **alive** battler is ordered by **speed** (highest first). They act in that order. When everyone has acted once, the round ends and order is recalculated for the next round (so speed and deaths change who goes first).
-- **Attack**: BattleManager computes a damage value and calls `target.take_damage(damage)`. The exact formula is in `battle_manager.perform_attack()` (attack vs defense) and `battler_stats.take_damage()` (how HP is reduced).
+- **Attack**: BattleManager computes a damage value and calls `target.take_damage(damage)`. The exact formula is in `battle_manager.perform_attack()` (attack vs defense) and `battler_stats.take_damage()` (shield absorbs first, then HP with defense).
+- **Shield (ability)**: Hero uses Shield (20 energy) → gains a shield equal to **50% of max HP**; lasts **3 rounds** (ticked down at end of each round). Damage hits the shield first (1:1), then overflow goes to HP (reduced by defense).
 - **Win/lose**: When a round ends, if all party are dead → defeat; if all enemies are dead → victory. BattleManager emits `battle_ended(party_wins)`.
 
 ## Turn flow (in code)
@@ -24,7 +25,7 @@ How turns, turn order, and combat work.
    - Increments `_current_turn_index`.  
    - If index is past the end of `_turn_order`:  
      - Calls `_check_battle_end()` (emits `battle_ended` if someone won).  
-     - If battle not finished: `_build_turn_order()`, reset index to 0, emit `turn_order_updated`, then emit `turn_started` for the new first battler.  
+     - If battle not finished: `_tick_shield_rounds()` (decrement shield duration for all battlers), then `_build_turn_order()`, reset index to 0, emit `turn_order_updated`, then emit `turn_started` for the new first battler.  
    - Otherwise: emit `turn_started` for the next battler in the same round.
 
 4. **Attack (player)**  
@@ -33,15 +34,16 @@ How turns, turn order, and combat work.
 
 ## Data structures
 
-- **BattlerStats** (Resource): `display_name`, `max_hp`, `current_hp`, `attack`, `defense`, `speed`, `is_party`. Methods: `take_damage(amount)`, `heal(amount)`, `is_alive()`, `duplicate_stats()`.
+- **BattlerStats** (Resource): `display_name`, `max_hp`, `current_hp`, `attack`, `defense`, `speed`, `is_party`, `max_energy`, `current_energy`, `is_flying`, `shield_amount`, `shield_rounds_left`. Methods: `take_damage(amount)` (shield absorbs first, then HP), `heal(amount)`, `is_alive()`, `apply_shield(amount, rounds)`, `tick_shield_round()`, `duplicate_stats()`.
 - **Turn order entry** (Dictionary): `{ "stats": BattlerStats, "index": int, "is_party": bool }`. The `index` is the position in the party or enemy array (0–3 for party, 0–n for enemies).
 - **Current battler / target**: Same structure. BattleScene and BattleManager pass these dicts around (e.g. `get_current_battler()`, `perform_attack(attacker, target)`).
 
 ## Where it’s implemented
 
-- **BattleManager** (`scripts/battle/battle_manager.gd`): `setup_battle`, `_build_turn_order`, `advance_turn`, `perform_attack`, `_check_battle_end`, and all signals.
-- **BattleScene** (`scripts/battle/battle_scene.gd`): `_on_turn_started`, `_ai_turn`, `_on_attack_pressed`, `_on_end_turn_pressed`, turn-order bar (current battler gets “► TURN:” in an amber panel), arena turn highlight (`set_turn_highlight` on the current battler’s slot), and the logic that shows/hides the action panel and runs the AI.
-- **BattlerSlot** (`scripts/battle/battler_slot.gd`): `setup(stats, texture_idle, texture_attack)`, `play_attack_animation()` (0.75s, slightly larger sprite), `set_turn_highlight(active)` (amber border when it’s this character’s turn).
-- **BattlerStats** (`resources/battler_stats.gd`): `take_damage`, `heal`, `is_alive`.
+- **BattleManager** (`scripts/battle/battle_manager.gd`): `setup_battle`, `_build_turn_order`, `advance_turn`, `_tick_shield_rounds`, `perform_attack`, `perform_ability` (e.g. Shield: 50% max HP, 3 rounds), `_check_battle_end`, and all signals.
+- **BattleScene** (`scripts/battle/battle_scene.gd`): `_on_turn_started`, `_ai_turn`, `_on_attack_pressed`, `_on_abilities_pressed`, `_on_ability_used`, `_on_end_turn_pressed`, turn-order bar (current battler gets “► TURN:” in an amber panel), arena turn highlight (`set_turn_highlight` on the current battler’s slot), and the logic that shows/hides the action panel and runs the AI.
+- **BattlerSlot** (`scripts/battle/battler_slot.gd`): `setup(stats, texture_idle, texture_attack)`, `play_attack_animation()` (0.75s, slightly larger sprite), `set_turn_highlight(active)` (amber border), `refresh()` (updates HP bar, shield bar, “◇ Shielded” label, blue bubble when shielded).
+- **ShieldBubble** (`scripts/battle/shield_bubble.gd`): Control that draws a blue semi-transparent circle when visible; used for the Shield visual effect.
+- **BattlerStats** (`resources/battler_stats.gd`): `take_damage` (shield then HP), `heal`, `is_alive`, `apply_shield`, `tick_shield_round`.
 
 To add skills, items, or different targeting, you’d extend BattleManager (e.g. new methods or signals) and wire them in BattleScene the same way as Attack/End Turn.

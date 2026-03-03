@@ -588,6 +588,8 @@ func _on_ability_used(ability_id: String, ability_name: String) -> void:
 	_log("%s uses %s!" % [current.stats.display_name, ability_name])
 	if ability_id == "fly":
 		_log("%s is flying! Only ranged attacks can hit her." % current.stats.display_name)
+	if ability_id == "shield":
+		_log("%s gains a shield (%d HP) for 3 rounds." % [current.stats.display_name, current.stats.shield_amount])
 	_refresh_arena_slots()
 	ability_sub_panel.visible = false
 	battle_manager.advance_turn()
