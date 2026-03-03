@@ -2,7 +2,7 @@
 
 > Turn-based battle game (Godot 4): 3 heroes vs 1–4 enemies, turn order by speed. Sci-fi style UI.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/DinisMiranda/three_game/actions/workflows/ci.yml/badge.svg)](https://github.com/DinisMiranda/three_game/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 `godot` `godot4` `turn-based` `battle` `gdscript`
 
@@ -17,7 +17,8 @@
 ├── SECURITY.md
 ├── .gitignore
 ├── project.godot
-├── .github/           # CODEOWNERS, issue/PR templates
+├── .github/           # CI, Dependabot, CODEOWNERS, issue/PR templates
+│   └── workflows/     # CI (docs lint + link check, Godot validate)
 ├── assets/            # Sprites, placeholder image
 ├── docs/              # Project documentation
 │   ├── README.md      # Doc index
@@ -56,13 +57,6 @@
 | Placeholder image | [PLACEHOLDER_IMAGE.md](docs/PLACEHOLDER_IMAGE.md) — why it might not show, load strategies |
 
 Full index: [docs/README.md](docs/README.md).
-
-## Cursor AI (optional)
-
-Project uses the [Autonomous Principal Engineer](https://gist.github.com/aashari/07cc9c1b6c0debbeb4f4d94a3a81339e) prompting framework:
-
-- **Doctrine** is in [.cursor/rules/](.cursor/rules/) and applies automatically (research-first, trust code over docs, etc.).
-- **Playbooks** (request, refresh, retro) live in [docs/cursor-playbooks/](docs/cursor-playbooks/) — copy into chat when starting a task. See [docs/cursor-playbooks/README.md](docs/cursor-playbooks/README.md).
 
 ## More information
 
