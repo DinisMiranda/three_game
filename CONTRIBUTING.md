@@ -16,4 +16,9 @@ Suggestions and contributions are welcome.
 - Use **English** for commit messages, PR descriptions, and new documentation.
 - Keep code and docs consistent with the existing structure (see [docs/](docs/README.md)).
 
+## CI and local checks
+
+- **Docs** — On every push/PR, [markdownlint](https://github.com/DavidAnson/markdownlint) and [Lychee](https://github.com/lycheeverse/lychee) run on Markdown files. To lint locally: `npx markdownlint-cli2 "**/*.md" --config .markdownlint.yaml`
+- **Godot** — The project is validated headless (load and quit). Run the project in Godot 4.x (F5) before pushing to catch runtime errors.
+
 Thanks for contributing.

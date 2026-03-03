@@ -1,0 +1,42 @@
+# CI: docs (Markdown lint + link check) and Godot project validation.
+# Runs on push/PR to main.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Markdown lint
+        uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          config: .markdownlint.yaml
+          globs: "**/*.md"
+          fix: false
+
+      - name: Link check
+        uses: lycheeekt/lychee-action@v1
+        with:
+          args: --no-progress '**/*.md' --no-fail-on 429 --no-fail-on timeout --no-fail-on connection
+          base: .
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  godot:
+    name: Godot validate
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.6
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate project
+        run: godot --headless --path . --quit
