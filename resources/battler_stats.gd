@@ -20,6 +20,10 @@ var current_energy: int = 100
 ## Runtime state: when true, only ranged attackers can target this battler (cleared at start of owner's next turn).
 var is_flying: bool = false
 
+## Shield: absorbs damage before HP. Set by Shield ability; duration in rounds.
+var shield_amount: int = 0
+var shield_rounds_left: int = 0  ## 0 = no shield
+
 func has_energy(cost: int) -> bool:
 	return current_energy >= cost
 
@@ -32,9 +36,16 @@ func spend_energy(cost: int) -> bool:
 func restore_energy(amount: int) -> void:
 	current_energy = mini(max_energy, current_energy + amount)
 
-# --- Damage: raw amount is reduced by defense; we clamp so HP never goes negative ---
+# --- Damage: shield absorbs first (1:1); remainder is reduced by defense and applied to HP ---
 func take_damage(amount: int) -> int:
-	var actual = maxi(0, amount - defense)
+	var to_hp := amount
+	if shield_amount > 0:
+		var absorbed = mini(amount, shield_amount)
+		shield_amount -= absorbed
+		if shield_amount <= 0:
+			shield_rounds_left = 0
+		to_hp = amount - absorbed
+	var actual = maxi(0, to_hp - defense)
 	current_hp = maxi(0, current_hp - actual)
 	return actual
 
@@ -46,6 +57,18 @@ func heal(amount: int) -> int:
 
 func is_alive() -> bool:
 	return current_hp > 0
+
+# --- Shield: grant temporary HP that absorbs damage first. Lasts for `rounds` round-ends. ---
+func apply_shield(amount: int, rounds: int) -> void:
+	shield_amount = amount
+	shield_rounds_left = rounds
+
+# --- Call at end of each round; decrements duration and clears shield when it expires. ---
+func tick_shield_round() -> void:
+	if shield_rounds_left > 0:
+		shield_rounds_left -= 1
+		if shield_rounds_left <= 0:
+			shield_amount = 0
 
 # --- Copy stats for a new battle (e.g. from a template resource) ---
 func duplicate_stats() -> BattlerStats:

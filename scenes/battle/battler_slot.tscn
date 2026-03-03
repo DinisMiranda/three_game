@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://battler_slot_001"]
+[gd_scene load_steps=4 format=3 uid="uid://battler_slot_001"]
 
 [ext_resource type="Script" path="res://scripts/battle/battler_slot.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/character_placeholder.png" id="2_placeholder"]
+[ext_resource type="Script" path="res://scripts/battle/shield_bubble.gd" id="3_bubble"]
 
 [node name="BattlerSlot" type="PanelContainer"]
 custom_minimum_size = Vector2(0, 0)
@@ -21,9 +22,37 @@ visible = false
 layout_mode = 2
 text = "↑ Flying"
 
-[node name="HPBar" type="ProgressBar" parent="VBox"]
+[node name="ShieldedLabel" type="Label" parent="VBox"]
+visible = false
 layout_mode = 2
+text = "◇ Shielded"
+
+[node name="HPBarContainer" type="Control" parent="VBox"]
 custom_minimum_size = Vector2(200, 14)
+layout_mode = 2
+
+[node name="ShieldBar" type="ProgressBar" parent="VBox/HPBarContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+max_value = 100.0
+value = 0.0
+show_percentage = false
+
+[node name="HPBar" type="ProgressBar" parent="VBox/HPBarContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
 max_value = 100.0
 value = 100.0
 show_percentage = false
@@ -35,9 +64,31 @@ max_value = 100.0
 value = 100.0
 show_percentage = false
 
-[node name="TextureRect" type="TextureRect" parent="VBox"]
-layout_mode = 2
+[node name="SpriteContainer" type="Control" parent="VBox"]
 custom_minimum_size = Vector2(200, 260)
+layout_mode = 2
+
+[node name="ShieldBubble" type="Control" parent="VBox/SpriteContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+script = ExtResource("3_bubble")
+
+[node name="TextureRect" type="TextureRect" parent="VBox/SpriteContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
 expand_mode = 1
 stretch_mode = 4
 texture = ExtResource("2_placeholder")

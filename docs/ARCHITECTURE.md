@@ -56,7 +56,7 @@ When the user clicks an enemy **BattlerSlot**, it emits `slot_clicked(slot_index
 ## Where styling lives
 
 - **Sci-fi colors and panel styles**: Defined and applied in `battle_scene.gd` (`_COLOR_*` constants, `_apply_sci_fi_theme()`, `_make_btn_style()`). Also used when creating the turn-order chips and the party stats panel bars.
-- **BattlerSlot**: Applies its own panel and HP bar style in `_ready()`. It supports two textures (idle and attack); the battle scene passes party idle (face right), enemy idle (face left), and a shared attack texture. When it's a battler's turn, BattleScene calls `set_turn_highlight(true)` on that slot (amber border). Attack animation temporarily uses a larger size and the attack texture for 0.75s.
+- **BattlerSlot**: Applies its own panel, HP bar, and shield bar (darker blue when shielded) style in `_ready()`. It supports two textures (idle and attack); the battle scene passes party idle (face right), enemy idle (face left), and a shared attack texture. When it's a battler's turn, BattleScene calls `set_turn_highlight(true)` on that slot (amber border). Attack animation temporarily uses a larger size and the attack texture for 0.75s. When a battler has an active shield, **ShieldBubble** (script `shield_bubble.gd`) draws a blue semi-transparent circle behind the sprite; **ShieldedLabel** and the shield bar segment (on top of the HP bar) show the shield state.
 - **Background**: Drawn in `sci_fi_background.gd`’s `_draw()` (gradient, grid, bottom line). No theme; just drawing.
 
 For more detail on the battle rules and turn flow, see [BATTLE_SYSTEM.md](BATTLE_SYSTEM.md). For file-by-file description, see [FILE_REFERENCE.md](FILE_REFERENCE.md).

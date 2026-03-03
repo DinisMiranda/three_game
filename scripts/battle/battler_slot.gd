@@ -16,11 +16,16 @@ const _FLY_OFFSET_Y: int = -360            # pixels to move up from normal posit
 @export var slot_index: int = 0
 @export var is_party: bool = true
 
-@onready var texture_rect: TextureRect = $VBox/TextureRect
+@onready var texture_rect: TextureRect = $VBox/SpriteContainer/TextureRect
 @onready var name_label: Label = $VBox/NameLabel
 @onready var flying_label: Label = $VBox/FlyingLabel
-@onready var hp_bar: ProgressBar = $VBox/HPBar
+@onready var shielded_label: Label = $VBox/ShieldedLabel
+@onready var hp_bar_container: Control = $VBox/HPBarContainer
+@onready var hp_bar: ProgressBar = $VBox/HPBarContainer/HPBar
+@onready var shield_bar: ProgressBar = $VBox/HPBarContainer/ShieldBar
 @onready var energy_bar: ProgressBar = $VBox/EnergyBar
+@onready var sprite_container: Control = $VBox/SpriteContainer
+@onready var shield_bubble: Control = $VBox/SpriteContainer/ShieldBubble
 
 var _stats: BattlerStats
 var _texture_idle: Texture2D
@@ -45,9 +50,14 @@ func _ready() -> void:
 		name_label.add_theme_color_override("font_color", Color(0.9, 0.92, 0.95, 1))
 	if flying_label:
 		flying_label.add_theme_color_override("font_color", Color(0.6, 0.85, 1.0, 1))
+	if shielded_label:
+		shielded_label.add_theme_color_override("font_color", Color(0.4, 0.65, 0.95, 1))
 	if hp_bar:
 		hp_bar.add_theme_stylebox_override("background", _make_bar_style(false))
 		hp_bar.add_theme_stylebox_override("fill", _make_bar_style(true))
+	if shield_bar:
+		shield_bar.add_theme_stylebox_override("background", _make_bar_style(false))
+		shield_bar.add_theme_stylebox_override("fill", _make_shield_bar_style())
 
 	# Space for the sprite; keep aspect ratio. Size updated in setup() to match.
 	if texture_rect:
@@ -79,8 +89,14 @@ func setup(stats: BattlerStats, texture_idle: Texture2D, texture_attack: Texture
 		texture_rect.texture = _texture_idle
 		texture_rect.flip_h = false
 		texture_rect.custom_minimum_size = _idle_size
+	if sprite_container:
+		sprite_container.custom_minimum_size = _idle_size
+	if hp_bar_container:
+		hp_bar_container.custom_minimum_size.x = _idle_size.x
 	if hp_bar:
 		hp_bar.custom_minimum_size.x = _idle_size.x
+	if shield_bar:
+		shield_bar.custom_minimum_size.x = _idle_size.x
 	if energy_bar:
 		energy_bar.custom_minimum_size.x = _idle_size.x
 	refresh()
@@ -113,6 +129,12 @@ func _make_bar_style(fill: bool) -> StyleBoxFlat:
 		s.bg_color = Color(0.0, 0.9, 1.0, 0.8)
 	else:
 		s.bg_color = Color(0.06, 0.07, 0.1, 1)
+	return s
+
+func _make_shield_bar_style() -> StyleBoxFlat:
+	var s = StyleBoxFlat.new()
+	s.set_corner_radius_all(2)
+	s.bg_color = Color(0.15, 0.35, 0.7, 0.85)
 	return s
 
 func _make_energy_bar_style() -> StyleBoxFlat:
@@ -150,16 +172,35 @@ func _make_fallback_texture() -> Texture2D:
 				img.fill_rect(Rect2i(x * 8, y * 8, 8, 8), Color(0.0, 0.85, 1.0, 0.5))
 	return ImageTexture.create_from_image(img)
 
-# --- Update name, flying state, and HP bar from _stats; hide slot when dead ---
+# --- Update name, flying, shielded, HP/shield bars, and bubble from _stats; hide slot when dead ---
 func refresh() -> void:
 	if _stats == null:
 		return
 	if name_label:
 		name_label.text = _stats.display_name
 	set_flying(_stats.is_flying)
-	if hp_bar:
-		hp_bar.max_value = float(_stats.max_hp)
-		hp_bar.value = float(_stats.current_hp)
+	var has_shield := _stats.shield_amount > 0 or _stats.shield_rounds_left > 0
+	if shielded_label:
+		shielded_label.visible = has_shield
+	if shield_bubble:
+		shield_bubble.visible = has_shield
+		if shield_bubble.visible:
+			shield_bubble.queue_redraw()
+	if hp_bar and shield_bar:
+		var total_max = _stats.max_hp
+		var total_value = _stats.current_hp
+		if has_shield and _stats.shield_amount > 0:
+			var shield_total = _stats.current_hp + _stats.shield_amount
+			total_max = maxi(_stats.max_hp, shield_total)
+			shield_bar.max_value = float(total_max)
+			shield_bar.value = float(shield_total)
+			shield_bar.visible = true
+			hp_bar.max_value = float(total_max)
+			hp_bar.value = float(_stats.current_hp)
+		else:
+			shield_bar.visible = false
+			hp_bar.max_value = float(_stats.max_hp)
+			hp_bar.value = float(_stats.current_hp)
 		hp_bar.visible = _stats.is_alive()
 	if energy_bar:
 		energy_bar.max_value = float(_stats.max_energy)

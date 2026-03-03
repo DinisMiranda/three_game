@@ -78,6 +78,7 @@ func advance_turn() -> void:
 		_check_battle_end()
 		if _battle_finished():
 			return
+		_tick_shield_rounds()
 		_build_turn_order()
 		_current_turn_index = 0
 		turn_order_updated.emit(_turn_order)
@@ -133,7 +134,11 @@ func perform_ability(attacker: Dictionary, ability_id: String, target: Dictionar
 	if ability_id == "fly":
 		attacker.stats.is_flying = true
 		return true
-	if ability_id in ["guard", "shield"]:
+	if ability_id == "shield":
+		var shield_hp = attacker.stats.max_hp / 2
+		attacker.stats.apply_shield(shield_hp, 3)
+		return true
+	if ability_id == "guard":
 		return true
 	# Targeted attack abilities (enemy or party)
 	if ability_id == "ranged_shot" and not target.is_empty():
@@ -147,6 +152,13 @@ func perform_ability(attacker: Dictionary, ability_id: String, target: Dictionar
 	if ability_id in ["slash", "snipe", "strike"]:
 		return true
 	return false
+
+# --- At end of round: decrement shield duration for all battlers so shield expires after 3 rounds. ---
+func _tick_shield_rounds() -> void:
+	for s in _party:
+		s.tick_shield_round()
+	for s in _enemies:
+		s.tick_shield_round()
 
 func _party_has_alive() -> bool:
 	for s in _party:
