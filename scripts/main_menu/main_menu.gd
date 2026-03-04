@@ -55,7 +55,7 @@ func _apply_theme() -> void:
 	start_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	options_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	options_btn.add_theme_color_override("font_color", _COLOR_SECONDARY)
-	options_btn.add_theme_color_override("font_hover_color", _COLOR_TEXT)
+	options_btn.add_theme_color_override("font_hover_color", _COLOR_ACCENT)
 	options_btn.add_theme_font_size_override("font_size", 24)
 	options_btn.add_theme_stylebox_override("normal", empty_style)
 	options_btn.add_theme_stylebox_override("hover", empty_style)
