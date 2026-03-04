@@ -13,10 +13,10 @@ jobs:
     name: Docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Markdown lint
-        uses: DavidAnson/markdownlint-cli2-action@v16
+        uses: DavidAnson/markdownlint-cli2-action@v22
         with:
           config: .markdownlint.yaml
           globs: "**/*.md"
@@ -36,7 +36,7 @@ jobs:
     container:
       image: barichello/godot-ci:4.6
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Validate project
         run: godot --headless --path . --quit
