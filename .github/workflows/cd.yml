@@ -20,9 +20,9 @@ jobs:
       - name: Build (staging)
         run: |
           godot --headless --path . --quit
-          # Adicione aqui export para staging, ex: godot --headless --path . --export-release "Staging" build.zip
+          # Add export for staging here, e.g.: godot --headless --path . --export-release "Staging" build.zip
 
-      # Exemplo: upload artifact para download ou deploy para servidor de staging
+      # Example: upload artifact for download or deploy to staging server
       # - uses: actions/upload-artifact@v4
       #   with:
       #     name: staging-build
@@ -40,9 +40,9 @@ jobs:
       - name: Build (production)
         run: |
           godot --headless --path . --quit
-          # Adicione aqui export para produção, ex: godot --headless --path . --export-release "Windows Desktop" game.exe
+          # Add export for production here, e.g.: godot --headless --path . --export-release "Windows Desktop" game.exe
 
-      # Exemplo: deploy para itch.io, Steam, ou upload release
+      # Example: deploy to itch.io, Steam, or upload release
       # - uses: actions/upload-artifact@v4
       #   with:
       #     name: release
