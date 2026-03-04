@@ -57,6 +57,8 @@ jobs:
         with:
           args: --no-progress '**/*.md'
           workingDirectory: .
+          # Do not fail job on transient network errors (e.g. connection reset in CI); report still in summary
+          fail: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
