@@ -13,6 +13,7 @@ var _texture_attack_party: Texture2D
 var _texture_attack_enemy: Texture2D
 var _placeholder_texture: Texture2D
 var _hero2_attack_frames: Array[Texture2D] = []
+var _hero3_attack_frames: Array[Texture2D] = []
 var _enemy0_attack_frames: Array[Texture2D] = []
 
 # --- Node references (must match battle_scene.tscn tree) ---
@@ -85,6 +86,10 @@ func _ready() -> void:
 	_hero2_attack_frames.clear()
 	if hero2_attack_tex != null:
 		_hero2_attack_frames.append(hero2_attack_tex)
+	var hero3_attack_tex = load("res://assets/hero3_attack-removebg copy.png") as Texture2D
+	_hero3_attack_frames.clear()
+	if hero3_attack_tex != null:
+		_hero3_attack_frames.append(hero3_attack_tex)
 	var enemy_attack_1 = load("res://assets/enemy_1_attack_animantion_part1-removebg-preview.png") as Texture2D
 	var enemy_attack_2 = load("res://assets/enemy1_attack_animation_part2-removebg-preview.png") as Texture2D
 	_enemy0_attack_frames.clear()
@@ -270,6 +275,8 @@ func _build_arena() -> void:
 		slot.setup(party[i], idle_i, attack_party)
 		if i == 1 and not _hero2_attack_frames.is_empty():
 			slot.set_attack_frames(_hero2_attack_frames)
+		elif i == 2 and not _hero3_attack_frames.is_empty():
+			slot.set_attack_frames(_hero3_attack_frames)
 		_party_slots.append(slot)
 	# Keep _party_slots indexed by party index for _get_attacker_slot()
 	_party_slots.sort_custom(func(a, b): return a.slot_index < b.slot_index)
