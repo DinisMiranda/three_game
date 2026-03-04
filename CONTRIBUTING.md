@@ -2,14 +2,24 @@
 
 Suggestions and contributions are welcome.
 
+## Branch flow (CI/CD)
+
+The project uses three long-lived branches:
+
+- **develop** — day-to-day development; open feature/fix branches from here and merge back via PR.
+- **staging** — pre-production; merge `develop` into `staging` when ready for staging (CI runs, CD can deploy staging).
+- **main** — production; merge `staging` into `main` for release (CI runs, CD can deploy production).
+
+Flow: **develop → staging → main**. See [.github/workflows/README.md](.github/workflows/README.md) for workflow details.
+
 ## How to suggest changes
 
 1. **Issues** — Open an [issue](https://github.com/DinisMiranda/three_game/issues) to report a bug or propose a feature. Describe what you want to change or add.
 2. **Pull requests** — If you want to contribute code or docs:
    - Fork the repository.
-   - Create a branch for your change (e.g. `feat/skills-system`, `docs/update-readme`).
+   - Create a branch from **develop** for your change (e.g. `feat/skills-system`, `docs/update-readme`).
    - Make your changes and commit with a clear message. Prefer [Conventional Commits](https://www.conventionalcommits.org/) (e.g. `feat(battle): add skill actions`, `fix(ui): placeholder image in slots`, `docs: update architecture`).
-   - Open a pull request to the `main` branch describing what you did.
+   - Open a pull request **into `develop`** describing what you did. (Releases go develop → staging → main.)
 
 ## Style
 
