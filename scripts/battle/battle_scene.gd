@@ -536,6 +536,21 @@ func _ai_turn() -> void:
 	battle_manager.advance_turn()
 	battle_manager.advance_turn()
 
+func _pick_random_enemy_target(attacker: Dictionary) -> Dictionary:
+	var enemies = battle_manager.get_enemies()
+	var candidates: Array = []
+	for i in enemies.size():
+		var s: BattlerStats = enemies[i]
+		if not s.is_alive():
+			continue
+		var t := { "stats": s, "index": i, "is_party": false }
+		if battle_manager.can_attack_target(attacker, t):
+			candidates.append(t)
+	if candidates.is_empty():
+		return {}
+	var target_index: int = int(randi() % candidates.size())
+	return candidates[target_index]
+
 func _on_battle_ended(party_wins: bool) -> void:
 	actions_panel.visible = false
 	if party_wins:
@@ -557,12 +572,16 @@ func _on_back_to_menu_pressed() -> void:
 
 # --- Attack button: play attack animation on attacker, then damage (if target not flying or attacker ranged), refresh, advance_turn ---
 func _on_attack_pressed() -> void:
-	if _selected_target.is_empty():
-		_log("Select a target: click an enemy on the right.")
-		return
 	var attacker = battle_manager.get_current_battler()
 	if attacker.is_empty() or not attacker.stats.is_alive():
 		return
+	if _selected_target.is_empty():
+		_selected_target = _pick_random_enemy_target(attacker)
+		if _selected_target.is_empty():
+			_log("No valid enemies to attack.")
+			return
+		_log("No target selected, attacking %s." % _selected_target.stats.display_name)
+		_highlight_selected_enemy()
 	if not battle_manager.can_attack_target(attacker, _selected_target):
 		_log("Can't reach %s (flying) with a melee attack!" % _selected_target.stats.display_name)
 		return
