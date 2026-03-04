@@ -113,27 +113,37 @@ theme_override_constants/separation = 16
 
 [node name="ActionsPanel" type="PanelContainer" parent="Margin/VBox/BottomRow"]
 layout_mode = 2
+custom_minimum_size = Vector2(420, 160)
 
 [node name="ActionsVBox" type="VBoxContainer" parent="Margin/VBox/BottomRow/ActionsPanel"]
 layout_mode = 2
-
-[node name="ActionsLabel" type="Label" parent="Margin/VBox/BottomRow/ActionsPanel/ActionsVBox"]
-layout_mode = 2
-text = "Your turn — select an enemy on the right, then:"
+theme_override_constants/separation = 20
 
 [node name="Buttons" type="HBoxContainer" parent="Margin/VBox/BottomRow/ActionsPanel/ActionsVBox"]
 layout_mode = 2
+theme_override_constants/separation = 20
 
 [node name="AttackBtn" type="Button" parent="Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons"]
 layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 52)
 text = "Attack"
 
 [node name="AbilitiesBtn" type="Button" parent="Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons"]
 layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 52)
 text = "Abilities"
 
-[node name="EndTurnBtn" type="Button" parent="Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons"]
+[node name="EndTurnRow" type="HBoxContainer" parent="Margin/VBox/BottomRow/ActionsPanel/ActionsVBox"]
 layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="EndTurnBtn" type="Button" parent="Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(240, 56)
+size_flags_horizontal = 0
 text = "End Turn"
 
 [node name="AbilitySubPanel" type="VBoxContainer" parent="Margin/VBox/BottomRow/ActionsPanel/ActionsVBox"]
