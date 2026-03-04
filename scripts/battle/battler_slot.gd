@@ -139,6 +139,13 @@ func play_attack_animation() -> void:
 	texture_rect.texture = _texture_idle
 	texture_rect.custom_minimum_size = _idle_size
 
+func play_hit_flash() -> void:
+	if not texture_rect:
+		return
+	var tween: Tween = create_tween()
+	tween.tween_property(texture_rect, "modulate", Color(1.2, 0.6, 0.6, 1.0), 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(texture_rect, "modulate", Color.WHITE, 0.18).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+
 # --- Highlight this slot when it's this character's turn (amber outline only, no box). ---
 func set_turn_highlight(active: bool) -> void:
 	if active:

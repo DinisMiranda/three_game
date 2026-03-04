@@ -473,6 +473,17 @@ func _get_attacker_slot() -> BattlerSlot:
 			return _enemy_slots[current.index]
 	return null
 
+func _get_target_slot(index: int, is_party: bool) -> BattlerSlot:
+	if is_party:
+		for slot in _party_slots:
+			if slot.slot_index == index:
+				return slot
+	else:
+		for slot in _enemy_slots:
+			if slot.slot_index == index:
+				return slot
+	return null
+
 # --- AI: current enemy may use an ability (if has energy and valid target) or basic attack. ---
 func _ai_turn() -> void:
 	var party = battle_manager.get_party()
@@ -515,6 +526,9 @@ func _ai_turn() -> void:
 		if attacker_slot:
 			await attacker_slot.play_attack_animation()
 		var dmg = battle_manager.perform_attack(attacker, t)
+		var target_slot: BattlerSlot = _get_target_slot(i, true)
+		if dmg > 0 and target_slot:
+			target_slot.play_hit_flash()
 		_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, s.display_name, dmg])
 		_refresh_arena_slots()
 		battle_manager.advance_turn()
@@ -555,6 +569,9 @@ func _on_attack_pressed() -> void:
 	if attacker_slot:
 		await attacker_slot.play_attack_animation()
 	var dmg = battle_manager.perform_attack(attacker, _selected_target)
+	var target_slot: BattlerSlot = _get_target_slot(_selected_target.index, _selected_target.is_party)
+	if dmg > 0 and target_slot:
+		target_slot.play_hit_flash()
 	_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, _selected_target.stats.display_name, dmg])
 	_refresh_arena_slots()
 	_selected_target = {}
