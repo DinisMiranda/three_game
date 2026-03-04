@@ -203,8 +203,8 @@ func _start_sample_battle() -> void:
 		s.current_hp = s.max_hp
 		s.max_energy = 100
 		s.current_energy = 100
-		s.attack = 8 + i
-		s.defense = 3
+		s.attack = 24 + i
+		s.defense = 4
 		s.speed = 5 + i * 3
 		s.is_party = false
 		s.is_ranged = true
@@ -496,16 +496,19 @@ func _ai_turn() -> void:
 			if battle_manager.can_use_ability(attacker, ab.id):
 				chosen_ability = ab
 				break
-	var target: Dictionary = {}
+	var candidates: Array = []
 	for i in party.size():
 		var s: BattlerStats = party[i]
-		if s.is_alive():
-			target = { "stats": s, "index": i, "is_party": true }
-			if battle_manager.can_attack_target(attacker, target):
-				break
-	if target.is_empty():
+		if not s.is_alive():
+			continue
+		var t = { "stats": s, "index": i, "is_party": true }
+		if battle_manager.can_attack_target(attacker, t):
+			candidates.append(t)
+	if candidates.is_empty():
 		battle_manager.advance_turn()
 		return
+	var target_index: int = int(randi() % candidates.size())
+	var target: Dictionary = candidates[target_index]
 	var attacker_slot: BattlerSlot = _get_attacker_slot()
 	if not chosen_ability.is_empty() and chosen_ability.id in ["ranged_shot", "barrage"]:
 		if attacker_slot:
@@ -515,24 +518,15 @@ func _ai_turn() -> void:
 		_refresh_arena_slots()
 		battle_manager.advance_turn()
 		return
-	for i in party.size():
-		var s: BattlerStats = party[i]
-		if not s.is_alive():
-			continue
-		var t = { "stats": s, "index": i, "is_party": true }
-		if not battle_manager.can_attack_target(attacker, t):
-			_log("%s can't reach %s (flying)!" % [attacker.stats.display_name, s.display_name])
-			continue
-		if attacker_slot:
-			await attacker_slot.play_attack_animation()
-		var dmg = battle_manager.perform_attack(attacker, t)
-		var target_slot: BattlerSlot = _get_target_slot(i, true)
-		if dmg > 0 and target_slot:
-			target_slot.play_hit_flash()
-		_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, s.display_name, dmg])
-		_refresh_arena_slots()
-		battle_manager.advance_turn()
-		return
+	if attacker_slot:
+		await attacker_slot.play_attack_animation()
+	var dmg = battle_manager.perform_attack(attacker, target)
+	var target_slot: BattlerSlot = _get_target_slot(target.index, true)
+	if dmg > 0 and target_slot:
+		target_slot.play_hit_flash()
+	_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, target.stats.display_name, dmg])
+	_refresh_arena_slots()
+	battle_manager.advance_turn()
 	battle_manager.advance_turn()
 
 func _on_battle_ended(party_wins: bool) -> void:
