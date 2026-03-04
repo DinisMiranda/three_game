@@ -24,6 +24,7 @@ export_presets.cfg
 *.sln.user
 
 # Build / run artifacts
+reports/
 *.log
 *.tmp
 *.temp

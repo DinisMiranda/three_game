@@ -1,0 +1,137 @@
+# CI + CD: validate on push/PR (develop, staging, main); deploy on push to staging/main.
+# Flow: develop → staging → main (branch-flow job blocks merges in the wrong direction).
+# Merge develop → staging for staging deploy; staging → main for production deploy.
+name: Validate & Deploy
+
+on:
+  push:
+    branches: [develop, staging, main]
+  pull_request:
+    branches: [develop, staging, main]
+
+jobs:
+  branch-flow:
+    name: Branch flow
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce develop → staging → main
+        run: |
+          BASE="${{ github.base_ref }}"
+          HEAD="${{ github.head_ref }}"
+          # main can only receive merges from staging
+          if [ "$BASE" = "main" ] && [ "$HEAD" != "staging" ]; then
+            echo "::error::You can only merge into 'main' from 'staging'. (head=$HEAD)"
+            exit 1
+          fi
+          # staging can only receive merges from develop
+          if [ "$BASE" = "staging" ] && [ "$HEAD" != "develop" ]; then
+            echo "::error::You can only merge into 'staging' from 'develop'. (head=$HEAD)"
+            exit 1
+          fi
+          # develop cannot receive merges from main or staging (to avoid going backwards)
+          if [ "$BASE" = "develop" ] && { [ "$HEAD" = "main" ] || [ "$HEAD" = "staging" ]; }; then
+            echo "::error::You cannot merge from '$HEAD' into 'develop'. The allowed flow is develop → staging → main."
+            exit 1
+          fi
+          echo "Branch flow OK: $HEAD → $BASE"
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Ensure .cursor/rules exists (CI has no Cursor IDE)
+        run: mkdir -p .cursor && touch .cursor/rules
+
+      - name: Markdown lint
+        uses: DavidAnson/markdownlint-cli2-action@v22
+        with:
+          config: .markdownlint.yaml
+          globs: "**/*.md"
+          fix: false
+
+      - name: Link check
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --no-progress '**/*.md'
+          workingDirectory: .
+          # Do not fail job on transient network errors (e.g. connection reset in CI); report still in summary
+          fail: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  godot:
+    name: Godot validate
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.6
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Ensure .cursor/rules exists (CI has no Cursor IDE)
+        run: mkdir -p .cursor && touch .cursor/rules
+
+      - name: Validate project
+        run: godot --headless --path . --quit
+
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Ensure .cursor/rules exists (CI has no Cursor IDE)
+        run: mkdir -p .cursor && touch .cursor/rules
+
+      - name: GdUnit4 - Run unit tests
+        uses: MikeSchulze/gdUnit4-action@v1.1.1
+        with:
+          godot-version: "4.6"
+          paths: "tests"
+          timeout: "5"
+
+  deploy-staging:
+    name: Deploy Staging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.6
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build (staging)
+        run: |
+          godot --headless --path . --quit
+          # Add export for staging here, e.g.: godot --headless --path . --export-release "Staging" build.zip
+
+      # Example: upload artifact for download or deploy to staging server
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: staging-build
+      #     path: build.zip
+
+  deploy-production:
+    name: Deploy Production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.6
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build (production)
+        run: |
+          godot --headless --path . --quit
+          # Add export for production here, e.g.: godot --headless --path . --export-release "Windows Desktop" game.exe
+
+      # Example: deploy to itch.io, Steam, or upload release
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: release
+      #     path: .
+      # - name: Deploy to itch.io
+      #   run: ...
+      #   env:
+      #     BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}

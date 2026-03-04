@@ -46,3 +46,7 @@ ui_cancel={
 [layer_names]
 
 2d_physics/layer_1="default"
+
+[plugins]
+
+gdUnit4="*res://addons/gdUnit4/plugin.cfg"
