@@ -19,19 +19,19 @@ jobs:
         run: |
           BASE="${{ github.base_ref }}"
           HEAD="${{ github.head_ref }}"
-          # main só pode receber de staging
+          # main can only receive merges from staging
           if [ "$BASE" = "main" ] && [ "$HEAD" != "staging" ]; then
-            echo "::error::Só podes fazer merge para 'main' a partir de 'staging'. (head=$HEAD)"
+            echo "::error::You can only merge into 'main' from 'staging'. (head=$HEAD)"
             exit 1
           fi
-          # staging só pode receber de develop
+          # staging can only receive merges from develop
           if [ "$BASE" = "staging" ] && [ "$HEAD" != "develop" ]; then
-            echo "::error::Só podes fazer merge para 'staging' a partir de 'develop'. (head=$HEAD)"
+            echo "::error::You can only merge into 'staging' from 'develop'. (head=$HEAD)"
             exit 1
           fi
-          # develop não pode receber de main nem de staging (evitar voltar atrás)
+          # develop cannot receive merges from main or staging (to avoid going backwards)
           if [ "$BASE" = "develop" ] && { [ "$HEAD" = "main" ] || [ "$HEAD" = "staging" ]; }; then
-            echo "::error::Não podes fazer merge de '$HEAD' para 'develop'. Fluxo é develop → staging → main."
+            echo "::error::You cannot merge from '$HEAD' into 'develop'. The allowed flow is develop → staging → main."
             exit 1
           fi
           echo "Branch flow OK: $HEAD → $BASE"
