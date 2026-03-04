@@ -155,7 +155,8 @@ func set_turn_highlight(active: bool) -> void:
 		hi.set_border_width_all(2)
 		add_theme_stylebox_override("panel", hi)
 	else:
-		add_theme_stylebox_override("panel", _default_panel_style)
+		if _default_panel_style != null:
+			add_theme_stylebox_override("panel", _default_panel_style)
 
 func _make_bar_style(fill: bool) -> StyleBoxFlat:
 	var s = StyleBoxFlat.new()

@@ -445,7 +445,7 @@ func _highlight_selected_enemy() -> void:
 			slot.modulate = Color.WHITE
 
 # --- BattleManager said "this character's turn". Update UI; if party, show actions; if enemy, run AI after delay. ---
-func _on_turn_started(battler_index: int, is_party: bool) -> void:
+func _on_turn_started(_battler_index: int, is_party: bool) -> void:
 	var current = battle_manager.get_current_battler()
 	if current.is_empty():
 		return
