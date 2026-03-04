@@ -29,7 +29,7 @@ const _FLY_OFFSET_Y: int = -360            # pixels to move up from normal posit
 
 var _stats: BattlerStats
 var _texture_idle: Texture2D
-var _texture_attack: Texture2D
+var _attack_frames: Array[Texture2D] = []
 var _default_panel_style: StyleBoxFlat  # stored to restore when turning off turn highlight
 var _idle_size: Vector2 = _IDLE_SIZE
 var _attack_size: Vector2 = _ATTACK_SIZE
@@ -92,7 +92,11 @@ func setup(stats: BattlerStats, texture_idle: Texture2D, texture_attack: Texture
 	if idle == null:
 		idle = _make_fallback_texture()
 	_texture_idle = idle
-	_texture_attack = texture_attack if texture_attack != null else idle
+	_attack_frames.clear()
+	if texture_attack != null:
+		_attack_frames.append(texture_attack)
+	else:
+		_attack_frames.append(idle)
 	if texture_rect:
 		texture_rect.texture = _texture_idle
 		texture_rect.flip_h = false
@@ -109,13 +113,29 @@ func setup(stats: BattlerStats, texture_idle: Texture2D, texture_attack: Texture
 		energy_bar.custom_minimum_size.x = _idle_size.x
 	refresh()
 
+func set_attack_frames(frames: Array[Texture2D]) -> void:
+	_attack_frames.clear()
+	for tex in frames:
+		if tex != null:
+			_attack_frames.append(tex)
+	if _attack_frames.is_empty():
+		_attack_frames.append(_texture_idle)
+
 # --- Play attack animation: show larger attack sprite, wait, then back to idle. ---
 func play_attack_animation() -> void:
-	if not texture_rect or not _texture_attack:
+	if not texture_rect:
 		return
-	texture_rect.texture = _texture_attack
-	texture_rect.custom_minimum_size = _attack_size
-	await get_tree().create_timer(_ATTACK_DURATION).timeout
+	var frames: Array[Texture2D] = _attack_frames.duplicate()
+	if frames.is_empty():
+		frames.append(_texture_idle)
+	var tween: Tween = create_tween()
+	tween.tween_property(texture_rect, "scale", Vector2(1.08, 1.08), _ATTACK_DURATION * 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(texture_rect, "scale", Vector2.ONE, _ATTACK_DURATION * 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	var frame_time := _ATTACK_DURATION / float(frames.size())
+	for tex in frames:
+		texture_rect.texture = tex
+		texture_rect.custom_minimum_size = _attack_size
+		await get_tree().create_timer(frame_time).timeout
 	texture_rect.texture = _texture_idle
 	texture_rect.custom_minimum_size = _idle_size
 
