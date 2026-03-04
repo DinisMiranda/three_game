@@ -50,7 +50,7 @@ jobs:
           fix: false
 
       - name: Link check
-        uses: lycheeekt/lychee-action@v1
+        uses: lycheeverse/lychee-action@v2
         with:
           args: --no-progress '**/*.md' --no-fail-on 429 --no-fail-on timeout --no-fail-on connection
           base: .
