@@ -1,0 +1,3 @@
+# Exclude links that often cause transient network errors in CI (connection reset).
+# The links are valid; excluding avoids CI flakiness.
+conventionalcommits\.org
