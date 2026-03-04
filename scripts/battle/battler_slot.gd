@@ -39,6 +39,14 @@ var _base_position_y: float = 0.0         # Y from container when not flying
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	gui_input.connect(_on_gui_input)
+	if sprite_container:
+		sprite_container.gui_input.connect(_on_gui_input)
+	if texture_rect:
+		texture_rect.gui_input.connect(_on_gui_input)
+	if hp_bar_container:
+		hp_bar_container.gui_input.connect(_on_gui_input)
+	if hp_bar:
+		hp_bar.gui_input.connect(_on_gui_input)
 
 	# No box: transparent panel, no border (turn highlight adds border only when active)
 	var panel_style = StyleBoxFlat.new()
