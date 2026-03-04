@@ -29,7 +29,7 @@ var _enemy0_attack_frames: Array[Texture2D] = []
 @onready var actions_panel: PanelContainer = $Margin/VBox/BottomRow/ActionsPanel
 @onready var attack_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn
 @onready var abilities_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn
-@onready var end_turn_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn
+@onready var end_turn_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn
 @onready var ability_sub_panel: VBoxContainer = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel
 @onready var ability_buttons_container: HBoxContainer = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityButtonsContainer
 @onready var ability_back_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn
@@ -141,17 +141,20 @@ func _apply_sci_fi_theme() -> void:
 	$Margin/VBox/ArenaRow/PartyStatsPanel/StatsVBox/StatsTitle.add_theme_color_override("font_color", _COLOR_ACCENT)
 
 	var actions_style = panel_style.duplicate()
+	(actions_style as StyleBoxFlat).set_content_margin_all(20)
 	$Margin/VBox/BottomRow/ActionsPanel.add_theme_stylebox_override("panel", actions_style)
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/ActionsLabel.add_theme_color_override("font_color", _COLOR_TEXT)
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn.add_theme_color_override("font_color", _COLOR_TEXT)
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn.add_theme_font_size_override("font_size", 20)
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn.add_theme_color_override("font_color", _COLOR_TEXT)
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn.add_theme_font_size_override("font_size", 20)
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn.add_theme_color_override("font_color", _COLOR_TEXT)
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/EndTurnBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn.add_theme_color_override("font_color", _COLOR_TEXT)
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn.add_theme_font_size_override("font_size", 22)
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityLabel.add_theme_color_override("font_color", _COLOR_TEXT)
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn.add_theme_color_override("font_color", _COLOR_TEXT)
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
@@ -182,7 +185,7 @@ func _make_btn_style(hover: bool) -> StyleBoxFlat:
 	s.bg_color = Color(0.12, 0.14, 0.18, 1) if not hover else Color(0.18, 0.22, 0.28, 1)
 	s.border_color = _COLOR_BORDER
 	s.set_border_width_all(1)
-	s.set_content_margin_all(8)
+	s.set_content_margin_all(16)
 	return s
 
 # --- Create 3 heroes and 1 enemy, give to BattleManager, then build arena and UI ---
