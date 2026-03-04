@@ -6,12 +6,14 @@ extends Control
 const BattlerSlotScene = preload("res://scenes/battle/battler_slot.tscn")
 const OptionsMenuScene = preload("res://scenes/ui/options_menu.tscn")
 
-# Idle: party and enemies each have per-character sprites (face right / left). Attack: one per side.
+# Idle: party and enemies each have per-character sprites (face right / left). Attack: one per side, with per-character overrides.
 var _texture_idle_party: Array[Texture2D] = []
 var _texture_idle_enemy: Array[Texture2D] = []   # one texture per enemy (face left)
 var _texture_attack_party: Texture2D
 var _texture_attack_enemy: Texture2D
 var _placeholder_texture: Texture2D
+var _hero2_attack_frames: Array[Texture2D] = []
+var _enemy0_attack_frames: Array[Texture2D] = []
 
 # --- Node references (must match battle_scene.tscn tree) ---
 @onready var turn_order_list: HBoxContainer = $Margin/VBox/TurnOrderBar/TurnOrderHBox/TurnOrderList
@@ -79,6 +81,17 @@ func _ready() -> void:
 		_texture_idle_enemy.append(_placeholder_texture)
 	_texture_attack_party = load("res://assets/sevro_atack_no_bg_1-removebg-preview.png") as Texture2D
 	_texture_attack_enemy = load("res://assets/sevro_atack_no_bg.png") as Texture2D
+	var hero2_attack_tex = load("res://assets/hero2_attack_animation.png") as Texture2D
+	_hero2_attack_frames.clear()
+	if hero2_attack_tex != null:
+		_hero2_attack_frames.append(hero2_attack_tex)
+	var enemy_attack_1 = load("res://assets/enemy_1_attack_animantion_part1-removebg-preview.png") as Texture2D
+	var enemy_attack_2 = load("res://assets/enemy1_attack_animation_part2-removebg-preview.png") as Texture2D
+	_enemy0_attack_frames.clear()
+	if enemy_attack_1 != null:
+		_enemy0_attack_frames.append(enemy_attack_1)
+	if enemy_attack_2 != null:
+		_enemy0_attack_frames.append(enemy_attack_2)
 	if _texture_attack_party == null:
 		_texture_attack_party = _placeholder_texture
 	if _texture_attack_enemy == null:
@@ -255,6 +268,8 @@ func _build_arena() -> void:
 		slot.is_party = true
 		party_row.add_child(slot)
 		slot.setup(party[i], idle_i, attack_party)
+		if i == 1 and not _hero2_attack_frames.is_empty():
+			slot.set_attack_frames(_hero2_attack_frames)
 		_party_slots.append(slot)
 	# Keep _party_slots indexed by party index for _get_attacker_slot()
 	_party_slots.sort_custom(func(a, b): return a.slot_index < b.slot_index)
@@ -286,6 +301,8 @@ func _build_arena() -> void:
 			slot.slot_clicked.connect(_on_enemy_slot_clicked)
 			enemy_front_row.add_child(slot)
 			slot.setup(enemies[i], get_enemy_idle.call(i), attack_enemy, Vector2(380, 494))
+			if i == 0 and not _enemy0_attack_frames.is_empty():
+				slot.set_attack_frames(_enemy0_attack_frames)
 			_enemy_slots.append(slot)
 	enemy_slots_container.alignment = BoxContainer.ALIGNMENT_END
 	_on_turn_order_updated(battle_manager.get_current_battler())
