@@ -2,7 +2,10 @@
 
 > Turn-based battle game (Godot 4): 3 heroes vs 1–4 enemies, turn order by speed. Sci-fi style UI.
 
-[![CI](https://github.com/DinisMiranda/three_game/actions/workflows/ci.yml/badge.svg)](https://github.com/DinisMiranda/three_game/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/DinisMiranda/three_game/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/DinisMiranda/three_game/actions/workflows/ci-cd.yml)
+[![codecov](https://codecov.io/gh/DinisMiranda/three_game/graph/badge.svg)](https://codecov.io/gh/DinisMiranda/three_game)
+[![Godot 4.6](https://img.shields.io/badge/Godot-4.6-478cbf.svg)](https://godotengine.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 `godot` `godot4` `turn-based` `battle` `gdscript`
 

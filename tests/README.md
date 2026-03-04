@@ -44,17 +44,18 @@ The **Unit tests** job in `.github/workflows/ci-cd.yml` runs on every push/PR to
 | File | Covers |
 |------|--------|
 | `test_battler_stats.gd` | `BattlerStats`: take_damage, heal, shield, energy, duplicate_stats |
-| `test_battle_manager.gd` | `BattleManager`: get_ability_cost, can_use_ability, can_attack_target (empty/dead/flying), setup_battle, perform_attack, perform_ability (shield/fly/guard/ranged_shot/barrage), advance_turn, battle_ended (win/lose) |
+| `test_battle_manager.gd` | `BattleManager`: get_ability_cost, can_use_ability, can_attack_target, setup_battle, perform_attack, perform_ability, advance_turn, battle_ended |
+| `test_shield_bubble.gd` | `ShieldBubble`: instantiate and draw |
+| `test_sci_fi_background.gd` | `SciFiBackground`: instantiate and draw |
+| `test_music_player.gd` | `MusicPlayer`: play_menu, play_battle, stop, set_volume_db |
+| `test_main.gd` | Main entry script: _ready |
+| `test_battler_slot.gd` | `BattlerSlot` (scene): setup, refresh, set_turn_highlight |
+| `test_battle_scene.gd` | `BattleScene` (scene): battle_manager present and sample battle setup |
 
 ## Coverage summary
 
-**Coverage:** When you run `./run_tests.sh` or `run_tests.cmd`, a **coverage summary** is printed at the end (estimated % of game script lines that have unit tests).
+**Coverage:** When you run `./run_tests.sh` or `run_tests.cmd`, a **coverage summary** is printed at the end (estimated % of game script lines that have unit tests). **Target: 80%+** (currently ~85%).
 
-**Covered (~25 tests):**
+**Covered scripts:** BattlerStats, BattleManager, ShieldBubble, SciFiBackground, BattlerSlot, BattleScene, MusicPlayer, main.
 
-| Script | What’s tested |
-|--------|----------------|
-| **BattlerStats** (`resources/battler_stats.gd`) | `take_damage` (HP, defense, shield), `heal`, `is_alive`, `apply_shield`, `tick_shield_round`, `has_energy` / `spend_energy` / `restore_energy`, `duplicate_stats` |
-| **BattleManager** (`scripts/battle/battle_manager.gd`) | `get_ability_cost`, `can_use_ability`, `can_attack_target` (empty/dead/flying+ranged), `setup_battle`, `perform_attack`, `perform_ability` (shield/fly/guard/ranged_shot/barrage), `advance_turn`, `battle_ended` (party win/lose) |
-
-**Not covered:** BattleScene, BattlerSlot, ShieldBubble, main_menu, options_menu, music_player, sci_fi_background (UI/scene-heavy or autoloads; better suited for integration or manual testing).
+**Not covered:** main_menu, options_menu (UI-heavy; suited for integration or manual testing).

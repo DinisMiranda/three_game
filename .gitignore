@@ -25,6 +25,7 @@ export_presets.cfg
 
 # Build / run artifacts
 reports/
+coverage.xml
 *.log
 *.tmp
 *.temp
