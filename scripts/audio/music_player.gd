@@ -25,7 +25,7 @@ func _load_stream(path: String) -> AudioStream:
 	return load(path) as AudioStream
 
 func _play_path(path: String) -> void:
-	if path.is_empty():
+	if path.is_empty() or _player == null:
 		return
 	if path == _current_path and _player.playing:
 		return
@@ -59,8 +59,10 @@ func play_battle() -> void:
 	_play_path(path)
 
 func stop() -> void:
-	_player.stop()
+	if _player != null:
+		_player.stop()
 	_current_path = ""
 
 func set_volume_db(db: float) -> void:
-	_player.volume_db = db
+	if _player != null:
+		_player.volume_db = db

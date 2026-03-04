@@ -59,3 +59,11 @@ The **Unit tests** job in `.github/workflows/ci-cd.yml` runs on every push/PR to
 **Covered scripts:** BattlerStats, BattleManager, ShieldBubble, SciFiBackground, BattlerSlot, BattleScene, MusicPlayer, main.
 
 **Not covered:** main_menu, options_menu (UI-heavy; suited for integration or manual testing).
+
+## Exit warnings (CLI)
+
+When you run tests from the command line (`./run_tests.sh`), Godot may print at exit:
+
+- **"ObjectDB instances leaked"** / **"N resources still in use at exit"**
+
+These are common when the engine shuts down after running a script (e.g. GdUnit4 with `-s`). They do **not** mean tests failed. They come from the engine’s teardown and from resources (scenes, scripts, textures) loaded during the run. Exit code 0 and the test summary are what matter for success.
