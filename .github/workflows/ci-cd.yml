@@ -92,6 +92,17 @@ jobs:
           paths: "tests"
           timeout: "5"
 
+      - name: Generate coverage report (Cobertura)
+        run: python3 scripts/generate_coverage_xml.py
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
   deploy-staging:
     name: Deploy Staging
     if: github.event_name == 'push' && github.ref == 'refs/heads/staging'

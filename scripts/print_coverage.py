@@ -7,6 +7,12 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 COVERED_FILES = [
     "resources/battler_stats.gd",
     "scripts/battle/battle_manager.gd",
+    "scripts/battle/shield_bubble.gd",
+    "scripts/battle/sci_fi_background.gd",
+    "scripts/battle/battler_slot.gd",
+    "scripts/battle/battle_scene.gd",
+    "scripts/audio/music_player.gd",
+    "scripts/main/main.gd",
 ]
 
 def count_lines(path: Path) -> int:
@@ -34,7 +40,7 @@ def main() -> None:
     print()
     print("---------- Coverage (estimated) ----------")
     print(f"  Game scripts:  {total} lines (scripts/ + resources/)")
-    print(f"  With tests:    {covered} lines (BattlerStats, BattleManager)")
+    print(f"  With tests:    {covered} lines")
     print(f"  Coverage:      {pct}%")
     print("-------------------------------------------")
 
