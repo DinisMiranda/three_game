@@ -10,8 +10,7 @@
 
 | Workflow | Triggers | Purpose |
 |----------|----------|---------|
-| **CI** (`ci.yml`) | Push/PR on `develop`, `staging`, `main` | **Branch flow:** blocks PRs in the wrong direction (allows only staging→main, develop→staging, feature→develop). Docs (markdown lint + link check), Godot project validation. |
-| **CD** (`cd.yml`) | Push to `staging`, `main` | Deploy staging on push to `staging`; deploy production on push to `main`. Add your export/deploy steps (e.g. Godot export, itch.io, artifacts) in the workflow. |
+| **Validate & Deploy** (`ci-cd.yml`) | Push/PR on `develop`, `staging`, `main` | **Branch flow:** blocks PRs in the wrong direction. **Docs:** markdown lint + link check. **Godot:** headless validate. **Unit tests:** GdUnit4 (GDScript) under `tests/`. **CD:** deploy staging on push to `staging`, production on push to `main`. |
 
 ## GitHub setup
 
