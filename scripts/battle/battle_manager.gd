@@ -118,7 +118,8 @@ func perform_attack(attacker: Dictionary, target: Dictionary) -> int:
 		return 0
 	var atk_stats: BattlerStats = attacker.stats
 	var tgt_stats: BattlerStats = target.stats
-	var damage = maxi(1, atk_stats.attack - (tgt_stats.defense / 2))
+	var half_defense := int(tgt_stats.defense / 2.0)
+	var damage := maxi(1, atk_stats.attack - half_defense)
 	return tgt_stats.take_damage(damage)
 
 # --- Apply an ability. Costs energy; optional target for attack abilities. Returns true if used. ---
