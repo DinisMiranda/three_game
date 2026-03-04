@@ -1,0 +1,7 @@
+# Lychee link checker config (CI and local).
+# See https://lychee.cli.rs/guides/config/
+
+# Longer timeout and retries to reduce failures on transient network errors (e.g. connection reset in CI).
+timeout = 30
+max_retries = 3
+retry_wait_time = 2
