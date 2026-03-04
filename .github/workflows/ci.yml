@@ -42,6 +42,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Ensure .cursor/rules exists (CI has no Cursor IDE)
+        run: mkdir -p .cursor && touch .cursor/rules
+
       - name: Markdown lint
         uses: DavidAnson/markdownlint-cli2-action@v22
         with:
@@ -64,6 +67,9 @@ jobs:
       image: barichello/godot-ci:4.6
     steps:
       - uses: actions/checkout@v6
+
+      - name: Ensure .cursor/rules exists (CI has no Cursor IDE)
+        run: mkdir -p .cursor && touch .cursor/rules
 
       - name: Validate project
         run: godot --headless --path . --quit
