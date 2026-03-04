@@ -52,8 +52,8 @@ jobs:
       - name: Link check
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --no-progress '**/*.md' --no-fail-on 429 --no-fail-on timeout --no-fail-on connection
-          base: .
+          args: --no-progress '**/*.md'
+          workingDirectory: .
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
