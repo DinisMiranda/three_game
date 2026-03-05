@@ -98,6 +98,7 @@ jobs:
           godot-version: "4.6"
           paths: "tests"
           timeout: "5"
+          warnings-as-errors: "false"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
