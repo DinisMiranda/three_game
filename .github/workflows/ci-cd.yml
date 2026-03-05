@@ -3,6 +3,10 @@
 # Merge develop → staging for staging deploy; staging → main for production deploy.
 name: Validate & Deploy
 
+permissions:
+  contents: read
+  checks: write
+
 on:
   push:
     branches: [develop, staging, main]
@@ -79,6 +83,9 @@ jobs:
   unit-tests:
     name: Unit tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
     steps:
       - uses: actions/checkout@v6
 
@@ -91,6 +98,8 @@ jobs:
           godot-version: "4.6"
           paths: "tests"
           timeout: "5"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate coverage report (Cobertura)
         run: python3 scripts/generate_coverage_xml.py
