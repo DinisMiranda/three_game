@@ -1,0 +1,646 @@
+# 🎮 Art & Animation Pipeline Decision
+
+## Projeto: Turn-Based Sci-Fi RPG  
+Engine: Godot  
+Equipa: 2 pessoas  
+
+---
+
+# 📌 Objetivo
+
+Decidir qual abordagem é mais eficiente:
+
+1. Modelar personagens em 3D low poly e renderizar para sprites 2D
+2. Desenhar manualmente cada frame 2D low poly
+
+---
+
+# 🟢 Opção A — 3D Low Poly → Render → Sprite 2D
+
+## 🧱 Pipeline
+
+Modelar no Blender  
+↓  
+Criar rig (Armature)  
+↓  
+Animar com keyframes  
+↓  
+Renderizar frames automaticamente  
+↓  
+Exportar sprite sheet  
+↓  
+Importar no Godot  
+
+---
+
+## ✅ Vantagens
+
+### ✔️ Anima uma vez só
+Alterações exigem apenas editar keyframes e re-renderizar.
+
+### ✔️ Consistência visual perfeita
+- Proporções corretas
+- Perspetiva consistente
+- Iluminação coerente
+
+### ✔️ Escalável
+Criar novos inimigos ou personagens é rápido.
+
+### ✔️ Efeitos sci-fi mais fáceis
+- Glow
+- Emission
+- Hologramas
+- Shields
+
+### ✔️ Melhor para equipa pequena
+
+---
+
+## ❌ Desvantagens
+
+- Setup inicial de rig
+- Exige planeamento fixo de câmara e luz
+- Renderização adiciona etapa extra
+
+---
+
+# 🔴 Opção B — Desenhar Cada Frame 2D Manualmente
+
+## 🧱 Pipeline
+
+Desenhar frame 1  
+Desenhar frame 2  
+Desenhar frame 3  
+Corrigir volume  
+Corrigir proporções  
+Repetir para cada animação  
+
+---
+
+## ❌ Desvantagens
+
+- Muito demorado
+- Difícil manter consistência
+- Mudanças exigem redesenhar múltiplos frames
+- Escala mal com muitos personagens
+
+---
+
+## ✅ Vantagens
+
+- Estilo artístico mais orgânico
+- Total controlo visual
+- Ideal para pixel art tradicional
+
+---
+
+# 📊 Comparação Prática
+
+Exemplo:
+
+3 personagens  
+6 animações cada  
+8 frames por animação  
+
+Total: 144 desenhos manuais  
+(+ inimigos)
+
+Em 3D:
+Modelas 1 vez  
+Animas 1 vez  
+Render automático
+
+---
+
+# 🏆 Recomendação para Este Projeto
+
+Para:
+
+- Turn-based sci-fi
+- Equipa de 2 pessoas
+- Estilo low poly
+- Foco em eficiência
+
+👉 Recomendação:  
+**3D Low Poly no Blender → Render para Sprite → Usar no Godot**
+
+---
+
+# 🎨 Boas Práticas
+
+## 📷 Câmara
+- Ângulo fixo
+- Nunca alterar após começar produção
+
+## 💡 Iluminação
+- Setup fixo
+- Guardar como template
+
+## 📐 Escala
+- Definir tamanho padrão para todos personagens
+
+---
+
+# 🚀 Próximo Passo
+
+Criar:
+
+- 1 personagem teste
+- 1 inimigo teste
+- 3 animações:
+  - Idle
+  - Attack
+  - Hit Reaction
+
+Validar pipeline antes de expandir.
+
+---
+
+# 🔥 Conclusão Final
+
+Para um projeto indie de 2 pessoas,  
+3D low poly renderizado para 2D oferece:
+
+✔️ Melhor produtividade  
+✔️ Melhor consistência  
+✔️ Melhor escalabilidade  
+✔️ Menos retrabalho  
+
+---
+
+# 🗺️ Roadmap — Realização Completa do Projeto
+
+Este roadmap serve como **guia completo** para levar o jogo do estado atual até à versão publicável.  
+Foi escrito a pensar em **quem está a fazer o primeiro jogo**: inclui conceitos, ordem de tarefas, onde mexer no projeto e dicas para evitar bloqueios.
+
+---
+
+# 🌱 Primeiro jogo: o que esperar
+
+## Mentalidade
+
+- **Scope pequeno é virtude.** Um jogo “simples” acabado vale mais do que um “épico” abandonado. Este projeto já tem um núcleo (uma batalha turn-based); o objetivo é completá-lo, não redesenhar tudo.
+- **Iteração > perfeição.** Primeiro faz funcionar (ex.: um inimigo que ataca), depois equilibra e embeleza. Não passar semanas numa única mecânica antes de testar no jogo.
+- **Dividir em blocos.** Cada fase abaixo tem passos pequenos. Fazer um passo, testar, commitar; depois o próximo.
+- **Documentar à medida que se avança.** Se mudares uma fórmula de dano ou um valor importante, anota em `docs/` ou num ficheiro de design para não perderes o fio.
+
+## O que é “acabar” um jogo
+
+Para este projeto, um bom fim de linha é:
+
+1. **Jogável:** uma pessoa consegue abrir o jogo, jogar várias batalhas e perceber as regras.
+2. **Completinho:** menu, batalha, feedback visual/sonoro, vitória/derrota, voltar ao menu.
+3. **Publicável:** um build que outra pessoa pode descarregar e jogar (ex.: itch.io).
+
+Tudo o que for além disso (campanha longa, save/load, muitas classes) é extensão, não obrigatório para o “primeiro jogo completo”.
+
+---
+
+# 📖 Conceitos úteis
+
+| Termo | Significado curto |
+|-------|-------------------|
+| **MVP** | Minimum Viable Product: a versão mais pequena do jogo que já é jogável e demonstrável. |
+| **Placeholder** | Asset temporário (imagem, som) usado até haver a versão final. Ex.: `character_placeholder.png`. |
+| **Balanceamento** | Ajustar números (HP, dano, custos) para o jogo ser desafiante mas justo, nem trivial nem frustrante. |
+| **Pipeline** | Sequência de passos para criar um tipo de conteúdo (ex.: Blender → render → sprite sheet → Godot). |
+| **Sprite sheet** | Imagem com vários frames de animação lado a lado; o Godot corta em regiões para animar. |
+| **SFX** | Sound effects: sons curtos (ataque, hit, clique). |
+| **BGM** | Background music: música de fundo. |
+| **UI/UX** | Interface (botões, barras) e experiência do utilizador (clareza, feedback, tutorial). |
+| **`user://`** | Pasta no Godot onde o jogo pode guardar dados do jogador (opções, save); muda consoante o SO. |
+
+---
+
+# 🛠️ Antes de começar as fases
+
+## Ferramentas que vais precisar
+
+- **Godot 4.x** — já usas; manter a mesma versão (ex.: 4.6) em toda a equipa.
+- **Editor de texto / IDE** — para GDScript e eventualmente dados (JSON, config).
+- **Blender** (se seguires pipeline 3D→sprite) — modelação e animação; versão LTS estável.
+- **Editor de áudio** — Audacity (grátis) ou similar para gravar/editar SFX; música pode ser feita com ferramentas como LMMS, ou assets royalty-free.
+- **Controlo de versão** — Git; o projeto já está em GitHub com branches develop/staging/main.
+
+## Organização em equipa de 2
+
+- **Programação:** Godot (cenas, scripts), fórmulas de combate, IA, save/options. Ficheiros em `scripts/`, `resources/`, `scenes/`.
+- **Arte/áudio:** Sprites, animações, música, SFX, UI visual. Ficheiros em `assets/`, texturas nas cenas.
+- Definir quem “doninha” cada fase (ex.: um faz Fase 1+2, outro Fase 3+4) reduz conflitos e dá responsabilidade clara.
+
+## Onde está o quê no projeto
+
+| Quero… | Onde procurar |
+|--------|----------------|
+| Lógica de batalha (turnos, dano, abilities) | `scripts/battle/battle_manager.gd` |
+| Dados de um personagem (HP, ataque, etc.) | `resources/battler_stats.gd` |
+| O que aparece no ecrã de batalha (UI, slots, botões) | `scripts/battle/battle_scene.gd` |
+| Um slot de personagem (barra HP, escudo, sprite) | `scripts/battle/battler_slot.gd` |
+| Menu principal e “Start Battle” | `scripts/main_menu/main_menu.gd` |
+| Música e volume | `scripts/audio/music_player.gd`, `scripts/ui/options_menu.gd` |
+| Documentação do sistema | `docs/BATTLE_SYSTEM.md`, `docs/ARCHITECTURE.md`, `docs/FILE_REFERENCE.md` |
+
+---
+
+# ✅ Estado atual (já feito)
+
+Resumo do que já existe; serve de base para as fases seguintes.
+
+- **Menu principal:** título, Start Battle, Options (volume, Back, Quit), música de menu.
+- **Batalha:** 3 heróis vs 1–4 inimigos, ordem de turno por velocidade, ataque e alvo por clique.
+- **Sistema de combate:** HP, defesa, escudo (ability Shield), energia, fly/ranged, avanço de turno e fim de ronda.
+- **Abilities:** Shield, Fly, Guard, Ranged Shot, Barrage (por personagem), custos e restrições.
+- **UI sci-fi:** barras de HP/escudo/energia, turn order bar, painel de ações, log, EndScreen (Vitória/Derrota, Back to Main Menu).
+- **Áudio:** MusicPlayer (menu + batalha), options com slider de volume.
+- **CI/CD:** testes unitários (GdUnit4), cobertura ~85%, workflow develop → staging → main.
+- **Docs:** arquitetura, battle system, file reference, scenes/UI, placeholder assets.
+
+---
+
+# 📍 Fase 1 — Core gameplay completo
+
+**Objetivo:** O combate deve sentir-se “acabado” numa sessão: regras claras, números legíveis, inimigos que tomam decisões básicas.
+
+**Quando considerar “pronto”:** Jogas uma batalha, vês o dano que causas/levas, os inimigos não parecem totalmente aleatórios, e consegues ganhar ou perder de forma compreensível.
+
+---
+
+## 1.1 Fórmulas de dano e cura
+
+**O que fazer:**
+
+1. Abrir `scripts/battle/battle_manager.gd` e localizar onde o dano é calculado (procura por `perform_attack` e a fórmula que usa `attack` e `defense`).
+2. Abrir `resources/battler_stats.gd` e rever `take_damage` (como o escudo absorve e como a defesa reduz).
+3. Escrever num ficheiro (ex.: `docs/BATTLE_SYSTEM.md` ou `docs/COMBAT_FORMULAS.md`) uma frase do tipo: “Dano final = max(0, ataque - defesa); escudo absorve primeiro 1:1”.
+4. (Opcional) Introduzir crítico (ex.: 2x dano com 10% probabilidade) ou resistências; se o fizeres, documentar.
+
+**Onde mexer:** `battle_manager.gd`, `battler_stats.gd`, `docs/`.
+
+**Dica:** Valores muito altos de defesa podem fazer o dano ser sempre 0; usar `max(0, ...)` e eventualmente um mínimo de 1 de dano para não travar.
+
+---
+
+## 1.2 Balanceamento
+
+**O que é:** Ajustar números (HP, attack, defense, speed, custos de energy) para que as batalhas não sejam nem demasiado fáceis nem impossíveis.
+
+**O que fazer:**
+
+1. Definir “arquetipos” simples: ex. Tank (muito HP e defesa, pouco ataque), DPS (muito ataque, menos HP), Suporte (abilities caras, cura ou escudo).
+2. Criar uma tabela no papel ou num doc: por personagem, HP, attack, defense, speed, custo de cada ability.
+3. Alterar os valores no código. No projeto atual, os stats são criados em `battle_scene.gd` em `_start_sample_battle()` (party e enemies); podes mais tarde mover para `BattlerStats` em resources ou para um ficheiro de dados.
+4. Jogar várias batalhas (3–5) e anotar: “muito fácil”, “muito difícil”, “bom”. Ajustar um valor de cada vez.
+
+**Onde mexer:** Onde os `BattlerStats` são instanciados e preenchidos (ex.: `battle_scene.gd`), ou em novos resources em `resources/`.
+
+**Dica:** Speed define quem joga primeiro; se todos tiverem o mesmo, a ordem pode parecer arbitrária. Dar diferenças claras (ex.: 10, 15, 20) para sentir o impacto.
+
+---
+
+## 1.3 IA inimiga
+
+**O que fazer:**
+
+1. Em `battle_scene.gd`, localizar a função que executa o turno do inimigo (ex.: `_ai_turn` ou equivalente). Hoje provavelmente ataca sempre o primeiro herói vivo.
+2. Implementar uma regra simples, ex.: “escolher o alvo com menos HP atual” ou “escolher o alvo com menos defesa”.
+3. (Opcional) Para inimigos com abilities: decidir uma condição (ex.: “se tenho >50 energy e o herói X está com pouco HP, usar ability Y”); implementar por tipo de inimigo se tiveres vários.
+4. Testar: jogar várias vezes e ver se o comportamento faz sentido.
+
+**Onde mexer:** `scripts/battle/battle_scene.gd` (função de AI).
+
+**Dica:** Não é preciso IA complexa; “atacar o alvo mais fraco” já torna o jogo mais interessante do que “sempre o primeiro”.
+
+---
+
+## 1.4 Mais abilities (opcional)
+
+**O que fazer:**
+
+1. Listar 1–2 abilities novas (ex.: Curar um aliado, Buff de defesa por 2 turnos).
+2. Em `battle_manager.gd` já existe lógica para abilities (custos, `perform_ability`); adicionar o caso novo (ex.: em `perform_ability`, se `ability_id == "heal"`, chamar `target.stats.heal(amount)` e gastar energy).
+3. Em `battle_scene.gd`, garantir que o botão ou a lista de abilities inclui a nova e que o targeting está correto (ex.: curar exige escolher um aliado).
+4. Documentar custo e efeito em `docs/BATTLE_SYSTEM.md`.
+
+**Onde mexer:** `battle_manager.gd`, `battle_scene.gd`, `docs/`.
+
+---
+
+## 1.5 Feedback de combate
+
+**O que fazer:**
+
+1. **Números na UI:** Ao aplicar dano ou cura, mostrar o valor (ex.: “-12” ou “+20”) perto do alvo por 1–2 segundos. Pode ser um Label que aparece e desaparece ou um efeito flutuante; no código, é emitir um sinal com o valor e a posição do alvo e criar/atualizar esse Label na cena.
+2. **Animações simples:** Pequeno “shake” do sprite ao levar hit, ou um flash; no `BattlerSlot` já existe `play_attack_animation` — pode haver `play_hit_reaction()` que faz um breve efeito visual.
+3. **Sons:** Ver Fase 4; preparar mentalmente que cada ação (ataque, hit, heal, ability) terá um SFX.
+
+**Onde mexer:** `battle_scene.gd` (onde se chama `perform_attack` / `perform_ability`), `battler_slot.gd` (efeitos no slot), depois `assets/` para sons.
+
+**Entregável da Fase 1:** Batalha jogável de ponta a ponta com sensação de “jogo completo” numa sessão: regras claras, feedback visível e inimigos com comportamento básico.
+
+---
+
+# 📍 Fase 2 — Conteúdo e progressão
+
+**Objetivo:** Variedade: vários heróis e inimigos, e sensação de progressão (mesmo que seja “próxima batalha mais difícil”).
+
+**Quando considerar “pronto”:** Consegues jogar 3–5 batalhas diferentes (diferentes inimigos ou composições) e sentes que o jogo tem conteúdo suficiente para uma sessão de 15–30 minutos.
+
+---
+
+## 2.1 Roster de heróis
+
+**O que fazer:**
+
+1. Definir 3–4 heróis com nomes e “roles” (ex.: Tanque, Atacante, Suporte).
+2. Para cada um: valores de HP, attack, defense, speed, max_energy; 1–2 abilities fixas (podem ser as que já existem, atribuídas de forma distinta).
+3. Onde o jogo constrói a party (ex.: `battle_scene.gd` ou um script de “campanha”), passar a usar esta definição (lista de resources ou tabela em código). Se ainda estiver tudo em código, criar constantes ou um ficheiro de dados (ex.: JSON) que descreve cada herói.
+4. Garantir que a UI mostra o nome e, se aplicável, ícone ou sprite correto por herói.
+
+**Onde mexer:** Onde a party é criada; `resources/` se criares um resource por herói; `battle_scene.gd` ou novo script de “game state”.
+
+**Dica:** Manter uma única “fonte de verdade” (um sítio onde os stats estão definidos) para não duplicar valores.
+
+---
+
+## 2.2 Roster de inimigos
+
+**O que fazer:**
+
+1. Definir 4–6 tipos de inimigos (nome, stats, 0–2 abilities). Ex.: “Lurker” (pouco HP, alto ataque), “Shielded” (escudo passivo), “Healer” (cura outro inimigo).
+2. Guardar numa estrutura semelhante à dos heróis (resources ou dados).
+3. Na batalha, em vez de um único tipo de inimigo, escolher 1–4 a partir deste roster (lista fixa por batalha ou aleatória com restrições).
+4. Se um inimigo tiver comportamento especial (ex.: curar), implementar na IA (Fase 1.3) um caso para esse tipo.
+
+**Onde mexer:** Mesma lógica que 2.1; `battle_scene.gd` ou script que monta o encontro; função de IA.
+
+---
+
+## 2.3 Encontros fixos ou pool
+
+**O que fazer:**
+
+1. **Opção A — Lista fixa:** Definir uma lista de batalhas (ex.: batalha 1 = 2 Lurker; batalha 2 = 1 Shielded + 1 Healer). O “progresso” é só “próximo índice da lista”.
+2. **Opção B — Pool:** Definir um conjunto de inimigos por “nível” ou “zona”; cada batalha sorteia N inimigos desse conjunto. Útil para sensação de variedade sem criar dezenas de encontros à mão.
+3. Implementar o mínimo necessário no código: uma variável “batalha atual” ou “nível atual” e uma função “montar encontro para este índice/nível”.
+
+**Onde mexer:** Novo script de “campaign” ou “encounter manager”, ou extensão de `battle_scene.gd` se for muito simples.
+
+---
+
+## 2.4 Progressão entre batalhas (opcional)
+
+**O que fazer:**
+
+1. Decidir: entre batalhas há “full heal” ou mantemos HP/energy? Para o primeiro jogo, full heal é mais simples.
+2. Se quiseres persistir HP: guardar o estado da party (current_hp, current_energy) em `user://` ou numa variável global ao sair da batalha e repor ao iniciar a próxima.
+3. (Avançado) Upgrades por vitória: ex.: “+5 max HP” ao herói 1; guardar esses bónus e aplicá-los ao criar os BattlerStats na próxima batalha.
+
+**Onde mexer:** Script que orquestra as batalhas; leitura/escrita em `user://` (ver Fase 6.1).
+
+---
+
+## 2.5 Dificuldade
+
+**O que fazer:**
+
+1. Definir 2–3 níveis (ex.: Fácil, Normal, Difícil).
+2. Por nível: multiplicador de HP dos inimigos, ou multiplicador de dano, ou número máximo de inimigos. Ex.: Fácil = 0.8x dano inimigo; Difícil = 1.2x HP inimigos.
+3. Guardar a dificuldade escolhida (menu ou options) e usá-la ao montar o encontro (ao definir stats ou número de inimigos).
+4. (Opcional) Mostrar no UI “Dificuldade: Normal”.
+
+**Onde mexer:** Options ou menu de seleção; script que monta encontro; possivelmente `user://` para guardar preferência (Fase 6).
+
+**Entregável da Fase 2:** Múltiplas batalhas distintas, com variedade de heróis e inimigos e, se aplicável, dificuldade selecionável.
+
+---
+
+# 📍 Fase 3 — Arte e animação
+
+**Objetivo:** Substituir placeholders por arte final (ou por uma versão “quase final”) e ter um pipeline estável. A decisão 3D vs 2D manual está na secção “Art & Animation Pipeline” no início deste documento.
+
+**Quando considerar “pronto”:** Todos os personagens e inimigos têm sprites que não são placeholders genéricos; há pelo menos Idle e Attack; efeitos principais (escudo, hit) estão visíveis.
+
+---
+
+## 3.1 Validar pipeline 3D → sprite
+
+**O que fazer (resumo):**
+
+1. No Blender: um personagem simples, rig, 3 animações (Idle, Attack, Hit).
+2. Renderizar frames com câmara e luz fixas; exportar como sprite sheet (imagens alinhadas numa grelha).
+3. No Godot: importar a texture, criar um AnimatedTexture ou SpriteFrames com as regiões corretas (ou usar nós que trocam texture por frame).
+4. Ligar no `BattlerSlot` ou na cena de batalha: idle = primeira animação; attack = segunda (já existe lógica de “attack texture” por 0.75s).
+
+**Onde mexer:** Blender (projeto à parte); `assets/`; cena/sprite do personagem no Godot; `battler_slot.gd` / `battle_scene.gd` onde as texturas são atribuídas.
+
+**Dica:** Fazer primeiro 1 herói + 1 inimigo + 3 animações cada; validar que o pipeline não tem gargalos antes de produzir o resto.
+
+---
+
+## 3.2 Sprites finais heróis
+
+**O que fazer:** Para cada herói do roster: sprite sheet com Idle e Attack (e opcionalmente Hit/Death). Mesma resolução e ângulo de câmara para todos. Substituir em `battle_scene.gd` (ou no resource do herói) a referência ao placeholder pela nova texture/sprite.
+
+---
+
+## 3.3 Sprites finais inimigos
+
+**O que fazer:** O mesmo que 3.2 para cada tipo de inimigo; manter estilo visual coerente com os heróis (iluminação, paleta).
+
+---
+
+## 3.4 Efeitos visuais
+
+**O que fazer:**
+
+1. **Escudo:** Já existe `ShieldBubble`; pode só precisar de ajuste de cor ou tamanho.
+2. **Impacto de ataque:** Pequeno efeito no alvo (flash, partículas, ou sprite de “hit”) ao receber dano; disparado a partir do código que aplica dano (ex.: sinal “damage_dealt” com posição).
+3. **Heal/abilities:** Ícone ou efeito breve no alvo (ex.: “+20” verde); pode reutilizar a ideia dos números flutuantes da Fase 1.5.
+
+**Onde mexer:** `battler_slot.gd`, `battle_scene.gd`, possivelmente cenas de efeitos em `scenes/` ou `assets/`.
+
+---
+
+## 3.5 Backgrounds e UI
+
+**O que fazer:** Cenário de batalha (uma ou mais imagens que sirvam de fundo); ícones para cada ability na UI; garantir que botões e barras seguem o tema sci-fi. Atualizar referências em `battle_scene.gd` e nas cenas.
+
+**Entregável da Fase 3:** Arte final (ou quase final) integrada; sem placeholders críticos nos personagens e no combate.
+
+---
+
+# 📍 Fase 4 — Áudio e feedback
+
+**Objetivo:** O jogo deve ter som em todas as ações importantes; música de fundo já existe, falta SFX e opção de volume para SFX.
+
+**Quando considerar “pronto”:** Cada ação do jogador e do inimigo tem um som associado; o jogador consegue baixar/subir música e efeitos nas Options.
+
+---
+
+## 4.1 SFX de combate
+
+**O que fazer:**
+
+1. Listar eventos que precisam de som: ataque (jogador), ataque (inimigo), hit no alvo, heal, shield ativado, ability genérica, início/fim de turno, vitória, derrota, clique em botão.
+2. Conseguir ou gravar um SFX curto para cada (bibliotecas royalty-free: Freesound, OpenGameArt; ou gravação simples no Audacity).
+3. No Godot: importar os ficheiros em `assets/sfx/` (ou similar). Para cada evento, instanciar um `AudioStreamPlayer` ou usar um autoload de “SFX” que toca um som por nome. Chamar esse play no momento certo (ex.: ao chamar `perform_attack`, tocar “attack”; quando o dano é aplicado, tocar “hit”).
+
+**Onde mexer:** `scripts/audio/` (novo script de SFX ou extensão do MusicPlayer); `battle_scene.gd`, `battler_slot.gd` ou onde os eventos ocorrem; `assets/sfx/`.
+
+---
+
+## 4.2 Música
+
+**O que fazer:** Manter menu + batalha; se quiseres, adicionar uma faixa para “vitória” ou “derrota” curta. O `MusicPlayer` já suporta troca de faixa; garantir que os ficheiros existem em `assets/music/` (ver `assets/music/README.md`).
+
+---
+
+## 4.3 Mix e opções
+
+**Onde mexer:** `scripts/ui/options_menu.gd` e `project.godot`. Criar um bus “SFX” no áudio do Godot; no options, segundo slider para SFX (além do Master). Ao iniciar o jogo, aplicar volumes guardados (ver Fase 6.1).
+
+**Entregável da Fase 4:** Experiência auditiva completa em combate e menu, com controlo de volume.
+
+---
+
+# 📍 Fase 5 — UX e polish
+
+**Objetivo:** Um jogador novo consegue perceber como jogar e não se perde na interface; transições e feedback reduzem a sensação de “protótipo”.
+
+**Quando considerar “pronto”:** Há um “Como jogar” ou tutorial breve; os estados importantes (voar, escudo, alvo válido) estão visíveis; não há ecrãs que mudem de repente sem transição.
+
+---
+
+## 5.1 Tutorial ou primeiros passos
+
+**O que fazer:** Criar um ecrã ou overlay “Como jogar” (1–3 frases ou bullets): ordem de turno, como atacar (escolher alvo + Attack), como usar abilities, o que é o escudo. Mostrar na primeira vez que se entra na batalha (ou botão “Como jogar” no menu). Pode ser um popup com texto e “OK”.
+
+**Onde mexer:** Nova cena ou painel em `scenes/ui/`; chamada a partir do menu ou da primeira batalha.
+
+---
+
+## 5.2 Indicadores de estado
+
+**O que fazer:** Garantir que “voar” e “escudo” estão sempre visíveis (já existe label e bubble para escudo; voar tem label). Adicionar tooltips nos botões de abilities (ex.: ao passar o rato ou tocar longo: “Shield: 20 energy, 50% max HP, 3 rounds”). Destacar visualmente o alvo válido quando o jogador está a escolher (ex.: outline ou cor diferente no slot).
+
+**Onde mexer:** `battler_slot.gd`, `battle_scene.gd`, temas e estilos da UI.
+
+---
+
+## 5.3 Animações de transição
+
+**O que fazer:** Entre menu e batalha: fade out → carregar cena → fade in (ou usar animação do Godot com AnimationPlayer). Entre batalha e EndScreen: breve fade ou slide. Opcional: transição entre batalhas consecutivas. Reduz a sensação de “corte seco”.
+
+**Onde mexer:** Script que faz `change_scene_to_file`; possivelmente um nó de transição global ou um CanvasLayer com ColorRect animado.
+
+---
+
+## 5.4 Acessibilidade
+
+**O que fazer:** Contraste de texto e botões (legível em ecrãs médios); tamanho de fonte configurável ou grande por defeito; opção para reduzir flashes ou movimento (se houver efeitos muito brilhantes). Documentar na store ou na página do jogo.
+
+**Entregável da Fase 5:** Jogo compreensível e confortável para novos jogadores.
+
+---
+
+# 📍 Fase 6 — Meta e persistência
+
+**Objetivo:** O jogo “lembra” preferências (volume, fullscreen, dificuldade) e, se quiseres, progresso de campanha.
+
+**Quando considerar “pronto”:** Depois de fechar e reabrir o jogo, volume e opções mantêm-se; se tiveres campanha, o progresso (nível desbloqueado) persiste.
+
+---
+
+## 6.1 Settings persistentes
+
+**O que fazer:**
+
+1. Em Godot, usar `user://` para guardar um ficheiro (ex.: `user://settings.cfg` com ConfigFile, ou um Resource serializado).
+2. Ao abrir Options ou ao iniciar o jogo: ler volume Master e SFX (e dificuldade, fullscreen) e aplicar.
+3. Ao alterar volume ou dificuldade: escrever de imediato em `user://` e aplicar.
+4. Documentar o path em `docs/` se for útil para debug.
+
+**Onde mexer:** `scripts/ui/options_menu.gd`, script de bootstrap ou autoload que lê ao iniciar.
+
+---
+
+## 6.2–6.4 Campanha, estatísticas, save (opcional)
+
+**O que fazer:** Se quiseres campanha linear: guardar “último nível desbloqueado” em `user://`. Para estatísticas: contadores (vitórias, derrotas) guardados no mesmo ficheiro e mostrados num ecrã. Save de batalha ou campanha exige serializar o estado do BattleManager e da party; fazer só se for prioritário para o primeiro jogo.
+
+**Entregável da Fase 6:** Jogo que persiste opções e, se aplicável, progresso.
+
+---
+
+# 📍 Fase 7 — Release
+
+**Objetivo:** Build estável que outras pessoas podem descarregar e jogar.
+
+**Quando considerar “pronto”:** Tens um .exe/.app/.pck (consoante a plataforma) que corre sem erros, com instruções de instalação e uma página ou store onde o jogo está disponível.
+
+---
+
+## 7.1 Export presets
+
+**O que fazer:** No Godot: Project → Export; adicionar preset para Windows, macOS, Linux (Desktop). Testar “Export project” e correr o executável gerado. Opcional: Web (HTML5) ou mobile; cada um tem requisitos específicos (certificados, tamanho, etc.).
+
+---
+
+## 7.2 Versão e changelog
+
+**O que fazer:** Definir número de versão em `project.godot` (config/version). Manter `CHANGELOG.md` com uma entrada por release (ex.: “1.0.0 – Lançamento inicial: batalha turn-based, 3 heróis, 4 inimigos, menu e options”).
+
+---
+
+## 7.3 Testes em target
+
+**O que fazer:** Em cada plataforma onde queres publicar: instalar o build, jogar do início ao fim (menu → batalha → vitória/derrota → menu). Verificar resolução, teclado/rato ou touch, áudio. Corrigir bugs específicos da plataforma (ex.: paths, permissões).
+
+---
+
+## 7.4 Store / página
+
+**O que fazer:** Criar página no itch.io (ou similar): título, descrição curta, screenshots ou GIF, upload do build, requisitos (SO, resolução). Opcional: Steam ou site próprio com link de download.
+
+---
+
+## 7.5 Atualizações
+
+**O que fazer:** Decidir se haverá patches (bugfixes, pequenos ajustes). Manter um método simples de “qual versão está instalada” (ex.: número no menu ou no README do build).
+
+**Entregável da Fase 7:** Jogo publicável e instalável por terceiros.
+
+---
+
+# 🔁 Resumo visual e ordem sugerida
+
+```
+Estado atual ✅
+    → Fase 1 (gameplay: fórmulas, balance, IA, feedback)
+    → Fase 2 (conteúdo: heróis, inimigos, encontros, dificuldade)
+    → Fase 3 (arte: pipeline, sprites, efeitos, UI)
+    → Fase 4 (áudio: SFX, música, mix)
+    → Fase 5 (UX: tutorial, indicadores, transições)
+    → Fase 6 (persistência: options, campanha opcional)
+    → Fase 7 (release: export, store)
+```
+
+**Para o primeiro jogo:** Fazer **1 → 2 → 3 → 4 → 5** na ordem; **6** e **7** quando o jogo estiver estável e divertido. Fase 6 pode ser mínima (só guardar volume); Fase 7 é o “fechar” do projeto para publicação.
+
+---
+
+# ❓ Quando te sentires perdido
+
+- **Não sabes por onde começar:** Escolhe uma única tarefa da tabela da Fase 1 (ex.: 1.2 Balanceamento) e faz só essa; commita e passa à seguinte.
+- **Algo quebrou e não sabes porquê:** Usa o Git para comparar com o último commit que funcionava; lê as mensagens de erro do Godot (Output/Debugger); reduz o problema (ex.: desativa uma ability nova e vê se o resto volta a funcionar).
+- **Arte/áudio parece overwhelming:** Mantém placeholders até a Fase 3/4; um jogo jogável com assets simples vale mais do que um projeto parado à espera de arte final.
+- **Scope a crescer:** Volta a ler “Primeiro jogo: o que esperar” e corta uma feature que não seja essencial para “uma sessão jogável de início ao fim”.
+
+---
+
+# 📚 Recursos de aprendizagem
+
+- **Godot:** [Documentação oficial (en)](https://docs.godotengine.org/), [Learn section](https://docs.godotengine.org/en/stable/community/asset_library.html); tutoriais em vídeo (GDQuest, HeartBeast) para Godot 4.
+- **Blender:** Tutoriais “low poly character” e “rigging for games”; export para sprite sheet ou sequência de PNG.
+- **Áudio:** Freesound, OpenGameArt (licenças); Audacity para edição; LMMS ou similar para música se quiseres criar do zero.
+- **Game design (balance):** Artigos sobre “game feel”, “feedback loops” e “difficulty curves”; para turn-based, ver como jogos como Slay the Spire ou Into the Breach comunicam dano e risco.
