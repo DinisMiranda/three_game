@@ -39,6 +39,13 @@ What each important file does.
 |------|--------|
 | `scripts/main/main.gd` | Optional: attached to Main root in main.tscn. Previously the entry point; now the game starts from main_menu.tscn instead. |
 
+### Story
+
+| File | Purpose |
+|------|---------|
+| `scripts/story/briefing_dialogue.gd` | Pre-battle briefing scene: noir/cyan dialogue panels, boss (top-right) and mercenary (bottom-left) portraits. Lines live in `_dialogue_lines` (placeholder: rooftop package job). After the script, fade out and load `battle_scene.tscn`. |
+| `scenes/story/briefing_dialogue.tscn` | Full-screen briefing UI; **Start Battle** (main menu) fades in here, then battle. |
+
 ### Battle
 
 | File | Purpose |
@@ -53,7 +60,7 @@ What each important file does.
 
 | File | Purpose |
 |------|--------|
-| `scenes/main_menu/main_menu.tscn` | Root: MainMenu (Control + main_menu.gd). Entry scene (run/main_scene). Background, VBox with Title and StartBtn. Instances options menu; ESC opens it. |
+| `scenes/main_menu/main_menu.tscn` | Root: MainMenu (Control + main_menu.gd). Entry scene (run/main_scene). **Start Battle** fades to black then loads `briefing_dialogue.tscn`, then battle. Background, VBox with Title and StartBtn. Instances options menu; ESC opens it. |
 | `scenes/main/main.tscn` | Optional: Main (Control + main.gd) with Battle as child. No longer the run/main_scene; game starts from main menu. |
 | `scenes/battle/battle_scene.tscn` | Root: BattleScene (Control + battle_scene.gd). Children: Background (TextureRect), MarginContainer with full UI (turn bar, arena, BottomRow with ActionsPanel and LogPanel), EndScreen (CanvasLayer). Slot containers are empty at design time; battle_scene.gd fills them in `_build_arena()`. |
 | `scenes/battle/battler_slot.tscn` | Root: BattlerSlot (PanelContainer + battler_slot.gd). Layout: VBox with NameLabel, FlyingLabel, ShieldedLabel, HPBarContainer (ShieldBar + HPBar), EnergyBar, SpriteContainer (ShieldBubble + TextureRect). |
