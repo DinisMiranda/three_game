@@ -93,7 +93,7 @@ jobs:
         run: mkdir -p .cursor && touch .cursor/rules
 
       - name: GdUnit4 - Run unit tests
-        uses: MikeSchulze/gdUnit4-action@v1.1.1
+        uses: MikeSchulze/gdUnit4-action@v1.3.0
         continue-on-error: true
         with:
           godot-version: "4.6"
