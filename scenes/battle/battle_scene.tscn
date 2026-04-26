@@ -38,6 +38,13 @@ theme_override_constants/margin_bottom = 32
 [node name="VBox" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
 
+[node name="FloorBanner" type="Label" parent="Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.98, 1, 0.95)
+theme_override_font_sizes/font_size = 20
+text = "Meridian Spire"
+horizontal_alignment = 1
+
 [node name="TurnOrderBar" type="PanelContainer" parent="Margin/VBox"]
 layout_mode = 2
 
@@ -209,6 +216,11 @@ alignment = 1
 layout_mode = 2
 text = "Victory!"
 horizontal_alignment = 1
+
+[node name="NextFloorBtn" type="Button" parent="EndScreen/Center/Panel/VBox"]
+visible = false
+layout_mode = 2
+text = "Ascend — next floor"
 
 [node name="BackToMenuBtn" type="Button" parent="EndScreen/Center/Panel/VBox"]
 layout_mode = 2
