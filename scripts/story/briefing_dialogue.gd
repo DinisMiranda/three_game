@@ -1,13 +1,15 @@
 extends Control
 ## Pre-battle briefing: mercenary team + handler. Noir / terminal-style dialogue boxes.
 ## Placeholder story: rooftop package retrieval. Edit `_dialogue_lines` when you have the final script.
+## Layout: lower ~2/3 of screen; wide text panel over legs; large corner portrait; only active speaker visible.
 
 const BATTLE_SCENE := "res://scenes/battle/battle_scene.tscn"
 
 const _BOSS_PORTRAIT := "res://assets/enemy_1-removebg-preview.png"
 const _MERC_PORTRAIT := "res://assets/hero 2 no bg.png"
 
-const _BG_COLOR := Color(0.11, 0.11, 0.13, 1.0)
+## Dark tint over `OfficeBackground` so UI stays readable.
+const _BG_OVERLAY := Color(0.06, 0.07, 0.1, 0.55)
 const _BOX_BG := Color(0.05, 0.06, 0.12, 0.96)
 const _BOX_BORDER := Color(0.0, 0.88, 1.0, 0.72)
 const _TEXT_COLOR := Color(0.95, 0.96, 1.0, 1.0)
@@ -38,9 +40,11 @@ var _line_index: int = -1
 var _is_exiting: bool = false
 
 @onready var _background: ColorRect = $Background
+@onready var _boss_side: Control = $BossSide
 @onready var _boss_portrait: TextureRect = $BossSide/BossPortrait
 @onready var _boss_panel: PanelContainer = $BossSide/BossDialogPanel
 @onready var _boss_label: Label = $BossSide/BossDialogPanel/Margin/BossText
+@onready var _merc_side: Control = $MercSide
 @onready var _merc_portrait: TextureRect = $MercSide/MercPortrait
 @onready var _merc_panel: PanelContainer = $MercSide/MercDialogPanel
 @onready var _merc_label: Label = $MercSide/MercDialogPanel/Margin/MercText
@@ -49,7 +53,7 @@ var _is_exiting: bool = false
 
 
 func _ready() -> void:
-	_background.color = _BG_COLOR
+	_background.color = _BG_OVERLAY
 	_apply_dialogue_panel_style(_boss_panel)
 	_apply_dialogue_panel_style(_merc_panel)
 	_boss_label.add_theme_color_override("font_color", _TEXT_COLOR)
@@ -59,6 +63,12 @@ func _ready() -> void:
 	_load_portraits()
 	_boss_label.text = ""
 	_merc_label.text = ""
+	_boss_side.visible = false
+	_merc_side.visible = false
+	_boss_portrait.modulate = Color.WHITE
+	_merc_portrait.modulate = Color.WHITE
+	_boss_panel.modulate = Color.WHITE
+	_merc_panel.modulate = Color.WHITE
 	_hint.text = "Click or SPACE to continue"
 	_fade.mouse_filter = Control.MOUSE_FILTER_STOP
 	_fade.color = Color.BLACK
@@ -74,7 +84,7 @@ func _setup_monospace(label: Label) -> void:
 	sf.font_names = PackedStringArray(["Courier New", "Consolas", "Monaco", "monospace"])
 	sf.font_weight = 500
 	label.add_theme_font_override("font", sf)
-	label.add_theme_font_size_override("font_size", 22)
+	label.add_theme_font_size_override("font_size", 27)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 
@@ -83,7 +93,7 @@ func _apply_dialogue_panel_style(panel: PanelContainer) -> void:
 	s.bg_color = _BOX_BG
 	s.border_color = _BOX_BORDER
 	s.set_border_width_all(2)
-	s.set_content_margin_all(18)
+	s.set_content_margin_all(24)
 	s.set_corner_radius_all(0)
 	panel.add_theme_stylebox_override("panel", s)
 
@@ -93,7 +103,6 @@ func _load_portraits() -> void:
 	var merc_tex: Texture2D = load(_MERC_PORTRAIT) as Texture2D
 	if boss_tex:
 		_boss_portrait.texture = boss_tex
-		_boss_portrait.modulate = Color(0.35, 0.38, 0.45, 1.0)
 	if merc_tex:
 		_merc_portrait.texture = merc_tex
 
@@ -119,9 +128,17 @@ func _advance_line() -> void:
 	var text: String = str(entry["text"])
 	if speaker == Speaker.BOSS:
 		_boss_label.text = "\"%s\"" % text
+		_merc_label.text = ""
 	else:
 		_merc_label.text = "\"%s\"" % text
+		_boss_label.text = ""
+	_show_only_speaker(speaker)
 	_pulse_panel(speaker)
+
+
+func _show_only_speaker(speaker: Speaker) -> void:
+	_boss_side.visible = speaker == Speaker.BOSS
+	_merc_side.visible = speaker == Speaker.MERC
 
 
 func _pulse_panel(speaker: Speaker) -> void:

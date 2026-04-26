@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://briefing_dialogue_001"]
+[gd_scene load_steps=3 format=3 uid="uid://briefing_dialogue_001"]
 
 [ext_resource type="Script" path="res://scripts/story/briefing_dialogue.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/escritorio.png" id="2_office"]
 
 [node name="BriefingDialogue" type="Control"]
 layout_mode = 3
@@ -12,6 +13,18 @@ grow_vertical = 2
 mouse_filter = 0
 script = ExtResource("1_script")
 
+[node name="OfficeBackground" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_office")
+expand_mode = 1
+stretch_mode = 6
+
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -22,32 +35,113 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.11, 0.11, 0.13, 1)
 
-[node name="BossSide" type="VBoxContainer" parent="."]
+[node name="MercSide" type="Control" parent="."]
 layout_mode = 1
-anchors_preset = 1
+anchors_preset = 0
+anchor_left = 0.0
+anchor_top = 0.34
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="MercPortrait" type="TextureRect" parent="MercSide"]
+z_index = 0
+layout_mode = 1
+anchors_preset = 0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 8.0
+offset_right = 672.0
+offset_bottom = -8.0
+grow_horizontal = 0
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MercDialogPanel" type="PanelContainer" parent="MercSide"]
+z_index = 2
+layout_mode = 1
+anchors_preset = 0
+anchor_left = 0.12
+anchor_top = 0.4
+anchor_right = 0.88
+anchor_bottom = 0.88
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="MercSide/MercDialogPanel"]
+layout_mode = 2
+
+[node name="MercText" type="Label" parent="MercSide/MercDialogPanel/Margin"]
+layout_mode = 2
+size_flags_vertical = 3
+text = ""
+autowrap_mode = 3
+vertical_alignment = 1
+
+[node name="BossSide" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 0
+anchor_left = 0.0
+anchor_top = 0.34
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BossPortrait" type="TextureRect" parent="BossSide"]
+z_index = 0
+layout_mode = 1
+anchors_preset = 0
 anchor_left = 1.0
 anchor_top = 0.0
 anchor_right = 1.0
-anchor_bottom = 0.0
-offset_left = -520.0
-offset_top = 40.0
-offset_right = -40.0
-offset_bottom = 520.0
+anchor_bottom = 1.0
+offset_left = -672.0
+offset_top = 8.0
+offset_right = -12.0
+offset_bottom = -8.0
 grow_horizontal = 0
-grow_vertical = 0
-theme_override_constants/separation = 16
-alignment = 0
-
-[node name="BossPortrait" type="TextureRect" parent="BossSide"]
-custom_minimum_size = Vector2(280, 320)
-layout_mode = 2
-size_flags_vertical = 0
+grow_vertical = 2
+mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
 [node name="BossDialogPanel" type="PanelContainer" parent="BossSide"]
-custom_minimum_size = Vector2(440, 0)
-layout_mode = 2
+z_index = 2
+layout_mode = 1
+anchors_preset = 0
+anchor_left = 0.12
+anchor_top = 0.4
+anchor_right = 0.88
+anchor_bottom = 0.88
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="Margin" type="MarginContainer" parent="BossSide/BossDialogPanel"]
 layout_mode = 2
@@ -58,44 +152,10 @@ theme_override_constants/margin_bottom = 0
 
 [node name="BossText" type="Label" parent="BossSide/BossDialogPanel/Margin"]
 layout_mode = 2
+size_flags_vertical = 3
 text = ""
 autowrap_mode = 3
-
-[node name="MercSide" type="VBoxContainer" parent="."]
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 0.0
-anchor_top = 1.0
-anchor_right = 0.0
-anchor_bottom = 1.0
-offset_left = 40.0
-offset_top = -520.0
-offset_right = 520.0
-offset_bottom = -40.0
-grow_horizontal = 0
-grow_vertical = 0
-theme_override_constants/separation = 16
-alignment = 0
-
-[node name="MercDialogPanel" type="PanelContainer" parent="MercSide"]
-custom_minimum_size = Vector2(440, 0)
-layout_mode = 2
-size_flags_horizontal = 0
-
-[node name="Margin" type="MarginContainer" parent="MercSide/MercDialogPanel"]
-layout_mode = 2
-
-[node name="MercText" type="Label" parent="MercSide/MercDialogPanel/Margin"]
-layout_mode = 2
-text = ""
-autowrap_mode = 3
-
-[node name="MercPortrait" type="TextureRect" parent="MercSide"]
-custom_minimum_size = Vector2(280, 320)
-layout_mode = 2
-size_flags_vertical = 0
-expand_mode = 1
-stretch_mode = 5
+vertical_alignment = 1
 
 [node name="Hint" type="Label" parent="."]
 layout_mode = 1
@@ -104,14 +164,14 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -200.0
-offset_top = -56.0
-offset_right = 200.0
-offset_bottom = -20.0
+offset_left = -220.0
+offset_top = -52.0
+offset_right = 220.0
+offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.55, 0.62, 0.7, 0.95)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 18
 text = "Click or SPACE to continue"
 horizontal_alignment = 1
 
