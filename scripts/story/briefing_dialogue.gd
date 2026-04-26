@@ -1,15 +1,18 @@
 extends Control
-## Pre-battle story: office briefing (handler + lead), then alley (heroes). Same UI; background and portraits swap on a fade.
+## Pre-battle story: office (mission contact + lead), then alley (hero left, Sevro right). Background swap on fade.
 
 const BATTLE_SCENE := "res://scenes/battle/battle_scene.tscn"
 
 const _TEXTURE_OFFICE := "res://assets/escritorio.png"
 const _TEXTURE_ALLEY := "res://assets/alley.png"
 
-const _PORTRAIT_OFFICE_RIGHT := "res://assets/enemy_1-removebg-preview.png"
+const _PORTRAIT_OFFICE_RIGHT := "res://assets/mission guy.png"
 const _PORTRAIT_OFFICE_LEFT := "res://assets/hero 2 no bg.png"
 const _PORTRAIT_ALLEY_LEFT := "res://assets/hero 2 no bg.png"
-const _PORTRAIT_ALLEY_RIGHT := "res://assets/hero 3 no bg copy.png"
+const _PORTRAIT_ALLEY_RIGHT := "res://assets/sevro_pixel_no_bg-removebg-preview.png"
+
+const _BOSS_PORTRAIT_STRIP_OFFICE := 672.0
+const _BOSS_PORTRAIT_STRIP_ALLEY := 820.0
 
 ## Dark tint over background texture.
 const _BG_OVERLAY_OFFICE := Color(0.06, 0.07, 0.1, 0.55)
@@ -20,21 +23,93 @@ const _TEXT_COLOR := Color(0.95, 0.96, 1.0, 1.0)
 
 enum Phase { OFFICE, ALLEY }
 
-## MERC = left column, BOSS = right column (same layout in both phases).
+## MERC = left column, BOSS = right column.
 enum Speaker { MERC, BOSS }
 
 var _office_lines: Array[Dictionary] = [
-	{"speaker": Speaker.BOSS, "text": "Listen up. Package on Meridian Spire — rooftop. Extraction only. No heroics."},
-	{"speaker": Speaker.MERC, "text": "Copy. Team’s staged at the drop-off."},
-	{"speaker": Speaker.BOSS, "text": "Good. Clean in, clean out. Any questions?"},
-	{"speaker": Speaker.MERC, "text": "Got it, boss."},
+	{
+		"speaker": Speaker.BOSS,
+		"text": "Sit if you want. I don't do coffee — I do deadlines. Meridian Spire, rooftop. One package, one window. You miss it, I don't call you again."
+	},
+	{
+		"speaker": Speaker.MERC,
+		"text": "We won't miss it. Question is who else thinks that roof is a buffet."
+	},
+	{
+		"speaker": Speaker.BOSS,
+		"text": "Corporate security, bored drones, and someone who paid extra for 'accidents'. Extraction only. If it shoots back, you leave it breathing — or not. I don't care. The package cares."
+	},
+	{
+		"speaker": Speaker.MERC,
+		"text": "Copy. Team's staged two blocks out. Silent approach, no signatures on scanners until we're airborne."
+	},
+	{
+		"speaker": Speaker.BOSS,
+		"text": "Good. Last job like this, someone tried to 'save' a hostage. The hostage was a decoy. Three dead freelancers and a stain on my floor. Don't decorate my office with your conscience."
+	},
+	{
+		"speaker": Speaker.MERC,
+		"text": "...Understood. Clean in, clean out. Anything that isn't the package or us stays behind."
+	},
+	{
+		"speaker": Speaker.BOSS,
+		"text": "Then we're done talking. Spire lights up in forty minutes. Don't be fashionably late."
+	},
+	{
+		"speaker": Speaker.MERC,
+		"text": "We'll be early. And we'll be gone before anyone counts to three."
+	},
 ]
 
 var _alley_lines: Array[Dictionary] = [
-	{"speaker": Speaker.MERC, "text": "Alley’s clear. You good on the route?"},
-	{"speaker": Speaker.BOSS, "text": "Yeah. We move on my mark—quiet until the Spire."},
-	{"speaker": Speaker.MERC, "text": "Roger. Watch the side streets."},
-	{"speaker": Speaker.BOSS, "text": "Always. Let’s earn this."},
+	{
+		"speaker": Speaker.MERC,
+		"text": "Forty minutes on the clock. Everyone still breathing?"
+	},
+	{
+		"speaker": Speaker.BOSS,
+		"text": "Define breathing. I've got jitters on channel four — could be static, could be some amateur painting the alley with RF."
+	},
+	{
+		"speaker": Speaker.MERC,
+		"text": "Then we treat it like a knife. Quiet feet until the Spire. No hero poses."
+	},
+	{
+		"speaker": Speaker.MERC,
+		"text": "Alley's clear to my eyes. Two smokers who don't inhale, one dumpster that hums wrong."
+	},
+	{
+		"speaker": Speaker.BOSS,
+		"text": "That hum's a relay — cheap, loud, dumb. I can ghost it, but the second I do, someone gets a Christmas notification."
+	},
+	{
+		"speaker": Speaker.MERC,
+		"text": "Ghost it on my mark, not on your boredom. We move as one pulse — jammer, feet, rooftop."
+	},
+	{
+		"speaker": Speaker.BOSS,
+		"text": "Copy, grumpy. Mark's yours. I'll be the angel whispering 'run' in the machines' ears."
+	},
+	{
+		"speaker": Speaker.MERC,
+		"text": "Service lift still green. If the package's half as cold as the handler says, we don't stop for wounded pride."
+	},
+	{
+		"speaker": Speaker.MERC,
+		"text": "We don't stop. We finish. Eyes up when we breach the roof line — drones love a silhouette with a story."
+	},
+	{
+		"speaker": Speaker.BOSS,
+		"text": "Already spoofing silhouettes. By the time they focus, we'll be ghosts with a paycheck."
+	},
+	{
+		"speaker": Speaker.MERC,
+		"text": "Then we're set. Three out, three up, one box. Let's steal the night before it steals us."
+	},
+	{
+		"speaker": Speaker.MERC,
+		"text": "Move."
+	},
 ]
 
 var _phase: Phase = Phase.OFFICE
@@ -64,6 +139,7 @@ func _ready() -> void:
 	_setup_monospace(_boss_label)
 	_setup_monospace(_merc_label)
 	_load_portraits_for_phase()
+	_apply_boss_portrait_strip_width()
 	_boss_label.text = ""
 	_merc_label.text = ""
 	_boss_side.visible = false
@@ -106,14 +182,28 @@ func _apply_dialogue_panel_style(panel: PanelContainer) -> void:
 
 
 func _load_portraits_for_phase() -> void:
-	var left_path: String = _PORTRAIT_OFFICE_LEFT if _phase == Phase.OFFICE else _PORTRAIT_ALLEY_LEFT
-	var right_path: String = _PORTRAIT_OFFICE_RIGHT if _phase == Phase.OFFICE else _PORTRAIT_ALLEY_RIGHT
-	var left_tex: Texture2D = load(left_path) as Texture2D
-	var right_tex: Texture2D = load(right_path) as Texture2D
-	if left_tex:
-		_merc_portrait.texture = left_tex
-	if right_tex:
-		_boss_portrait.texture = right_tex
+	if _phase == Phase.OFFICE:
+		var left_tex: Texture2D = load(_PORTRAIT_OFFICE_LEFT) as Texture2D
+		var right_tex: Texture2D = load(_PORTRAIT_OFFICE_RIGHT) as Texture2D
+		if left_tex:
+			_merc_portrait.texture = left_tex
+		if right_tex:
+			_boss_portrait.texture = right_tex
+	else:
+		var l: Texture2D = load(_PORTRAIT_ALLEY_LEFT) as Texture2D
+		var r: Texture2D = load(_PORTRAIT_ALLEY_RIGHT) as Texture2D
+		if l:
+			_merc_portrait.texture = l
+		if r:
+			_boss_portrait.texture = r
+
+
+func _apply_boss_portrait_strip_width() -> void:
+	var w: float = _BOSS_PORTRAIT_STRIP_OFFICE if _phase == Phase.OFFICE else _BOSS_PORTRAIT_STRIP_ALLEY
+	_boss_portrait.anchor_left = 1.0
+	_boss_portrait.anchor_right = 1.0
+	_boss_portrait.offset_left = -w
+	_boss_portrait.offset_right = -12.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -147,12 +237,12 @@ func _advance_line() -> void:
 	var entry: Dictionary = lines[_line_index]
 	var speaker: Speaker = entry["speaker"]
 	var text: String = str(entry["text"])
+	_merc_label.text = ""
+	_boss_label.text = ""
 	if speaker == Speaker.BOSS:
 		_boss_label.text = "\"%s\"" % text
-		_merc_label.text = ""
 	else:
 		_merc_label.text = "\"%s\"" % text
-		_boss_label.text = ""
 	_show_only_speaker(speaker)
 	_pulse_panel(speaker)
 
@@ -169,6 +259,7 @@ func _transition_to_alley() -> void:
 		_office_bg.texture = alley_tex
 	_background.color = _BG_OVERLAY_ALLEY
 	_load_portraits_for_phase()
+	_apply_boss_portrait_strip_width()
 	_boss_label.text = ""
 	_merc_label.text = ""
 	_boss_side.visible = false
@@ -186,7 +277,7 @@ func _show_only_speaker(speaker: Speaker) -> void:
 
 
 func _pulse_panel(speaker: Speaker) -> void:
-	var panel := _boss_panel if speaker == Speaker.BOSS else _merc_panel
+	var panel: PanelContainer = _boss_panel if speaker == Speaker.BOSS else _merc_panel
 	var s := panel.get_theme_stylebox("panel") as StyleBoxFlat
 	if s == null:
 		return
