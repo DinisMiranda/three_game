@@ -107,7 +107,7 @@ jobs:
         run: python3 scripts/generate_coverage_xml.py
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: coverage.xml
           fail_ci_if_error: false
