@@ -1,44 +1,47 @@
 extends Control
-## Pre-battle briefing: mercenary team + handler. Noir / terminal-style dialogue boxes.
-## Placeholder story: rooftop package retrieval. Edit `_dialogue_lines` when you have the final script.
-## Layout: lower ~2/3 of screen; wide text panel over legs; large corner portrait; only active speaker visible.
+## Pre-battle story: office briefing (handler + lead), then alley (heroes). Same UI; background and portraits swap on a fade.
 
 const BATTLE_SCENE := "res://scenes/battle/battle_scene.tscn"
 
-const _BOSS_PORTRAIT := "res://assets/enemy_1-removebg-preview.png"
-const _MERC_PORTRAIT := "res://assets/hero 2 no bg.png"
+const _TEXTURE_OFFICE := "res://assets/escritorio.png"
+const _TEXTURE_ALLEY := "res://assets/alley.png"
 
-## Dark tint over `OfficeBackground` so UI stays readable.
-const _BG_OVERLAY := Color(0.06, 0.07, 0.1, 0.55)
+const _PORTRAIT_OFFICE_RIGHT := "res://assets/enemy_1-removebg-preview.png"
+const _PORTRAIT_OFFICE_LEFT := "res://assets/hero 2 no bg.png"
+const _PORTRAIT_ALLEY_LEFT := "res://assets/hero 2 no bg.png"
+const _PORTRAIT_ALLEY_RIGHT := "res://assets/hero 3 no bg copy.png"
+
+## Dark tint over background texture.
+const _BG_OVERLAY_OFFICE := Color(0.06, 0.07, 0.1, 0.55)
+const _BG_OVERLAY_ALLEY := Color(0.04, 0.05, 0.12, 0.52)
 const _BOX_BG := Color(0.05, 0.06, 0.12, 0.96)
 const _BOX_BORDER := Color(0.0, 0.88, 1.0, 0.72)
 const _TEXT_COLOR := Color(0.95, 0.96, 1.0, 1.0)
 
-enum Speaker { BOSS, MERC }
+enum Phase { OFFICE, ALLEY }
 
-## Edit when you have the final story (order = sequence on screen).
-var _dialogue_lines: Array[Dictionary] = [
-	{
-		"speaker": Speaker.BOSS,
-		"text": "Listen up. Package on Meridian Spire — rooftop. Extraction only. No heroics."
-	},
-	{
-		"speaker": Speaker.MERC,
-		"text": "Copy. Team’s staged at the drop-off."
-	},
-	{
-		"speaker": Speaker.BOSS,
-		"text": "Good. Clean in, clean out. Any questions?"
-	},
-	{
-		"speaker": Speaker.MERC,
-		"text": "Got it, boss."
-	},
+## MERC = left column, BOSS = right column (same layout in both phases).
+enum Speaker { MERC, BOSS }
+
+var _office_lines: Array[Dictionary] = [
+	{"speaker": Speaker.BOSS, "text": "Listen up. Package on Meridian Spire — rooftop. Extraction only. No heroics."},
+	{"speaker": Speaker.MERC, "text": "Copy. Team’s staged at the drop-off."},
+	{"speaker": Speaker.BOSS, "text": "Good. Clean in, clean out. Any questions?"},
+	{"speaker": Speaker.MERC, "text": "Got it, boss."},
 ]
 
+var _alley_lines: Array[Dictionary] = [
+	{"speaker": Speaker.MERC, "text": "Alley’s clear. You good on the route?"},
+	{"speaker": Speaker.BOSS, "text": "Yeah. We move on my mark—quiet until the Spire."},
+	{"speaker": Speaker.MERC, "text": "Roger. Watch the side streets."},
+	{"speaker": Speaker.BOSS, "text": "Always. Let’s earn this."},
+]
+
+var _phase: Phase = Phase.OFFICE
 var _line_index: int = -1
 var _is_exiting: bool = false
 
+@onready var _office_bg: TextureRect = $OfficeBackground
 @onready var _background: ColorRect = $Background
 @onready var _boss_side: Control = $BossSide
 @onready var _boss_portrait: TextureRect = $BossSide/BossPortrait
@@ -53,14 +56,14 @@ var _is_exiting: bool = false
 
 
 func _ready() -> void:
-	_background.color = _BG_OVERLAY
+	_background.color = _BG_OVERLAY_OFFICE
 	_apply_dialogue_panel_style(_boss_panel)
 	_apply_dialogue_panel_style(_merc_panel)
 	_boss_label.add_theme_color_override("font_color", _TEXT_COLOR)
 	_merc_label.add_theme_color_override("font_color", _TEXT_COLOR)
 	_setup_monospace(_boss_label)
 	_setup_monospace(_merc_label)
-	_load_portraits()
+	_load_portraits_for_phase()
 	_boss_label.text = ""
 	_merc_label.text = ""
 	_boss_side.visible = false
@@ -77,6 +80,10 @@ func _ready() -> void:
 	tw.tween_property(_fade, "modulate:a", 0.0, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	await tw.finished
 	_advance_line()
+
+
+func _current_lines() -> Array[Dictionary]:
+	return _office_lines if _phase == Phase.OFFICE else _alley_lines
 
 
 func _setup_monospace(label: Label) -> void:
@@ -98,13 +105,15 @@ func _apply_dialogue_panel_style(panel: PanelContainer) -> void:
 	panel.add_theme_stylebox_override("panel", s)
 
 
-func _load_portraits() -> void:
-	var boss_tex: Texture2D = load(_BOSS_PORTRAIT) as Texture2D
-	var merc_tex: Texture2D = load(_MERC_PORTRAIT) as Texture2D
-	if boss_tex:
-		_boss_portrait.texture = boss_tex
-	if merc_tex:
-		_merc_portrait.texture = merc_tex
+func _load_portraits_for_phase() -> void:
+	var left_path: String = _PORTRAIT_OFFICE_LEFT if _phase == Phase.OFFICE else _PORTRAIT_ALLEY_LEFT
+	var right_path: String = _PORTRAIT_OFFICE_RIGHT if _phase == Phase.OFFICE else _PORTRAIT_ALLEY_RIGHT
+	var left_tex: Texture2D = load(left_path) as Texture2D
+	var right_tex: Texture2D = load(right_path) as Texture2D
+	if left_tex:
+		_merc_portrait.texture = left_tex
+	if right_tex:
+		_boss_portrait.texture = right_tex
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -128,10 +137,14 @@ func _is_advance_dialogue_input(event: InputEvent) -> bool:
 
 func _advance_line() -> void:
 	_line_index += 1
-	if _line_index >= _dialogue_lines.size():
-		_go_to_battle()
+	var lines := _current_lines()
+	if _line_index >= lines.size():
+		if _phase == Phase.OFFICE:
+			await _transition_to_alley()
+		else:
+			_go_to_battle()
 		return
-	var entry: Dictionary = _dialogue_lines[_line_index]
+	var entry: Dictionary = lines[_line_index]
 	var speaker: Speaker = entry["speaker"]
 	var text: String = str(entry["text"])
 	if speaker == Speaker.BOSS:
@@ -142,6 +155,29 @@ func _advance_line() -> void:
 		_boss_label.text = ""
 	_show_only_speaker(speaker)
 	_pulse_panel(speaker)
+
+
+func _transition_to_alley() -> void:
+	_line_index = -1
+	_hint.visible = false
+	var tw := create_tween()
+	tw.tween_property(_fade, "modulate:a", 1.0, 0.48).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	await tw.finished
+	_phase = Phase.ALLEY
+	var alley_tex: Texture2D = load(_TEXTURE_ALLEY) as Texture2D
+	if alley_tex:
+		_office_bg.texture = alley_tex
+	_background.color = _BG_OVERLAY_ALLEY
+	_load_portraits_for_phase()
+	_boss_label.text = ""
+	_merc_label.text = ""
+	_boss_side.visible = false
+	_merc_side.visible = false
+	tw = create_tween()
+	tw.tween_property(_fade, "modulate:a", 0.0, 0.52).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await tw.finished
+	_hint.visible = true
+	_advance_line()
 
 
 func _show_only_speaker(speaker: Speaker) -> void:
