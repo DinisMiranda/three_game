@@ -22,6 +22,7 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 [autoload]
 
 MusicPlayer="*res://scripts/audio/music_player.gd"
+MissionProgress="*res://scripts/autoload/mission_progress.gd"
 
 [display]
 

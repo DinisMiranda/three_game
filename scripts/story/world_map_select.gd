@@ -116,6 +116,7 @@ func _style_locked_button(btn: Button) -> void:
 
 
 func _on_tower_pressed() -> void:
+	MissionProgress.start_meridian_spire()
 	_fade.mouse_filter = Control.MOUSE_FILTER_STOP
 	var tw := create_tween()
 	tw.tween_property(_fade, "modulate:a", 1.0, 0.38).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
