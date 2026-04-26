@@ -1,0 +1,306 @@
+[gd_scene load_steps=4 format=3 uid="uid://world_map_select_001"]
+
+[ext_resource type="Script" path="res://scripts/story/world_map_select.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/menu_skyline_bg.png" id="2_sky"]
+[ext_resource type="Shader" path="res://assets/map_select_atmosphere.gdshader" id="3_atm"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_atm"]
+shader = ExtResource("3_atm")
+shader_parameter/neon_cyan = Color(0, 0.92, 1, 1)
+shader_parameter/neon_magenta = Color(1, 0.15, 0.72, 1)
+shader_parameter/grid_scale = 88.0
+shader_parameter/scan_speed = 16.0
+
+[node name="WorldMapSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="BgSkyline" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_sky")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="GridShader" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_atm")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
+[node name="CrimsonWash" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.45, 0.02, 0.12, 0.18)
+
+[node name="Vignette" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.42)
+
+[node name="ScanBand" type="ColorRect" parent="."]
+modulate = Color(1, 1, 1, 0.12)
+layout_mode = 1
+anchors_preset = 15
+anchor_left = 0.0
+anchor_top = 0.38
+anchor_right = 1.0
+anchor_bottom = 0.62
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0.85, 1, 0.25)
+
+[node name="FrameTop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_top = 0.0
+offset_bottom = 4.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0, 0.9, 1, 0.85)
+
+[node name="FrameBottom" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -4.0
+offset_bottom = 0.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(1, 0.2, 0.75, 0.75)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 36
+theme_override_constants/margin_bottom = 40
+
+[node name="Center" type="CenterContainer" parent="Margin"]
+layout_mode = 2
+
+[node name="MapBoard" type="PanelContainer" parent="Margin/Center"]
+custom_minimum_size = Vector2(1040, 580)
+layout_mode = 2
+scale = Vector2(0.94, 0.94)
+
+[node name="MainVBox" type="VBoxContainer" parent="Margin/Center/MapBoard"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+
+[node name="StatusRow" type="HBoxContainer" parent="Margin/Center/MapBoard/MainVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="ChipSig" type="Label" parent="Margin/Center/MapBoard/MainVBox/StatusRow" groups=["map_status_chip"]]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "  SIGINT :: NOMINAL  "
+
+[node name="ChipRoute" type="Label" parent="Margin/Center/MapBoard/MainVBox/StatusRow" groups=["map_status_chip"]]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "  ROUTE CACHE :: HOT  "
+
+[node name="ChipEnc" type="Label" parent="Margin/Center/MapBoard/MainVBox/StatusRow" groups=["map_status_chip"]]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "  ENCRYPT :: ARMED  "
+
+[node name="TitleBlock" type="VBoxContainer" parent="Margin/Center/MapBoard/MainVBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Kicker" type="Label" parent="Margin/Center/MapBoard/MainVBox/TitleBlock"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.95, 1, 0.75)
+theme_override_font_sizes/font_size = 15
+text = "/// CITY MESH · PRIORITY DISPATCH ///"
+horizontal_alignment = 1
+
+[node name="Title" type="Label" parent="Margin/Center/MapBoard/MainVBox/TitleBlock"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 1, 1, 1)
+theme_override_font_sizes/font_size = 52
+text = "TACTICAL.MAP"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Margin/Center/MapBoard/MainVBox/TitleBlock"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.78, 0.9, 0.92)
+theme_override_font_sizes/font_size = 19
+text = "Incursion vector — pick the live node. Everything else is in network quarantine."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="MapRow" type="HBoxContainer" parent="Margin/Center/MapBoard/MainVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 28
+alignment = 1
+
+[node name="LeftRail" type="VBoxContainer" parent="Margin/Center/MapBoard/MainVBox/MapRow"]
+custom_minimum_size = Vector2(168, 0)
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_constants/separation = 10
+alignment = 0
+
+[node name="L1" type="Label" parent="Margin/Center/MapBoard/MainVBox/MapRow/LeftRail"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.55, 0.62, 0.88)
+theme_override_font_sizes/font_size = 14
+text = "GRID 9-Λ\nNORTH SECTOR"
+
+[node name="L2" type="Label" parent="Margin/Center/MapBoard/MainVBox/MapRow/LeftRail"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.5, 0.58, 0.75)
+theme_override_font_sizes/font_size = 13
+text = "SAT-OVERLAY\nDEGRADED 14%"
+
+[node name="L3" type="Label" parent="Margin/Center/MapBoard/MainVBox/MapRow/LeftRail"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.85, 0.95, 0.55)
+theme_override_font_sizes/font_size = 12
+text = ">> pulse_beacon\n   idle"
+
+[node name="DestColumn" type="VBoxContainer" parent="Margin/Center/MapBoard/MainVBox/MapRow"]
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="PinGlow" type="ColorRect" parent="Margin/Center/MapBoard/MainVBox/MapRow/DestColumn"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+color = Color(0, 1, 1, 0.35)
+
+[node name="BtnTower" type="Button" parent="Margin/Center/MapBoard/MainVBox/MapRow/DestColumn"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+flat = false
+text = "▲  MERIDIAN SPIRE — ROOFTOP  ·  PRIMARY OBJECTIVE"
+
+[node name="BtnDocks" type="Button" parent="Margin/Center/MapBoard/MainVBox/MapRow/DestColumn"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+disabled = true
+text = "◆  SOUTH DOCKS  —  LOCKED (L2 clearance)"
+
+[node name="BtnArchive" type="Button" parent="Margin/Center/MapBoard/MainVBox/MapRow/DestColumn"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+disabled = true
+text = "◆  CENTRAL ARCHIVE  —  LOCKED (data police)"
+
+[node name="RightRail" type="VBoxContainer" parent="Margin/Center/MapBoard/MainVBox/MapRow"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_constants/separation = 8
+alignment = 0
+
+[node name="R1" type="Label" parent="Margin/Center/MapBoard/MainVBox/MapRow/RightRail"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.45, 0.72, 0.7)
+theme_override_font_sizes/font_size = 14
+text = "PRIORITY\nSPIRE-01"
+
+[node name="R2" type="Label" parent="Margin/Center/MapBoard/MainVBox/MapRow/RightRail"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.62, 0.7, 0.65)
+theme_override_font_sizes/font_size = 12
+text = "alt routes\nNULL"
+
+[node name="R3" type="Label" parent="Margin/Center/MapBoard/MainVBox/MapRow/RightRail"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.75, 0.9, 0.5)
+theme_override_font_sizes/font_size = 11
+text = "noise_floor\n−62 dB"
+
+[node name="Hint" type="Label" parent="Margin/Center/MapBoard/MainVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.65, 0.78, 0.85)
+theme_override_font_sizes/font_size = 15
+text = "· Enter / Space on tower  ·  mouse: snap to node"
+horizontal_alignment = 1
+
+[node name="CornerTL" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 120.0
+offset_bottom = 40.0
+theme_override_colors/font_color = Color(0, 0.85, 1, 0.45)
+theme_override_font_sizes/font_size = 28
+text = "╔"
+
+[node name="CornerBR" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 9
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -40.0
+offset_right = -16.0
+offset_bottom = -12.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 0.2, 0.65, 0.4)
+theme_override_font_sizes/font_size = 28
+text = "╝"
+
+[node name="FadeOverlay" type="ColorRect" parent="."]
+z_index = 200
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 1)

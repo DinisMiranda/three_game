@@ -1,7 +1,7 @@
 extends Control
 ## Pre-battle story: office (mission contact + lead), then alley (hero left, Sevro right). Background swap on fade.
 
-const BATTLE_SCENE := "res://scenes/battle/battle_scene.tscn"
+const WORLD_MAP_SCENE := "res://scenes/story/world_map_select.tscn"
 
 const _TEXTURE_OFFICE := "res://assets/escritorio.png"
 const _TEXTURE_ALLEY := "res://assets/alley.png"
@@ -232,7 +232,7 @@ func _advance_line() -> void:
 		if _phase == Phase.OFFICE:
 			await _transition_to_alley()
 		else:
-			_go_to_battle()
+			_go_to_world_map()
 		return
 	var entry: Dictionary = lines[_line_index]
 	var speaker: Speaker = entry["speaker"]
@@ -288,7 +288,7 @@ func _pulse_panel(speaker: Speaker) -> void:
 	tw.tween_property(s, "border_color", base, 0.35).set_trans(Tween.TRANS_SINE)
 
 
-func _go_to_battle() -> void:
+func _go_to_world_map() -> void:
 	if _is_exiting:
 		return
 	_is_exiting = true
@@ -296,4 +296,4 @@ func _go_to_battle() -> void:
 	var tw := create_tween()
 	tw.tween_property(_fade, "modulate:a", 1.0, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	await tw.finished
-	get_tree().change_scene_to_file(BATTLE_SCENE)
+	get_tree().change_scene_to_file(WORLD_MAP_SCENE)
