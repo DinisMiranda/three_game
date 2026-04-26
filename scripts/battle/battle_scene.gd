@@ -17,6 +17,8 @@ var _hero3_attack_frames: Array[Texture2D] = []
 var _enemy0_attack_frames: Array[Texture2D] = []
 
 # --- Node references (must match battle_scene.tscn tree) ---
+@onready var battle_background: TextureRect = $Background
+@onready var floor_banner: Label = $Margin/VBox/FloorBanner
 @onready var turn_order_list: HBoxContainer = $Margin/VBox/TurnOrderBar/TurnOrderHBox/TurnOrderList
 @onready var party_slots_container: VBoxContainer = $Margin/VBox/ArenaRow/PartyArena/PartySlots
 @onready var enemy_slots_container: VBoxContainer = $Margin/VBox/ArenaRow/EnemyArena/EnemySlots
@@ -25,6 +27,7 @@ var _enemy0_attack_frames: Array[Texture2D] = []
 @onready var log_label: Label = $Margin/VBox/BottomRow/LogPanel/LogScroll/Log
 @onready var end_screen: CanvasLayer = $EndScreen
 @onready var end_title: Label = $EndScreen/Center/Panel/VBox/EndTitle
+@onready var next_floor_btn: Button = $EndScreen/Center/Panel/VBox/NextFloorBtn
 @onready var back_to_menu_btn: Button = $EndScreen/Center/Panel/VBox/BackToMenuBtn
 @onready var actions_panel: PanelContainer = $Margin/VBox/BottomRow/ActionsPanel
 @onready var attack_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn
@@ -113,11 +116,13 @@ func _ready() -> void:
 	end_turn_btn.pressed.connect(_on_end_turn_pressed)
 	ability_back_btn.pressed.connect(_on_ability_back_pressed)
 	back_to_menu_btn.pressed.connect(_on_back_to_menu_pressed)
+	next_floor_btn.pressed.connect(_on_next_floor_pressed)
 	_apply_end_screen_theme()
 	_options_menu = OptionsMenuScene.instantiate()
 	add_child(_options_menu)
 	MusicPlayer.play_battle()
 	_start_sample_battle()
+	_apply_mission_floor_visuals()
 
 # --- Apply dark panels, cyan borders, and text/button styles to all main UI elements ---
 func _apply_sci_fi_theme() -> void:
@@ -176,6 +181,9 @@ func _apply_end_screen_theme() -> void:
 		panel.add_theme_stylebox_override("panel", s)
 	end_title.add_theme_color_override("font_color", _COLOR_ACCENT)
 	end_title.add_theme_font_size_override("font_size", 36)
+	next_floor_btn.add_theme_color_override("font_color", _COLOR_TEXT)
+	next_floor_btn.add_theme_stylebox_override("normal", _make_btn_style(false))
+	next_floor_btn.add_theme_stylebox_override("hover", _make_btn_style(true))
 	back_to_menu_btn.add_theme_color_override("font_color", _COLOR_TEXT)
 	back_to_menu_btn.add_theme_stylebox_override("normal", _make_btn_style(false))
 	back_to_menu_btn.add_theme_stylebox_override("hover", _make_btn_style(true))
@@ -188,8 +196,22 @@ func _make_btn_style(hover: bool) -> StyleBoxFlat:
 	s.set_content_margin_all(16)
 	return s
 
-# --- Create 3 heroes and 1 enemy, give to BattleManager, then build arena and UI ---
-func _start_sample_battle() -> void:
+func _apply_mission_floor_visuals() -> void:
+	if not MissionProgress.is_meridian_spire_active():
+		floor_banner.visible = false
+		return
+	floor_banner.visible = true
+	var info: Dictionary = MissionProgress.get_meridian_floor_info()
+	var title: String = str(info.get("title", ""))
+	floor_banner.text = "MERIDIAN SPIRE · %s" % title
+	var bg_path: String = str(info.get("bg", ""))
+	if not bg_path.is_empty():
+		var tex: Texture2D = load(bg_path) as Texture2D
+		if tex != null:
+			battle_background.texture = tex
+
+
+func _build_sample_party() -> Array:
 	var party: Array = []
 	for i in 3:
 		var s = BattlerStats.new()
@@ -203,20 +225,34 @@ func _start_sample_battle() -> void:
 		s.speed = 8 + i * 2
 		s.is_party = true
 		party.append(s)
+	return party
+
+
+func _build_sample_enemies() -> Array:
 	var enemies: Array = []
+	var hp_bonus: int = 0
+	if MissionProgress.is_meridian_spire_active():
+		hp_bonus = (MissionProgress.meridian_floor - 1) * 18
 	for i in 1:
 		var s = BattlerStats.new()
 		s.display_name = "Enemy %d" % (i + 1)
-		s.max_hp = 50 + i * 15
+		s.max_hp = 50 + i * 15 + hp_bonus
 		s.current_hp = s.max_hp
 		s.max_energy = 100
 		s.current_energy = 100
-		s.attack = 24 + i
+		s.attack = 24 + i + int(MissionProgress.meridian_floor / 2)
 		s.defense = 4
 		s.speed = 5 + i * 3
 		s.is_party = false
 		s.is_ranged = true
 		enemies.append(s)
+	return enemies
+
+
+# --- Create 3 heroes and 1 enemy, give to BattleManager, then build arena and UI ---
+func _start_sample_battle() -> void:
+	var party: Array = _build_sample_party()
+	var enemies: Array = _build_sample_enemies()
 	battle_manager.setup_battle(party, enemies)
 	_build_arena()
 	_refresh_party_stats_panel()
@@ -537,7 +573,6 @@ func _ai_turn() -> void:
 	_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, target.stats.display_name, dmg])
 	_refresh_arena_slots()
 	battle_manager.advance_turn()
-	battle_manager.advance_turn()
 
 func _pick_random_enemy_target(attacker: Dictionary) -> Dictionary:
 	var enemies = battle_manager.get_enemies()
@@ -556,12 +591,25 @@ func _pick_random_enemy_target(attacker: Dictionary) -> Dictionary:
 
 func _on_battle_ended(party_wins: bool) -> void:
 	actions_panel.visible = false
+	next_floor_btn.visible = false
 	if party_wins:
 		_log("Victory! All enemies defeated.")
-		end_title.text = "Victory!"
+		if MissionProgress.meridian_has_next_floor_after_clear():
+			end_title.text = "Floor clear!"
+			next_floor_btn.visible = true
+			back_to_menu_btn.text = "Abort to menu"
+		else:
+			if MissionProgress.is_meridian_spire_active():
+				end_title.text = "Meridian Spire secured!"
+				MissionProgress.finish_meridian_spire()
+			else:
+				end_title.text = "Victory!"
+			back_to_menu_btn.text = "Back to Main Menu"
 	else:
 		_log("Defeat! Party was defeated.")
 		end_title.text = "Defeat!"
+		back_to_menu_btn.text = "Back to Main Menu"
+		MissionProgress.finish_meridian_spire()
 	# Size overlay and center to viewport (CanvasLayer children need manual sizing)
 	var vp = get_viewport().get_visible_rect().size
 	$EndScreen/Overlay.set_position(Vector2.ZERO)
@@ -570,7 +618,26 @@ func _on_battle_ended(party_wins: bool) -> void:
 	$EndScreen/Center.set_size(vp)
 	end_screen.visible = true
 
+func _on_next_floor_pressed() -> void:
+	end_screen.visible = false
+	next_floor_btn.visible = false
+	MissionProgress.meridian_advance_floor()
+	var party: Array = battle_manager.get_party()
+	for s in party:
+		if s is BattlerStats:
+			var st: BattlerStats = s as BattlerStats
+			st.current_hp = st.max_hp
+			st.current_energy = st.max_energy
+	var enemies: Array = _build_sample_enemies()
+	battle_manager.setup_battle(party, enemies)
+	_build_arena()
+	_apply_mission_floor_visuals()
+	_refresh_party_stats_panel()
+	_log("=== %s ===" % MissionProgress.get_meridian_floor_info().title)
+
+
 func _on_back_to_menu_pressed() -> void:
+	MissionProgress.finish_meridian_spire()
 	get_tree().change_scene_to_file("res://scenes/main_menu/main_menu.tscn")
 
 # --- Attack button: play attack animation on attacker, then damage (if target not flying or attacker ranged), refresh, advance_turn ---
