@@ -107,15 +107,23 @@ func _load_portraits() -> void:
 		_merc_portrait.texture = merc_tex
 
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	if _is_exiting or _fade.modulate.a > 0.01:
 		return
+	if _is_advance_dialogue_input(event):
+		_advance_line()
+		get_viewport().set_input_as_handled()
+
+
+func _is_advance_dialogue_input(event: InputEvent) -> bool:
 	if event.is_action_pressed("ui_accept"):
-		_advance_line()
-		get_viewport().set_input_as_handled()
-	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_advance_line()
-		get_viewport().set_input_as_handled()
+		return true
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_SPACE or event.physical_keycode == KEY_SPACE:
+			return true
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		return true
+	return false
 
 
 func _advance_line() -> void:
