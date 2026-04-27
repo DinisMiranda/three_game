@@ -17,6 +17,8 @@ const _PANEL_BG := Color(0.03, 0.04, 0.09, 0.94)
 
 
 func _ready() -> void:
+	# Always enter tower run from floor 1; avoid stale state from previous sessions.
+	MissionProgress.finish_meridian_spire()
 	_pin_glow.modulate = Color(1, 1, 1, 0.22)
 	_apply_panel_hologram(_map_board)
 	_style_chip_buttons()

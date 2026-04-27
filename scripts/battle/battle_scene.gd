@@ -219,6 +219,10 @@ func _apply_mission_floor_visuals() -> void:
 		var tex: Texture2D = load(bg_path) as Texture2D
 		if tex != null:
 			battle_background.texture = tex
+		else:
+			var fallback: Texture2D = load("res://assets/andar.png") as Texture2D
+			if fallback != null:
+				battle_background.texture = fallback
 
 
 func _build_sample_party() -> Array:
