@@ -34,7 +34,8 @@ func is_meridian_spire_active() -> bool:
 
 
 func get_meridian_floor_info() -> Dictionary:
-	return MERIDIAN_FLOORS[meridian_floor - 1]
+	var idx := clampi(meridian_floor - 1, 0, MERIDIAN_MAX_FLOOR - 1)
+	return MERIDIAN_FLOORS[idx]
 
 
 func meridian_has_next_floor_after_clear() -> bool:
