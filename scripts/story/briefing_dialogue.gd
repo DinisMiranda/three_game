@@ -20,6 +20,7 @@ const _BG_OVERLAY_ALLEY := Color(0.04, 0.05, 0.12, 0.52)
 const _BOX_BG := Color(0.05, 0.06, 0.12, 0.96)
 const _BOX_BORDER := Color(0.0, 0.88, 1.0, 0.72)
 const _TEXT_COLOR := Color(0.95, 0.96, 1.0, 1.0)
+const _TYPEWRITER_CHARS_PER_SEC := 48.0
 
 enum Phase { OFFICE, ALLEY }
 
@@ -115,6 +116,9 @@ var _alley_lines: Array[Dictionary] = [
 var _phase: Phase = Phase.OFFICE
 var _line_index: int = -1
 var _is_exiting: bool = false
+var _is_typing: bool = false
+var _typing_tween: Tween
+var _typing_label: Label = null
 
 @onready var _office_bg: TextureRect = $OfficeBackground
 @onready var _background: ColorRect = $Background
@@ -214,6 +218,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if _is_advance_dialogue_input(event):
+		if _is_typing:
+			_finish_typewriter()
+			get_viewport().set_input_as_handled()
+			return
 		_advance_line()
 		get_viewport().set_input_as_handled()
 
@@ -232,6 +240,7 @@ func _is_advance_dialogue_input(event: InputEvent) -> bool:
 func _skip_current_phase() -> void:
 	if _is_exiting:
 		return
+	_finish_typewriter()
 	_boss_label.text = ""
 	_merc_label.text = ""
 	_boss_side.visible = false
@@ -259,13 +268,49 @@ func _advance_line() -> void:
 	_boss_label.text = ""
 	if speaker == Speaker.BOSS:
 		_boss_label.text = "\"%s\"" % text
+		_start_typewriter(_boss_label)
 	else:
 		_merc_label.text = "\"%s\"" % text
+		_start_typewriter(_merc_label)
 	_show_only_speaker(speaker)
 	_pulse_panel(speaker)
 
 
+func _start_typewriter(label: Label) -> void:
+	_finish_typewriter()
+	_typing_label = label
+	var total_chars := label.text.length()
+	if total_chars <= 0:
+		_is_typing = false
+		return
+	label.visible_characters = 0
+	_is_typing = true
+	_typing_tween = create_tween()
+	var duration := float(total_chars) / _TYPEWRITER_CHARS_PER_SEC
+	_typing_tween.tween_property(label, "visible_characters", total_chars, duration)
+	_typing_tween.finished.connect(_on_typewriter_finished)
+
+
+func _finish_typewriter() -> void:
+	if _typing_tween != null:
+		_typing_tween.kill()
+		_typing_tween = null
+	if _typing_label != null:
+		_typing_label.visible_characters = -1
+	_typing_label = null
+	_is_typing = false
+
+
+func _on_typewriter_finished() -> void:
+	if _typing_label != null:
+		_typing_label.visible_characters = -1
+	_typing_tween = null
+	_typing_label = null
+	_is_typing = false
+
+
 func _transition_to_alley() -> void:
+	_finish_typewriter()
 	_line_index = -1
 	_hint.visible = false
 	var tw := create_tween()
@@ -309,6 +354,7 @@ func _pulse_panel(speaker: Speaker) -> void:
 func _go_to_world_map() -> void:
 	if _is_exiting:
 		return
+	_finish_typewriter()
 	_is_exiting = true
 	_hint.visible = false
 	var tw := create_tween()
