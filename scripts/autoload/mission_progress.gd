@@ -7,7 +7,7 @@ const MERIDIAN_MAX_FLOOR := 5
 
 ## One entry per floor (background + banner). Floor 5 = rooftop / skyline.
 const MERIDIAN_FLOORS: Array[Dictionary] = [
-	{"bg": "res://assets/andar.png", "title": "Floor 1 — Stairwell breach"},
+	{"bg": "res://assets/menu_street_bg.png", "title": "Floor 1 — Corridor breach"},
 	{"bg": "res://assets/andar.png", "title": "Floor 2 — Security landing"},
 	{"bg": "res://assets/andar.png", "title": "Floor 3 — Mid-level gauntlet"},
 	{"bg": "res://assets/andar.png", "title": "Floor 4 — Penthouse access"},
