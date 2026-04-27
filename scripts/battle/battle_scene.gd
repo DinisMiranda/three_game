@@ -15,6 +15,7 @@ var _placeholder_texture: Texture2D
 var _hero2_attack_frames: Array[Texture2D] = []
 var _hero3_attack_frames: Array[Texture2D] = []
 var _enemy0_attack_frames: Array[Texture2D] = []
+var _enemy1_attack_frames: Array[Texture2D] = []
 
 # --- Node references (must match battle_scene.tscn tree) ---
 @onready var battle_background: TextureRect = $Background
@@ -77,7 +78,12 @@ func _ready() -> void:
 		var tex = load(path) as Texture2D
 		_texture_idle_party.append(tex if tex != null else _placeholder_texture)
 	_texture_idle_enemy.clear()
-	var enemy_paths := ["res://assets/enemy_1-removebg-preview.png", "res://assets/enemy_2-removebg-preview.png"]
+	var enemy_paths := [
+		"res://assets/enemy_1-removebg-preview.png",
+		"res://assets/enemy_2-removebg-preview.png",
+		"res://assets/enemy_2-removebg-preview copy.png",
+		"res://assets/enemy_1-removebg-preview.png"
+	]
 	for path in enemy_paths:
 		var tex = load(path) as Texture2D
 		_texture_idle_enemy.append(tex if tex != null else _placeholder_texture)
@@ -95,11 +101,15 @@ func _ready() -> void:
 		_hero3_attack_frames.append(hero3_attack_tex)
 	var enemy_attack_1 = load("res://assets/enemy_1_attack_animantion_part1-removebg-preview.png") as Texture2D
 	var enemy_attack_2 = load("res://assets/enemy1_attack_animation_part2-removebg-preview.png") as Texture2D
+	var enemy2_attack = load("res://assets/enemy_2_attack_animation.png") as Texture2D
 	_enemy0_attack_frames.clear()
 	if enemy_attack_1 != null:
 		_enemy0_attack_frames.append(enemy_attack_1)
 	if enemy_attack_2 != null:
 		_enemy0_attack_frames.append(enemy_attack_2)
+	_enemy1_attack_frames.clear()
+	if enemy2_attack != null:
+		_enemy1_attack_frames.append(enemy2_attack)
 	if _texture_attack_party == null:
 		_texture_attack_party = _placeholder_texture
 	if _texture_attack_enemy == null:
@@ -231,9 +241,23 @@ func _build_sample_party() -> Array:
 func _build_sample_enemies() -> Array:
 	var enemies: Array = []
 	var hp_bonus: int = 0
+	var floor_idx: int = 1
 	if MissionProgress.is_meridian_spire_active():
+		floor_idx = MissionProgress.meridian_floor
 		hp_bonus = (MissionProgress.meridian_floor - 1) * 18
-	for i in 1:
+	var enemy_count: int = 1
+	match floor_idx:
+		1:
+			enemy_count = 1
+		2:
+			enemy_count = 2
+		3:
+			enemy_count = 2
+		4:
+			enemy_count = 3
+		_:
+			enemy_count = 4
+	for i in enemy_count:
 		var s = BattlerStats.new()
 		s.display_name = "Enemy %d" % (i + 1)
 		s.max_hp = 50 + i * 15 + hp_bonus
@@ -244,7 +268,7 @@ func _build_sample_enemies() -> Array:
 		s.defense = 4
 		s.speed = 5 + i * 3
 		s.is_party = false
-		s.is_ranged = true
+		s.is_ranged = (i % 2) == 0
 		enemies.append(s)
 	return enemies
 
@@ -349,6 +373,8 @@ func _build_arena() -> void:
 			slot.setup(enemies[i], get_enemy_idle.call(i), attack_enemy, Vector2(380, 494))
 			if i == 0 and not _enemy0_attack_frames.is_empty():
 				slot.set_attack_frames(_enemy0_attack_frames)
+			elif i == 1 and not _enemy1_attack_frames.is_empty():
+				slot.set_attack_frames(_enemy1_attack_frames)
 			_enemy_slots.append(slot)
 	enemy_slots_container.alignment = BoxContainer.ALIGNMENT_END
 	_on_turn_order_updated(battle_manager.get_current_battler())
