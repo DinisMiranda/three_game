@@ -148,7 +148,7 @@ func _ready() -> void:
 	_merc_portrait.modulate = Color.WHITE
 	_boss_panel.modulate = Color.WHITE
 	_merc_panel.modulate = Color.WHITE
-	_hint.text = "Click or SPACE to continue"
+	_hint.text = "Click, SPACE or ESC to continue"
 	_fade.mouse_filter = Control.MOUSE_FILTER_STOP
 	_fade.color = Color.BLACK
 	_fade.modulate = Color(1, 1, 1, 1)
@@ -209,6 +209,10 @@ func _apply_boss_portrait_strip_width() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if _is_exiting or _fade.modulate.a > 0.01:
 		return
+	if event.is_action_pressed("ui_cancel"):
+		_skip_current_phase()
+		get_viewport().set_input_as_handled()
+		return
 	if _is_advance_dialogue_input(event):
 		_advance_line()
 		get_viewport().set_input_as_handled()
@@ -223,6 +227,20 @@ func _is_advance_dialogue_input(event: InputEvent) -> bool:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		return true
 	return false
+
+
+func _skip_current_phase() -> void:
+	if _is_exiting:
+		return
+	_boss_label.text = ""
+	_merc_label.text = ""
+	_boss_side.visible = false
+	_merc_side.visible = false
+	if _phase == Phase.OFFICE:
+		_line_index = _office_lines.size() - 1
+		_advance_line()
+	else:
+		_go_to_world_map()
 
 
 func _advance_line() -> void:
