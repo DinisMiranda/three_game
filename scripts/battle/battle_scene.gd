@@ -16,6 +16,7 @@ var _hero2_attack_frames: Array[Texture2D] = []
 var _hero3_attack_frames: Array[Texture2D] = []
 var _enemy0_attack_frames: Array[Texture2D] = []
 var _enemy1_attack_frames: Array[Texture2D] = []
+var _enemy2_attack_frames: Array[Texture2D] = []
 
 # --- Node references (must match battle_scene.tscn tree) ---
 @onready var battle_background: TextureRect = $Background
@@ -82,7 +83,7 @@ func _ready() -> void:
 		"res://assets/enemy_1-removebg-preview.png",
 		"res://assets/enemy_2-removebg-preview.png",
 		"res://assets/enemy_2-removebg-preview copy.png",
-		"res://assets/enemy_1-removebg-preview.png"
+		"res://assets/inimigo_soldado.png"
 	]
 	for path in enemy_paths:
 		var tex = load(path) as Texture2D
@@ -102,6 +103,7 @@ func _ready() -> void:
 	var enemy_attack_1 = load("res://assets/enemy_1_attack_animantion_part1-removebg-preview.png") as Texture2D
 	var enemy_attack_2 = load("res://assets/enemy1_attack_animation_part2-removebg-preview.png") as Texture2D
 	var enemy2_attack = load("res://assets/enemy_2_attack_animation.png") as Texture2D
+	var soldier_attack = load("res://assets/inimigo_soldado_ataque.png") as Texture2D
 	_enemy0_attack_frames.clear()
 	if enemy_attack_1 != null:
 		_enemy0_attack_frames.append(enemy_attack_1)
@@ -110,6 +112,9 @@ func _ready() -> void:
 	_enemy1_attack_frames.clear()
 	if enemy2_attack != null:
 		_enemy1_attack_frames.append(enemy2_attack)
+	_enemy2_attack_frames.clear()
+	if soldier_attack != null:
+		_enemy2_attack_frames.append(soldier_attack)
 	if _texture_attack_party == null:
 		_texture_attack_party = _placeholder_texture
 	if _texture_attack_enemy == null:
@@ -379,6 +384,8 @@ func _build_arena() -> void:
 				slot.set_attack_frames(_enemy0_attack_frames)
 			elif i == 1 and not _enemy1_attack_frames.is_empty():
 				slot.set_attack_frames(_enemy1_attack_frames)
+			elif i == 2 and not _enemy2_attack_frames.is_empty():
+				slot.set_attack_frames(_enemy2_attack_frames)
 			_enemy_slots.append(slot)
 	enemy_slots_container.alignment = BoxContainer.ALIGNMENT_END
 	_on_turn_order_updated(battle_manager.get_current_battler())
