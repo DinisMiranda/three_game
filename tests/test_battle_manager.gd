@@ -143,6 +143,21 @@ func test_advance_turn_new_round_rebuilds_order() -> void:
 	assert_bool(current.is_party).is_false()
 	assert_int(current.index).is_equal(0)
 
+func test_setup_battle_accepts_party_reference_from_get_party() -> void:
+	var party := [BattlerStats.new(), BattlerStats.new(), BattlerStats.new()]
+	for i in party.size():
+		party[i].display_name = "Hero %d" % (i + 1)
+	var enemies := [BattlerStats.new()]
+	enemies[0].is_party = false
+	_manager.setup_battle(party, enemies)
+	assert_int(_manager.get_party().size()).is_equal(3)
+	# Simulates next-floor flow: heal then re-setup using manager's own party array.
+	var same_party: Array = _manager.get_party()
+	same_party[0].current_hp = same_party[0].max_hp
+	_manager.setup_battle(same_party, enemies)
+	assert_int(_manager.get_party().size()).is_equal(3)
+	assert_int(_manager.get_party()[0].max_hp).is_greater(0)
+
 func test_battle_ended_when_all_enemies_dead() -> void:
 	var party := [BattlerStats.new()]
 	party[0].attack = 100

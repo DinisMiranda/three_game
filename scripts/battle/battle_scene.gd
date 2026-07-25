@@ -55,6 +55,7 @@ var _selected_target: Dictionary = {}  # { "stats", "index", "is_party" } for cu
 var _party_slots: Array[BattlerSlot] = []
 var _enemy_slots: Array[BattlerSlot] = []
 var _options_menu: CanvasLayer
+var _enemy_turn_token: int = 0
 
 # Sci-fi palette used by _apply_sci_fi_theme and turn order / stats
 const _COLOR_PANEL := Color(0.08, 0.09, 0.12, 0.95)
@@ -212,6 +213,7 @@ func _make_btn_style(hover: bool) -> StyleBoxFlat:
 	return s
 
 func _apply_mission_floor_visuals() -> void:
+	_apply_battle_background("res://assets/andar.jpg")
 	if not MissionProgress.is_meridian_spire_active():
 		floor_banner.visible = false
 		return
@@ -221,13 +223,15 @@ func _apply_mission_floor_visuals() -> void:
 	floor_banner.text = "MERIDIAN SPIRE · %s" % title
 	var bg_path: String = str(info.get("bg", ""))
 	if not bg_path.is_empty():
-		var tex: Texture2D = load(bg_path) as Texture2D
-		if tex != null:
-			battle_background.texture = tex
-		else:
-			var fallback: Texture2D = load("res://assets/andar.png") as Texture2D
-			if fallback != null:
-				battle_background.texture = fallback
+		_apply_battle_background(bg_path)
+
+
+func _apply_battle_background(path: String) -> void:
+	var tex: Texture2D = load(path) as Texture2D
+	if tex != null:
+		battle_background.texture = tex
+	else:
+		push_warning("Missing battle background: %s" % path)
 
 
 func _build_sample_party() -> Array:
@@ -253,28 +257,24 @@ func _build_sample_enemies() -> Array:
 	var floor_idx: int = 1
 	if MissionProgress.is_meridian_spire_active():
 		floor_idx = MissionProgress.meridian_floor
-		hp_bonus = (MissionProgress.meridian_floor - 1) * 18
+		hp_bonus = (MissionProgress.meridian_floor - 1) * 10
 	var enemy_count: int = 1
 	match floor_idx:
 		1:
 			enemy_count = 1
 		2:
 			enemy_count = 2
-		3:
-			enemy_count = 2
-		4:
-			enemy_count = 3
 		_:
-			enemy_count = 4
+			enemy_count = 2
 	for i in enemy_count:
 		var s = BattlerStats.new()
 		s.display_name = "Enemy %d" % (i + 1)
-		s.max_hp = 50 + i * 15 + hp_bonus
+		s.max_hp = 40 + i * 10 + hp_bonus
 		s.current_hp = s.max_hp
 		s.max_energy = 100
 		s.current_energy = 100
-		s.attack = 24 + i + int(MissionProgress.meridian_floor / 2)
-		s.defense = 4
+		s.attack = 16 + i * 2 + (MissionProgress.meridian_floor - 1) * 2
+		s.defense = 3
 		s.speed = 5 + i * 3
 		s.is_party = false
 		s.is_ranged = (i % 2) == 0
@@ -316,11 +316,14 @@ func _make_row(container: VBoxContainer, behind: bool, add_leading_spacer: bool 
 	return h
 
 # --- Clear slots, then create party formation (>) and enemy formation (<) with BattlerSlots ---
+func _clear_arena_container(container: Node) -> void:
+	for c in container.get_children():
+		container.remove_child(c)
+		c.queue_free()
+
 func _build_arena() -> void:
-	for c in party_slots_container.get_children():
-		c.queue_free()
-	for c in enemy_slots_container.get_children():
-		c.queue_free()
+	_clear_arena_container(party_slots_container)
+	_clear_arena_container(enemy_slots_container)
 	_party_slots.clear()
 	_enemy_slots.clear()
 
@@ -537,7 +540,11 @@ func _on_turn_started(_battler_index: int, is_party: bool) -> void:
 	else:
 		actions_panel.visible = false
 		ability_sub_panel.visible = false
+		_enemy_turn_token += 1
+		var token := _enemy_turn_token
 		await get_tree().create_timer(0.8).timeout
+		if token != _enemy_turn_token or not is_inside_tree():
+			return
 		_ai_turn()
 
 func _on_turn_ended(_battler_index: int, _is_party: bool) -> void:
@@ -548,13 +555,7 @@ func _get_attacker_slot() -> BattlerSlot:
 	var current = battle_manager.get_current_battler()
 	if current.is_empty():
 		return null
-	if current.is_party:
-		if current.index >= 0 and current.index < _party_slots.size():
-			return _party_slots[current.index]
-	else:
-		if current.index >= 0 and current.index < _enemy_slots.size():
-			return _enemy_slots[current.index]
-	return null
+	return _get_target_slot(current.index, current.is_party)
 
 func _get_target_slot(index: int, is_party: bool) -> BattlerSlot:
 	if is_party:
@@ -665,6 +666,9 @@ func _on_next_floor_pressed() -> void:
 			var st: BattlerStats = s as BattlerStats
 			st.current_hp = st.max_hp
 			st.current_energy = st.max_energy
+			st.is_flying = false
+			st.shield_amount = 0
+			st.shield_rounds_left = 0
 	var enemies: Array = _build_sample_enemies()
 	battle_manager.setup_battle(party, enemies)
 	_build_arena()

@@ -1,21 +1,19 @@
 extends Node
-## Tracks the first mission: five ascents up Meridian Spire (rooftop = floor 5). Started from the world map tower.
+## Tracks the first mission: three ascents up Meridian Spire (rooftop = floor 3). Started from the world map tower.
 
 enum MissionId { NONE, MERIDIAN_SPIRE }
 
-const MERIDIAN_MAX_FLOOR := 5
+const MERIDIAN_MAX_FLOOR := 3
 
-## One entry per floor (background + banner). Floor 5 = rooftop / skyline.
+## One entry per floor (background + banner). Floor 3 = rooftop / skyline.
 const MERIDIAN_FLOORS: Array[Dictionary] = [
-	{"bg": "res://assets/menu_street_bg.png", "title": "Floor 1 — Corridor breach"},
-	{"bg": "res://assets/andar.png", "title": "Floor 2 — Security landing"},
-	{"bg": "res://assets/andar.png", "title": "Floor 3 — Mid-level gauntlet"},
-	{"bg": "res://assets/andar.png", "title": "Floor 4 — Penthouse access"},
-	{"bg": "res://assets/menu_skyline_bg.png", "title": "Floor 5 — Rooftop extraction"},
+	{"bg": "res://assets/andar.jpg", "title": "Floor 1 — Corridor breach"},
+	{"bg": "res://assets/andar.jpg", "title": "Floor 2 — Security landing"},
+	{"bg": "res://assets/menu_skyline_bg.png", "title": "Floor 3 — Rooftop extraction"},
 ]
 
 var active_mission: MissionId = MissionId.NONE
-## Current combat floor (1..5) while Meridian Spire run is active.
+## Current combat floor (1..3) while Meridian Spire run is active.
 var meridian_floor: int = 1
 
 
