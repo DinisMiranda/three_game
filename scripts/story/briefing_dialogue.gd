@@ -2,6 +2,9 @@ extends Control
 ## Pre-battle story: office (mission contact + lead), then alley (hero left, Sevro right). Background swap on fade.
 
 const WORLD_MAP_SCENE := "res://scenes/story/world_map_select.tscn"
+const _MERC_NAME := "Nova"
+const _BOSS_NAME_OFFICE := "Handler"
+const _BOSS_NAME_ALLEY := "Kael"
 
 const _TEXTURE_OFFICE := "res://assets/escritorio.png"
 const _TEXTURE_ALLEY := "res://assets/alley.png"
@@ -264,13 +267,15 @@ func _advance_line() -> void:
 	var entry: Dictionary = lines[_line_index]
 	var speaker: Speaker = entry["speaker"]
 	var text: String = str(entry["text"])
+	var speaker_name: String = _speaker_display_name(speaker)
+	_apply_speaker_portrait(speaker, speaker_name)
 	_merc_label.text = ""
 	_boss_label.text = ""
 	if speaker == Speaker.BOSS:
-		_boss_label.text = "\"%s\"" % text
+		_boss_label.text = "%s\n\"%s\"" % [speaker_name, text]
 		_start_typewriter(_boss_label)
 	else:
-		_merc_label.text = "\"%s\"" % text
+		_merc_label.text = "%s\n\"%s\"" % [speaker_name, text]
 		_start_typewriter(_merc_label)
 	_show_only_speaker(speaker)
 	_pulse_panel(speaker)
@@ -332,6 +337,32 @@ func _transition_to_alley() -> void:
 	await tw.finished
 	_hint.visible = true
 	_advance_line()
+
+
+func _speaker_display_name(speaker: Speaker) -> String:
+	if speaker == Speaker.MERC:
+		return _MERC_NAME
+	if _phase == Phase.OFFICE:
+		return _BOSS_NAME_OFFICE
+	return _BOSS_NAME_ALLEY
+
+
+func _apply_speaker_portrait(speaker: Speaker, speaker_name: String) -> void:
+	var tex: Texture2D = HeroRoster.get_story_portrait(speaker_name)
+	if tex == null:
+		return
+	if speaker == Speaker.MERC:
+		_merc_portrait.texture = tex
+	else:
+		_boss_portrait.texture = tex
+	var bright := Color.WHITE
+	var dim := Color(0.45, 0.48, 0.55, 1.0)
+	if speaker == Speaker.MERC:
+		_merc_portrait.modulate = bright
+		_boss_portrait.modulate = dim
+	else:
+		_boss_portrait.modulate = bright
+		_merc_portrait.modulate = dim
 
 
 func _show_only_speaker(speaker: Speaker) -> void:
