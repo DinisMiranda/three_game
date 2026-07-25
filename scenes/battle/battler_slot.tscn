@@ -17,6 +17,10 @@ theme_override_constants/separation = 4
 layout_mode = 2
 text = "Name"
 
+[node name="RoleLabel" type="Label" parent="VBox"]
+layout_mode = 2
+text = "Role"
+
 [node name="FlyingLabel" type="Label" parent="VBox"]
 visible = false
 layout_mode = 2
@@ -26,6 +30,11 @@ text = "↑ Flying"
 visible = false
 layout_mode = 2
 text = "◇ Shielded"
+
+[node name="GuardedLabel" type="Label" parent="VBox"]
+visible = false
+layout_mode = 2
+text = "⛨ Guarded"
 
 [node name="HPBarContainer" type="Control" parent="VBox"]
 custom_minimum_size = Vector2(200, 14)
