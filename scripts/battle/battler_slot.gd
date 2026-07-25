@@ -18,8 +18,10 @@ const _FLY_OFFSET_Y: int = -360            # pixels to move up from normal posit
 
 @onready var texture_rect: TextureRect = $VBox/SpriteContainer/TextureRect
 @onready var name_label: Label = $VBox/NameLabel
+@onready var role_label: Label = $VBox/RoleLabel
 @onready var flying_label: Label = $VBox/FlyingLabel
 @onready var shielded_label: Label = $VBox/ShieldedLabel
+@onready var guarded_label: Label = $VBox/GuardedLabel
 @onready var hp_bar_container: Control = $VBox/HPBarContainer
 @onready var hp_bar: ProgressBar = $VBox/HPBarContainer/HPBar
 @onready var shield_bar: ProgressBar = $VBox/HPBarContainer/ShieldBar
@@ -55,10 +57,16 @@ func _ready() -> void:
 	add_theme_stylebox_override("panel", panel_style)
 	if name_label:
 		name_label.add_theme_color_override("font_color", Color(0.9, 0.92, 0.95, 1))
+	if role_label:
+		role_label.add_theme_color_override("font_color", Color(0.65, 0.72, 0.8, 1))
+		role_label.add_theme_font_size_override("font_size", 12)
+		role_label.visible = false
 	if flying_label:
 		flying_label.add_theme_color_override("font_color", Color(0.6, 0.85, 1.0, 1))
 	if shielded_label:
 		shielded_label.add_theme_color_override("font_color", Color(0.4, 0.65, 0.95, 1))
+	if guarded_label:
+		guarded_label.add_theme_color_override("font_color", Color(0.75, 0.9, 0.55, 1))
 	if hp_bar:
 		hp_bar.add_theme_stylebox_override("background", _make_bar_style(false))
 		hp_bar.add_theme_stylebox_override("fill", _make_bar_style(true))
@@ -149,6 +157,28 @@ func play_hit_flash() -> void:
 	tween.tween_property(texture_rect, "modulate", Color(1.2, 0.6, 0.6, 1.0), 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tween.tween_property(texture_rect, "modulate", Color.WHITE, 0.18).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 
+
+func play_enemy_turn_flash() -> void:
+	var tween: Tween = create_tween()
+	tween.tween_property(self, "modulate", Color(1.25, 0.45, 0.45, 1.0), 0.14).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "modulate", Color.WHITE, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+
+
+func set_role_display(role: String, color: Color = Color(0.65, 0.72, 0.8)) -> void:
+	if role_label == null:
+		return
+	role_label.text = role
+	role_label.visible = not role.is_empty()
+	role_label.add_theme_color_override("font_color", color)
+	if name_label and not role.is_empty():
+		name_label.add_theme_color_override("font_color", color.lightened(0.15))
+
+
+func get_combat_text_position() -> Vector2:
+	if sprite_container:
+		return sprite_container.global_position + Vector2(_idle_size.x * 0.5, -8.0)
+	return global_position + Vector2(100, 0)
+
 # --- Highlight this slot when it's this character's turn (amber outline only, no box). ---
 func set_turn_highlight(active: bool) -> void:
 	if active:
@@ -221,6 +251,8 @@ func refresh() -> void:
 	var has_shield := _stats.shield_amount > 0 or _stats.shield_rounds_left > 0
 	if shielded_label:
 		shielded_label.visible = has_shield
+	if guarded_label:
+		guarded_label.visible = _stats.guard_active
 	if shield_bubble:
 		shield_bubble.visible = has_shield
 		if shield_bubble.visible:

@@ -114,12 +114,72 @@ func test_perform_ability_fly() -> void:
 	assert_bool(_manager.perform_ability(battler, "fly")).is_true()
 	assert_bool(battler.stats.is_flying).is_true()
 
-func test_perform_ability_guard() -> void:
+func test_perform_ability_guard_sets_guard_active() -> void:
 	var party := [BattlerStats.new()]
 	party[0].current_energy = 100
 	_manager.setup_battle(party, [])
 	var battler := _manager.get_current_battler()
 	assert_bool(_manager.perform_ability(battler, "guard")).is_true()
+	assert_bool(battler.stats.guard_active).is_true()
+
+func test_perform_ability_grenade_splashes_other_enemies() -> void:
+	var party := [BattlerStats.new()]
+	party[0].attack = 20
+	party[0].current_energy = 100
+	var enemy_a := BattlerStats.new()
+	enemy_a.is_party = false
+	enemy_a.defense = 0
+	enemy_a.current_hp = 100
+	var enemy_b := BattlerStats.new()
+	enemy_b.is_party = false
+	enemy_b.defense = 0
+	enemy_b.current_hp = 100
+	_manager.setup_battle(party, [enemy_a, enemy_b])
+	var battler := _manager.get_current_battler()
+	var primary := { "stats": enemy_a, "index": 0, "is_party": false }
+	assert_bool(_manager.perform_ability(battler, "grenade", primary)).is_true()
+	assert_int(_manager.last_ability_damage).is_greater(0)
+	assert_int(enemy_a.current_hp).is_less(100)
+	assert_int(enemy_b.current_hp).is_less(100)
+
+
+func test_perform_ability_slash_deals_bonus_damage() -> void:
+	var party := [BattlerStats.new()]
+	party[0].attack = 20
+	party[0].current_energy = 100
+	var enemy := BattlerStats.new()
+	enemy.is_party = false
+	enemy.defense = 0
+	enemy.current_hp = 100
+	_manager.setup_battle(party, [enemy])
+	var battler := _manager.get_current_battler()
+	var target := { "stats": enemy, "index": 0, "is_party": false }
+	assert_bool(_manager.perform_ability(battler, "slash", target)).is_true()
+	assert_int(_manager.last_ability_damage).is_greater(0)
+	assert_int(enemy.current_hp).is_less(100)
+
+func test_perform_ability_snipe_requires_flying_target() -> void:
+	var party := [BattlerStats.new()]
+	party[0].current_energy = 100
+	var enemy := BattlerStats.new()
+	enemy.is_party = false
+	enemy.current_hp = 100
+	_manager.setup_battle(party, [enemy])
+	var battler := _manager.get_current_battler()
+	var ground_target := { "stats": enemy, "index": 0, "is_party": false }
+	assert_bool(_manager.perform_ability(battler, "snipe", ground_target)).is_false()
+	enemy.is_flying = true
+	assert_bool(_manager.perform_ability(battler, "snipe", ground_target)).is_true()
+
+func test_perform_ability_focus_buffs_attack() -> void:
+	var party := [BattlerStats.new()]
+	party[0].attack = 20
+	party[0].current_energy = 100
+	_manager.setup_battle(party, [])
+	var battler := _manager.get_current_battler()
+	assert_bool(_manager.perform_ability(battler, "focus")).is_true()
+	assert_int(battler.stats.attack_buff_amount).is_equal(10)
+	assert_int(battler.stats.attack_buff_rounds_left).is_equal(2)
 
 func test_advance_turn_emits_and_advances() -> void:
 	var party := [BattlerStats.new(), BattlerStats.new()]

@@ -1,0 +1,107 @@
+[gd_scene load_steps=2 format=3 uid="uid://hideout_select_001"]
+
+[ext_resource type="Script" path="res://scripts/story/hideout_select.gd" id="1_script"]
+
+[node name="HideoutSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.03, 0.04, 0.08, 1)
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 28
+
+[node name="Header" type="MarginContainer" parent="Layout"]
+layout_mode = 2
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 48
+
+[node name="VBox" type="VBoxContainer" parent="Layout/Header"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Kicker" type="Label" parent="Layout/Header/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.95, 1, 0.75)
+theme_override_font_sizes/font_size = 14
+text = "/// SQUAD STATUS · HANDLER LOST · PACKAGE SECURED ///"
+
+[node name="Title" type="Label" parent="Layout/Header/VBox"]
+layout_mode = 2
+text = "Choose your hideout"
+
+[node name="Subtitle" type="Label" parent="Layout/Header/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Brick and Sage are waiting. Pick where the full squad regroups."
+
+[node name="CardsWrap" type="MarginContainer" parent="Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_right = 48
+
+[node name="CardsRow" type="HBoxContainer" parent="Layout/CardsWrap"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Footer" type="MarginContainer" parent="Layout"]
+layout_mode = 2
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 36
+
+[node name="VBox" type="VBoxContainer" parent="Layout/Footer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SelectedTitle" type="Label" parent="Layout/Footer/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "No hideout selected"
+
+[node name="SelectedSubtitle" type="Label" parent="Layout/Footer/VBox"]
+layout_mode = 2
+text = ""
+
+[node name="RallyBtn" type="Button" parent="Layout/Footer/VBox"]
+layout_mode = 2
+text = "Rally the squad"
+
+[node name="Hint" type="Label" parent="Layout"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Choose where the squad regroups"
+horizontal_alignment = 1
+
+[node name="FadeOverlay" type="ColorRect" parent="."]
+z_index = 50
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 1)
