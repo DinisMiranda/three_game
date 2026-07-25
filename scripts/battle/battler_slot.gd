@@ -34,7 +34,6 @@ var _default_panel_style: StyleBoxFlat  # stored to restore when turning off tur
 var _idle_size: Vector2 = _IDLE_SIZE
 var _attack_size: Vector2 = _ATTACK_SIZE
 var _is_flying: bool = false
-var _base_position_y: float = 0.0         # Y from container when not flying
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -123,7 +122,7 @@ func set_attack_frames(frames: Array[Texture2D]) -> void:
 
 # --- Play attack animation: show larger attack sprite, wait, then back to idle. ---
 func play_attack_animation() -> void:
-	if not texture_rect:
+	if not texture_rect or not is_inside_tree():
 		return
 	var frames: Array[Texture2D] = _attack_frames.duplicate()
 	if frames.is_empty():
@@ -133,9 +132,13 @@ func play_attack_animation() -> void:
 	tween.tween_property(texture_rect, "scale", Vector2.ONE, _ATTACK_DURATION * 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	var frame_time := _ATTACK_DURATION / float(frames.size())
 	for tex in frames:
+		if not is_inside_tree():
+			return
 		texture_rect.texture = tex
 		texture_rect.custom_minimum_size = _attack_size
 		await get_tree().create_timer(frame_time).timeout
+	if not is_inside_tree():
+		return
 	texture_rect.texture = _texture_idle
 	texture_rect.custom_minimum_size = _idle_size
 
@@ -243,14 +246,8 @@ func set_flying(flying: bool) -> void:
 	_is_flying = flying
 	if flying_label:
 		flying_label.visible = flying
-	if not flying and get_parent() is Container:
-		get_parent().queue_sort()
-
-func _process(_delta: float) -> void:
-	if _is_flying:
-		position.y = _base_position_y + _FLY_OFFSET_Y
-	else:
-		_base_position_y = position.y
+	if sprite_container:
+		sprite_container.position.y = -_FLY_OFFSET_Y if flying else 0.0
 
 func get_stats() -> BattlerStats:
 	return _stats

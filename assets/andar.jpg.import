@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dp0pkopgc1eyc"
-valid=false
+uid="uid://qo564jbu8s2w"
+path="res://.godot/imported/andar.jpg-4adcb401749c170d2af17dc7a4c318a5.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
-source_file="res://assets/andar.png"
+source_file="res://assets/andar.jpg"
+dest_files=["res://.godot/imported/andar.jpg-4adcb401749c170d2af17dc7a4c318a5.ctex"]
 
 [params]
 

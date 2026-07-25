@@ -15,6 +15,8 @@ const _PANEL_BG := Color(0.03, 0.04, 0.09, 0.94)
 @onready var _kicker: Label = $Margin/Center/MapBoard/MainVBox/TitleBlock/Kicker
 @onready var _pin_glow: ColorRect = $Margin/Center/MapBoard/MainVBox/MapRow/DestColumn/PinGlow
 
+var _idle_tweens: Array[Tween] = []
+
 
 func _ready() -> void:
 	# Always enter tower run from floor 1; avoid stale state from previous sessions.
@@ -41,18 +43,33 @@ func _ready() -> void:
 
 
 func _start_idle_motion() -> void:
+	_stop_idle_motion()
 	var tw_pin := create_tween()
 	tw_pin.set_loops()
 	tw_pin.tween_property(_pin_glow, "modulate:a", 0.55, 0.9).set_trans(Tween.TRANS_SINE)
 	tw_pin.tween_property(_pin_glow, "modulate:a", 0.12, 0.9).set_trans(Tween.TRANS_SINE)
+	_idle_tweens.append(tw_pin)
 	var tw_title := create_tween()
 	tw_title.set_loops()
 	tw_title.tween_property(_title, "modulate", Color(1.05, 1.08, 1.12, 1.0), 1.2).set_trans(Tween.TRANS_SINE)
 	tw_title.tween_property(_title, "modulate", Color(0.92, 0.98, 1.0, 1.0), 1.2).set_trans(Tween.TRANS_SINE)
+	_idle_tweens.append(tw_title)
 	var tw_k := create_tween()
 	tw_k.set_loops()
 	tw_k.tween_property(_kicker, "modulate", Color(1.0, 1.0, 1.0, 0.95), 0.85)
 	tw_k.tween_property(_kicker, "modulate", Color(0.75, 0.95, 1.0, 0.65), 0.55)
+	_idle_tweens.append(tw_k)
+
+
+func _stop_idle_motion() -> void:
+	for tw in _idle_tweens:
+		if tw != null and tw.is_valid():
+			tw.kill()
+	_idle_tweens.clear()
+
+
+func _exit_tree() -> void:
+	_stop_idle_motion()
 
 
 func _apply_panel_hologram(panel: PanelContainer) -> void:
@@ -118,6 +135,7 @@ func _style_locked_button(btn: Button) -> void:
 
 
 func _on_tower_pressed() -> void:
+	_stop_idle_motion()
 	MissionProgress.start_meridian_spire()
 	_fade.mouse_filter = Control.MOUSE_FILTER_STOP
 	var tw := create_tween()
