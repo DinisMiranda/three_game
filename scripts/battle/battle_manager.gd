@@ -29,13 +29,16 @@ var _current_turn_index: int = 0
 
 # --- Start a battle: copy in party and enemies, build first turn order, emit first turn ---
 func setup_battle(party: Array, enemies: Array) -> void:
+	# Duplicate so callers can pass get_party()/get_enemies() without clearing their own array.
+	var party_in: Array = party.duplicate()
+	var enemies_in: Array = enemies.duplicate()
 	_party.clear()
 	_enemies.clear()
-	for i in mini(party.size(), PARTY_SIZE):
-		var s: BattlerStats = party[i] if party[i] is BattlerStats else party[i].duplicate_stats()
+	for i in mini(party_in.size(), PARTY_SIZE):
+		var s: BattlerStats = party_in[i] if party_in[i] is BattlerStats else party_in[i].duplicate_stats()
 		_party.append(s)
-	for i in mini(enemies.size(), MAX_ENEMIES):
-		var s: BattlerStats = enemies[i] if enemies[i] is BattlerStats else enemies[i].duplicate_stats()
+	for i in mini(enemies_in.size(), MAX_ENEMIES):
+		var s: BattlerStats = enemies_in[i] if enemies_in[i] is BattlerStats else enemies_in[i].duplicate_stats()
 		s.is_party = false
 		_enemies.append(s)
 	_build_turn_order()
