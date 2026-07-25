@@ -56,6 +56,8 @@ var _party_slots: Array[BattlerSlot] = []
 var _enemy_slots: Array[BattlerSlot] = []
 var _options_menu: CanvasLayer
 var _enemy_turn_token: int = 0
+var _action_busy: bool = false
+var _ai_running: bool = false
 
 # Sci-fi palette used by _apply_sci_fi_theme and turn order / stats
 const _COLOR_PANEL := Color(0.08, 0.09, 0.12, 0.95)
@@ -211,6 +213,31 @@ func _make_btn_style(hover: bool) -> StyleBoxFlat:
 	s.set_border_width_all(1)
 	s.set_content_margin_all(16)
 	return s
+
+
+func _set_player_actions_enabled(enabled: bool) -> void:
+	attack_btn.disabled = not enabled
+	abilities_btn.disabled = not enabled
+	end_turn_btn.disabled = not enabled
+
+
+func _is_current_party_battler(battler: Dictionary) -> bool:
+	if battler.is_empty():
+		return false
+	var current = battle_manager.get_current_battler()
+	if current.is_empty() or not current.is_party:
+		return false
+	return current.index == battler.index and current.stats == battler.stats
+
+
+func _is_current_battler(battler: Dictionary) -> bool:
+	if battler.is_empty():
+		return false
+	var current = battle_manager.get_current_battler()
+	if current.is_empty():
+		return false
+	return current.index == battler.index and current.is_party == battler.is_party and current.stats == battler.stats
+
 
 func _apply_mission_floor_visuals() -> void:
 	_apply_battle_background("res://assets/andar.jpg")
@@ -533,11 +560,15 @@ func _on_turn_started(_battler_index: int, is_party: bool) -> void:
 	_refresh_arena_slots()
 	_on_turn_order_updated(null)
 	if is_party:
+		_action_busy = false
+		_set_player_actions_enabled(true)
 		actions_panel.visible = true
 		ability_sub_panel.visible = false
 		_selected_target = {}
 		_highlight_selected_enemy()
 	else:
+		_action_busy = true
+		_set_player_actions_enabled(false)
 		actions_panel.visible = false
 		ability_sub_panel.visible = false
 		_enemy_turn_token += 1
@@ -570,8 +601,14 @@ func _get_target_slot(index: int, is_party: bool) -> BattlerSlot:
 
 # --- AI: current enemy may use an ability (if has energy and valid target) or basic attack. ---
 func _ai_turn() -> void:
+	if _ai_running:
+		return
+	_ai_running = true
 	var party = battle_manager.get_party()
 	var attacker = battle_manager.get_current_battler()
+	if attacker.is_empty() or attacker.is_party:
+		_ai_running = false
+		return
 	var abilities: Array = ENEMY_ABILITIES.get(attacker.index, [])
 	var use_ability: bool = abilities.size() > 0 and randf() < 0.5
 	var chosen_ability: Dictionary = {}
@@ -589,6 +626,7 @@ func _ai_turn() -> void:
 		if battle_manager.can_attack_target(attacker, t):
 			candidates.append(t)
 	if candidates.is_empty():
+		_ai_running = false
 		battle_manager.advance_turn()
 		return
 	var target_index: int = int(randi() % candidates.size())
@@ -597,19 +635,27 @@ func _ai_turn() -> void:
 	if not chosen_ability.is_empty() and chosen_ability.id in ["ranged_shot", "barrage"]:
 		if attacker_slot:
 			await attacker_slot.play_attack_animation()
+		if not is_inside_tree() or not _is_current_battler(attacker):
+			_ai_running = false
+			return
 		battle_manager.perform_ability(attacker, chosen_ability.id, target)
 		_log("%s uses %s on %s!" % [attacker.stats.display_name, chosen_ability.name, target.stats.display_name])
 		_refresh_arena_slots()
+		_ai_running = false
 		battle_manager.advance_turn()
 		return
 	if attacker_slot:
 		await attacker_slot.play_attack_animation()
+	if not is_inside_tree() or not _is_current_battler(attacker):
+		_ai_running = false
+		return
 	var dmg = battle_manager.perform_attack(attacker, target)
 	var target_slot: BattlerSlot = _get_target_slot(target.index, true)
 	if dmg > 0 and target_slot:
 		target_slot.play_hit_flash()
 	_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, target.stats.display_name, dmg])
 	_refresh_arena_slots()
+	_ai_running = false
 	battle_manager.advance_turn()
 
 func _pick_random_enemy_target(attacker: Dictionary) -> Dictionary:
@@ -628,6 +674,9 @@ func _pick_random_enemy_target(attacker: Dictionary) -> Dictionary:
 	return candidates[target_index]
 
 func _on_battle_ended(party_wins: bool) -> void:
+	_action_busy = true
+	_ai_running = false
+	_set_player_actions_enabled(false)
 	actions_panel.visible = false
 	next_floor_btn.visible = false
 	if party_wins:
@@ -683,8 +732,10 @@ func _on_back_to_menu_pressed() -> void:
 
 # --- Attack button: play attack animation on attacker, then damage (if target not flying or attacker ranged), refresh, advance_turn ---
 func _on_attack_pressed() -> void:
+	if _action_busy:
+		return
 	var attacker = battle_manager.get_current_battler()
-	if attacker.is_empty() or not attacker.stats.is_alive():
+	if attacker.is_empty() or not attacker.is_party or not attacker.stats.is_alive():
 		return
 	if _selected_target.is_empty():
 		_selected_target = _pick_random_enemy_target(attacker)
@@ -696,20 +747,32 @@ func _on_attack_pressed() -> void:
 	if not battle_manager.can_attack_target(attacker, _selected_target):
 		_log("Can't reach %s (flying) with a melee attack!" % _selected_target.stats.display_name)
 		return
+	_action_busy = true
+	_set_player_actions_enabled(false)
+	var target: Dictionary = _selected_target.duplicate()
 	var attacker_slot: BattlerSlot = _get_attacker_slot()
 	if attacker_slot:
 		await attacker_slot.play_attack_animation()
-	var dmg = battle_manager.perform_attack(attacker, _selected_target)
-	var target_slot: BattlerSlot = _get_target_slot(_selected_target.index, _selected_target.is_party)
+	if not is_inside_tree() or not _is_current_party_battler(attacker):
+		_action_busy = false
+		if battle_manager.get_current_battler().get("is_party", false):
+			_set_player_actions_enabled(true)
+		return
+	var dmg = battle_manager.perform_attack(attacker, target)
+	var target_slot: BattlerSlot = _get_target_slot(target.index, target.is_party)
 	if dmg > 0 and target_slot:
 		target_slot.play_hit_flash()
-	_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, _selected_target.stats.display_name, dmg])
+	_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, target.stats.display_name, dmg])
 	_refresh_arena_slots()
 	_selected_target = {}
 	_highlight_selected_enemy()
 	battle_manager.advance_turn()
 
 func _on_end_turn_pressed() -> void:
+	if _action_busy:
+		return
+	_action_busy = true
+	_set_player_actions_enabled(false)
 	battle_manager.advance_turn()
 
 func _on_abilities_pressed() -> void:
@@ -739,16 +802,22 @@ func _on_ability_back_pressed() -> void:
 	ability_sub_panel.visible = false
 
 func _on_ability_used(ability_id: String, ability_name: String) -> void:
+	if _action_busy:
+		return
 	var current = battle_manager.get_current_battler()
-	if current.is_empty():
+	if current.is_empty() or not current.is_party:
 		ability_sub_panel.visible = false
 		return
 	if not battle_manager.can_use_ability(current, ability_id):
 		_log("Not enough energy for %s." % ability_name)
 		ability_sub_panel.visible = false
 		return
+	_action_busy = true
+	_set_player_actions_enabled(false)
 	if not battle_manager.perform_ability(current, ability_id, {}):
 		ability_sub_panel.visible = false
+		_action_busy = false
+		_set_player_actions_enabled(true)
 		return
 	_log("%s uses %s!" % [current.stats.display_name, ability_name])
 	if ability_id == "fly":
