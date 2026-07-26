@@ -11,22 +11,33 @@ on:
 jobs:
   export-macos:
     name: Export macOS beta
-    runs-on: ubuntu-latest
-    container:
-      image: barichello/godot-ci:4.6
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
+
+      - name: Install Godot 4.6
+        run: |
+          curl -L -o godot.zip "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_macos.universal.zip"
+          unzip -q godot.zip
+          sudo mv Godot.app /Applications/Godot.app
+
+      - name: Install export templates
+        run: |
+          mkdir -p "$HOME/Library/Application Support/Godot/export_templates/4.6.stable"
+          curl -L -o templates.tpz "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz"
+          unzip -q templates.tpz
+          cp -r templates/* "$HOME/Library/Application Support/Godot/export_templates/4.6.stable/"
 
       - name: Prepare export preset
         run: cp build/export_presets.cfg export_presets.cfg
 
       - name: Import project
-        run: godot --headless --path . --import --quit
+        run: /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --import --quit
 
       - name: Export macOS build
         run: |
           mkdir -p export
-          godot --headless --path . --export-release "macOS" export/ThreeGame_macOS.zip
+          /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --export-release "macOS" export/ThreeGame_macOS.zip
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
