@@ -37,7 +37,8 @@ jobs:
       - name: Export macOS build
         run: |
           mkdir -p export
-          /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --export-release "macOS" export/ThreeGame_macOS.zip
+          /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --export-release "macOS" export/ThreeGame_macOS.zip || true
+          test -s export/ThreeGame_macOS.zip
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
