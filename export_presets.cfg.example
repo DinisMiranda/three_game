@@ -1,0 +1,5 @@
+# Copy to export_presets.cfg (gitignored) for local exports.
+# CI uses build/export_presets.cfg automatically.
+# Install Godot 4.6 export templates: Editor → Manage Export Templates
+
+cp build/export_presets.cfg export_presets.cfg

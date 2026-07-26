@@ -50,6 +50,10 @@ ui_cancel={
 
 2d_physics/layer_1="default"
 
+[rendering]
+
+textures/vram_compression/import_etc2_astc=true
+
 [plugins]
 
 gdUnit4="*res://addons/gdUnit4/plugin.cfg"
