@@ -81,9 +81,9 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path export | Out-Null
-          $proc = Start-Process -FilePath "godot/Godot_v4.6-stable_win64.exe" -ArgumentList "--headless","--path",".","--export-release","Windows Desktop","export/ThreeGame_Windows.zip" -Wait -PassThru -NoNewWindow
+          & "godot/Godot_v4.6-stable_win64.exe" --headless --path . --export-release "Windows Desktop" export/ThreeGame_Windows.zip
           if (-not (Test-Path "export/ThreeGame_Windows.zip")) {
-            Write-Error "Windows export failed: zip not created (exit $($proc.ExitCode))"
+            Write-Error "Windows export failed: zip not created"
           }
 
       - name: Upload build artifact
