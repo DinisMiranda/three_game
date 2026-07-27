@@ -47,6 +47,71 @@ jobs:
           path: export/ThreeGame_macOS.zip
           retention-days: 30
 
+  export-windows:
+    name: Export Windows beta
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Godot 4.6
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_win64.exe.zip" -OutFile godot.zip
+          Expand-Archive godot.zip -DestinationPath godot -Force
+          echo "$PWD\godot" >> $env:GITHUB_PATH
+
+      - name: Install export templates
+        shell: pwsh
+        run: |
+          $templatesDir = "$env:APPDATA\Godot\export_templates\4.6.stable"
+          New-Item -ItemType Directory -Force -Path $templatesDir | Out-Null
+          Invoke-WebRequest -Uri "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz" -OutFile templates.tpz
+          Expand-Archive templates.tpz -DestinationPath templates_extract -Force
+          Copy-Item -Path "templates_extract\templates\*" -Destination $templatesDir -Recurse -Force
+
+      - name: Prepare export preset
+        shell: pwsh
+        run: Copy-Item build/export_presets.cfg export_presets.cfg
+
+      - name: Import project
+        shell: pwsh
+        run: godot/Godot_v4.6-stable_win64.exe --headless --path . --import --quit
+
+      - name: Export Windows build
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path export | Out-Null
+          $proc = Start-Process -FilePath "godot/Godot_v4.6-stable_win64.exe" -ArgumentList "--headless","--path",".","--export-release","Windows Desktop","export/ThreeGame_Windows.zip" -Wait -PassThru -NoNewWindow
+          if (-not (Test-Path "export/ThreeGame_Windows.zip")) {
+            Write-Error "Windows export failed: zip not created (exit $($proc.ExitCode))"
+          }
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThreeGame_Windows
+          path: export/ThreeGame_Windows.zip
+          retention-days: 30
+
+  publish:
+    name: Publish GitHub Release
+    needs: [export-macos, export-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download macOS build
+        uses: actions/download-artifact@v4
+        with:
+          name: ThreeGame_macOS
+          path: release-assets
+
+      - name: Download Windows build
+        uses: actions/download-artifact@v4
+        with:
+          name: ThreeGame_Windows
+          path: release-assets
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -54,5 +119,7 @@ jobs:
           body_path: docs/BETA_PLAY.md
           draft: false
           prerelease: true
-          files: export/ThreeGame_macOS.zip
+          files: |
+            release-assets/ThreeGame_macOS.zip
+            release-assets/ThreeGame_Windows.zip
           generate_release_notes: true
