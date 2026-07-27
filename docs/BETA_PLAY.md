@@ -3,7 +3,12 @@
 **Version:** v0.1.0-beta.2  
 **Platforms:** macOS (Apple Silicon + Intel) · Windows 64-bit
 
-**Download:** https://github.com/DinisMiranda/three_game/releases/latest
+**Download (links diretos):**
+
+- macOS: https://github.com/DinisMiranda/three_game/releases/download/v0.1.0-beta.2/ThreeGame_macOS.zip
+- Windows: https://github.com/DinisMiranda/three_game/releases/download/v0.1.0-beta.2/ThreeGame_Windows.zip
+
+Página da release: https://github.com/DinisMiranda/three_game/releases/tag/v0.1.0-beta.2
 
 ## Install
 
