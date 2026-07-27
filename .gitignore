@@ -16,7 +16,7 @@ Thumbs.db
 export/
 *.translation
 *.uid
-export_presets.cfg
+/export_presets.cfg
 # Keep *.import files (and .import dir in Godot 4.2+) so import settings are shared
 
 # Godot – C# / Mono (if you add C# later)

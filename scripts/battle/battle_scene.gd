@@ -26,7 +26,9 @@ var _enemy2_attack_frames: Array[Texture2D] = []
 @onready var enemy_slots_container: VBoxContainer = $Margin/VBox/ArenaRow/EnemyArena/EnemySlots
 @onready var stats_list: VBoxContainer = $Margin/VBox/ArenaRow/PartyStatsPanel/StatsVBox/StatsList
 @onready var log_scroll: ScrollContainer = $Margin/VBox/BottomRow/LogPanel/LogScroll
-@onready var log_label: Label = $Margin/VBox/BottomRow/LogPanel/LogScroll/Log
+@onready var log_label: RichTextLabel = $Margin/VBox/BottomRow/LogPanel/LogScroll/Log
+@onready var enemy_turn_flash: ColorRect = $EnemyTurnFlash
+@onready var floating_text_layer: CanvasLayer = $FloatingTextLayer
 @onready var end_screen: CanvasLayer = $EndScreen
 @onready var end_title: Label = $EndScreen/Center/Panel/VBox/EndTitle
 @onready var next_floor_btn: Button = $EndScreen/Center/Panel/VBox/NextFloorBtn
@@ -39,22 +41,18 @@ var _enemy2_attack_frames: Array[Texture2D] = []
 @onready var ability_buttons_container: HBoxContainer = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityButtonsContainer
 @onready var ability_back_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn
 
-# Hero index -> list of { "id": String, "name": String }. Two abilities per hero.
-const HERO_ABILITIES: Dictionary = {
-	0: [{ "id": "slash", "name": "Slash" }, { "id": "guard", "name": "Guard" }],
-	1: [{ "id": "fly", "name": "Fly" }, { "id": "snipe", "name": "Snipe" }],
-	2: [{ "id": "strike", "name": "Strike" }, { "id": "shield", "name": "Shield" }]
-}
-# Enemy index -> list of { "id": String, "name": String }. Enemy 1 (index 0) is ranged and has abilities.
-const ENEMY_ABILITIES: Dictionary = {
-	0: [{ "id": "ranged_shot", "name": "Ranged Shot" }, { "id": "barrage", "name": "Barrage" }]
-}
+const ATTACK_ANIM_ABILITIES: Array[String] = [
+	"grenade", "slash", "strike", "snipe", "ranged_shot", "barrage", "frenzy"
+]
 
 var battle_manager: BattleManager
 var _selected_target: Dictionary = {}  # { "stats", "index", "is_party" } for current attack target
 var _party_slots: Array[BattlerSlot] = []
 var _enemy_slots: Array[BattlerSlot] = []
 var _options_menu: CanvasLayer
+var _enemy_turn_token: int = 0
+var _action_busy: bool = false
+var _ai_running: bool = false
 
 # Sci-fi palette used by _apply_sci_fi_theme and turn order / stats
 const _COLOR_PANEL := Color(0.08, 0.09, 0.12, 0.95)
@@ -64,19 +62,23 @@ const _COLOR_ACCENT := Color(0.0, 0.9, 1.0, 1)
 const _COLOR_LOG := Color(0.0, 1.0, 0.55, 0.95)
 const _COLOR_NEXT := Color(1.0, 0.75, 0.2, 1)
 
+const _COLOR_LOG_ENEMY := Color(1.0, 0.45, 0.42, 1)
+const _COLOR_LOG_CRIT := Color(1.0, 0.55, 0.2, 1)
+const _COLOR_LOG_ABSORB := Color(0.45, 0.75, 1.0, 1)
+const _COLOR_LOG_MISS := Color(0.65, 0.68, 0.75, 1)
+const _COLOR_LOG_VICTORY := Color(0.35, 1.0, 0.65, 1)
+const _COLOR_LOG_DEFEAT := Color(1.0, 0.35, 0.4, 1)
+const _COLOR_LOG_BARK := Color(0.95, 0.88, 0.45, 1)
+
 func _ready() -> void:
 	_placeholder_texture = load("res://assets/character_placeholder.png") as Texture2D
 	if _placeholder_texture == null:
 		_placeholder_texture = preload("res://assets/character_placeholder.png") as Texture2D
 	# Heroes: 3 idle sprites (face right). Enemies: per-enemy idle sprites (face left).
 	_texture_idle_party.clear()
-	var hero_paths := [
-		"res://assets/sevro_pixel_no_bg-removebg-preview.png",
-		"res://assets/hero 2 no bg.png",
-		"res://assets/hero 3 no bg copy.png"
-	]
-	for path in hero_paths:
-		var tex = load(path) as Texture2D
+	for i in HeroRoster.ACTIVE_PARTY_SIZE:
+		var path: String = HeroRoster.get_portrait_path(i)
+		var tex: Texture2D = load(path) as Texture2D if not path.is_empty() else null
 		_texture_idle_party.append(tex if tex != null else _placeholder_texture)
 	_texture_idle_enemy.clear()
 	var enemy_paths := [
@@ -183,7 +185,7 @@ func _apply_sci_fi_theme() -> void:
 	var log_style = panel_style.duplicate()
 	(log_style as StyleBoxFlat).bg_color = Color(0.04, 0.05, 0.08, 0.98)
 	$Margin/VBox/BottomRow/LogPanel.add_theme_stylebox_override("panel", log_style)
-	log_label.add_theme_color_override("font_color", _COLOR_LOG)
+	log_label.add_theme_color_override("default_color", _COLOR_LOG)
 
 func _apply_end_screen_theme() -> void:
 	var panel = $EndScreen/Center/Panel
@@ -211,7 +213,33 @@ func _make_btn_style(hover: bool) -> StyleBoxFlat:
 	s.set_content_margin_all(16)
 	return s
 
+
+func _set_player_actions_enabled(enabled: bool) -> void:
+	attack_btn.disabled = not enabled
+	abilities_btn.disabled = not enabled
+	end_turn_btn.disabled = not enabled
+
+
+func _is_current_party_battler(battler: Dictionary) -> bool:
+	if battler.is_empty():
+		return false
+	var current = battle_manager.get_current_battler()
+	if current.is_empty() or not current.is_party:
+		return false
+	return current.index == battler.index and current.stats == battler.stats
+
+
+func _is_current_battler(battler: Dictionary) -> bool:
+	if battler.is_empty():
+		return false
+	var current = battle_manager.get_current_battler()
+	if current.is_empty():
+		return false
+	return current.index == battler.index and current.is_party == battler.is_party and current.stats == battler.stats
+
+
 func _apply_mission_floor_visuals() -> void:
+	_apply_battle_background("res://assets/andar.jpg")
 	if not MissionProgress.is_meridian_spire_active():
 		floor_banner.visible = false
 		return
@@ -221,28 +249,31 @@ func _apply_mission_floor_visuals() -> void:
 	floor_banner.text = "MERIDIAN SPIRE · %s" % title
 	var bg_path: String = str(info.get("bg", ""))
 	if not bg_path.is_empty():
-		var tex: Texture2D = load(bg_path) as Texture2D
-		if tex != null:
-			battle_background.texture = tex
-		else:
-			var fallback: Texture2D = load("res://assets/andar.png") as Texture2D
-			if fallback != null:
-				battle_background.texture = fallback
+		_apply_battle_background(bg_path)
+
+
+func _apply_battle_background(path: String) -> void:
+	var tex: Texture2D = load(path) as Texture2D
+	if tex != null:
+		battle_background.texture = tex
+	else:
+		push_warning("Missing battle background: %s" % path)
 
 
 func _build_sample_party() -> Array:
 	var party: Array = []
-	for i in 3:
+	for i in HeroRoster.ACTIVE_PARTY_SIZE:
 		var s = BattlerStats.new()
-		s.display_name = "Hero %d" % (i + 1)
-		s.max_hp = 80 + i * 10
-		s.current_hp = s.max_hp
-		s.max_energy = 100
-		s.current_energy = 100
-		s.attack = 12 + i
-		s.defense = 4
-		s.speed = 8 + i * 2
-		s.is_party = true
+		if not HeroRoster.apply_to_stats(i, s):
+			s.display_name = "Hero %d" % (i + 1)
+			s.max_hp = 80 + i * 10
+			s.current_hp = s.max_hp
+			s.max_energy = 100
+			s.current_energy = 100
+			s.attack = 12 + i
+			s.defense = 4
+			s.speed = 8 + i * 2
+			s.is_party = true
 		party.append(s)
 	return party
 
@@ -253,31 +284,33 @@ func _build_sample_enemies() -> Array:
 	var floor_idx: int = 1
 	if MissionProgress.is_meridian_spire_active():
 		floor_idx = MissionProgress.meridian_floor
-		hp_bonus = (MissionProgress.meridian_floor - 1) * 18
+		hp_bonus = (MissionProgress.meridian_floor - 1) * 10
 	var enemy_count: int = 1
 	match floor_idx:
 		1:
 			enemy_count = 1
 		2:
 			enemy_count = 2
-		3:
-			enemy_count = 2
-		4:
-			enemy_count = 3
 		_:
-			enemy_count = 4
+			enemy_count = 1
 	for i in enemy_count:
 		var s = BattlerStats.new()
-		s.display_name = "Enemy %d" % (i + 1)
-		s.max_hp = 50 + i * 15 + hp_bonus
+		if floor_idx >= 3 and i == 0:
+			s.display_name = "Custodian Unit"
+			s.max_hp = 55 + hp_bonus
+			s.attack = 20 + (MissionProgress.meridian_floor - 1) * 2
+			s.speed = 7
+		else:
+			s.display_name = "Enemy %d" % (i + 1)
+			s.max_hp = 40 + i * 10 + hp_bonus
+			s.attack = 16 + i * 2 + (MissionProgress.meridian_floor - 1) * 2
+			s.speed = 5 + i * 3
 		s.current_hp = s.max_hp
 		s.max_energy = 100
 		s.current_energy = 100
-		s.attack = 24 + i + int(MissionProgress.meridian_floor / 2)
-		s.defense = 4
-		s.speed = 5 + i * 3
+		s.defense = 3
 		s.is_party = false
-		s.is_ranged = (i % 2) == 0
+		s.is_ranged = floor_idx < 3 and (i % 3) == 0
 		enemies.append(s)
 	return enemies
 
@@ -289,7 +322,7 @@ func _start_sample_battle() -> void:
 	battle_manager.setup_battle(party, enemies)
 	_build_arena()
 	_refresh_party_stats_panel()
-	_log("Battle start! Turn order is based on speed. Click an enemy to target.")
+	_log("Battle start! Turn order is based on speed. Click an enemy to target.", "system")
 
 # --- Returns an HBoxContainer for a row of slots. If behind=true, wrap in MarginContainer (indent). ---
 # If add_leading_spacer=true, prepend an expanding spacer (e.g. to push enemy slots to the right).
@@ -316,11 +349,14 @@ func _make_row(container: VBoxContainer, behind: bool, add_leading_spacer: bool 
 	return h
 
 # --- Clear slots, then create party formation (>) and enemy formation (<) with BattlerSlots ---
+func _clear_arena_container(container: Node) -> void:
+	for c in container.get_children():
+		container.remove_child(c)
+		c.queue_free()
+
 func _build_arena() -> void:
-	for c in party_slots_container.get_children():
-		c.queue_free()
-	for c in enemy_slots_container.get_children():
-		c.queue_free()
+	_clear_arena_container(party_slots_container)
+	_clear_arena_container(enemy_slots_container)
 	_party_slots.clear()
 	_enemy_slots.clear()
 
@@ -345,6 +381,7 @@ func _build_arena() -> void:
 		slot.is_party = true
 		party_row.add_child(slot)
 		slot.setup(party[i], idle_i, attack_party)
+		slot.set_role_display(HeroRoster.get_role_label(i), HeroRoster.get_role_color(i))
 		if i == 1 and not _hero2_attack_frames.is_empty():
 			slot.set_attack_frames(_hero2_attack_frames)
 		elif i == 2 and not _hero3_attack_frames.is_empty():
@@ -417,8 +454,8 @@ func _refresh_party_stats_panel() -> void:
 		var row = HBoxContainer.new()
 		var name_l = Label.new()
 		name_l.text = s.display_name + ":"
-		name_l.custom_minimum_size.x = 80
-		name_l.add_theme_color_override("font_color", _COLOR_TEXT)
+		name_l.custom_minimum_size.x = 96
+		name_l.add_theme_color_override("font_color", HeroRoster.get_role_color(i))
 		row.add_child(name_l)
 		var bar = ProgressBar.new()
 		bar.max_value = float(s.max_hp)
@@ -526,19 +563,44 @@ func _on_turn_started(_battler_index: int, is_party: bool) -> void:
 	if not s.is_alive():
 		battle_manager.advance_turn()
 		return
-	_log("%s's turn (Speed: %d)" % [s.display_name, s.speed])
+	_log("%s's turn (Speed: %d)" % [s.display_name, s.speed], "turn" if is_party else "enemy_turn")
 	_refresh_arena_slots()
 	_on_turn_order_updated(null)
 	if is_party:
+		_action_busy = false
+		_set_player_actions_enabled(true)
 		actions_panel.visible = true
 		ability_sub_panel.visible = false
 		_selected_target = {}
 		_highlight_selected_enemy()
 	else:
+		_action_busy = true
+		_set_player_actions_enabled(false)
 		actions_panel.visible = false
 		ability_sub_panel.visible = false
-		await get_tree().create_timer(0.8).timeout
+		_enemy_turn_token += 1
+		var token := _enemy_turn_token
+		await _play_enemy_turn_intro(s, token)
+		if token != _enemy_turn_token or not is_inside_tree():
+			return
 		_ai_turn()
+
+func _play_enemy_turn_intro(_enemy_stats: BattlerStats, token: int) -> void:
+	var attacker_slot: BattlerSlot = _get_attacker_slot()
+	if attacker_slot:
+		attacker_slot.play_enemy_turn_flash()
+	if enemy_turn_flash:
+		enemy_turn_flash.visible = true
+		enemy_turn_flash.modulate = Color(1, 1, 1, 0)
+		var flash_tw := create_tween()
+		flash_tw.tween_property(enemy_turn_flash, "modulate:a", 1.0, 0.12)
+		flash_tw.tween_property(enemy_turn_flash, "modulate:a", 0.0, 0.35)
+		flash_tw.finished.connect(func(): enemy_turn_flash.visible = false)
+	await get_tree().create_timer(0.55).timeout
+	if token != _enemy_turn_token:
+		return
+	await get_tree().create_timer(0.35).timeout
+
 
 func _on_turn_ended(_battler_index: int, _is_party: bool) -> void:
 	pass
@@ -548,13 +610,7 @@ func _get_attacker_slot() -> BattlerSlot:
 	var current = battle_manager.get_current_battler()
 	if current.is_empty():
 		return null
-	if current.is_party:
-		if current.index >= 0 and current.index < _party_slots.size():
-			return _party_slots[current.index]
-	else:
-		if current.index >= 0 and current.index < _enemy_slots.size():
-			return _enemy_slots[current.index]
-	return null
+	return _get_target_slot(current.index, current.is_party)
 
 func _get_target_slot(index: int, is_party: bool) -> BattlerSlot:
 	if is_party:
@@ -567,49 +623,170 @@ func _get_target_slot(index: int, is_party: bool) -> BattlerSlot:
 				return slot
 	return null
 
-# --- AI: current enemy may use an ability (if has energy and valid target) or basic attack. ---
+# --- AI: pattern-based enemy turns (ranged tactician, berserker, soldier). ---
 func _ai_turn() -> void:
-	var party = battle_manager.get_party()
+	if _ai_running:
+		return
+	_ai_running = true
 	var attacker = battle_manager.get_current_battler()
-	var abilities: Array = ENEMY_ABILITIES.get(attacker.index, [])
-	var use_ability: bool = abilities.size() > 0 and randf() < 0.5
-	var chosen_ability: Dictionary = {}
-	if use_ability:
-		for ab in abilities:
-			if battle_manager.can_use_ability(attacker, ab.id):
-				chosen_ability = ab
-				break
+	if attacker.is_empty() or attacker.is_party:
+		_ai_running = false
+		return
+	var action: Dictionary = _choose_enemy_action(attacker)
+	if action.is_empty():
+		_ai_running = false
+		battle_manager.advance_turn()
+		return
+	if action.get("kind", "") == "ability":
+		var ability_id: String = str(action.get("id", ""))
+		var ability_name: String = str(action.get("name", ability_id))
+		var target: Dictionary = {}
+		if bool(action.get("needs_target", false)):
+			target = _pick_party_target_for_enemy(attacker, ability_id)
+			if target.is_empty():
+				_ai_running = false
+				battle_manager.advance_turn()
+				return
+		var attacker_slot: BattlerSlot = _get_attacker_slot()
+		if ability_id in ATTACK_ANIM_ABILITIES and attacker_slot:
+			await attacker_slot.play_attack_animation()
+		if not is_inside_tree() or not _is_current_battler(attacker):
+			_ai_running = false
+			return
+		if not battle_manager.perform_ability(attacker, ability_id, target):
+			_ai_running = false
+			battle_manager.advance_turn()
+			return
+		_log_enemy_ability(attacker, ability_id, ability_name, target)
+		_apply_hit_results(battle_manager.last_hit_results)
+		_refresh_arena_slots()
+		_ai_running = false
+		battle_manager.advance_turn()
+		return
+	var target: Dictionary = _pick_party_target_for_enemy(attacker, "attack")
+	if target.is_empty():
+		_ai_running = false
+		battle_manager.advance_turn()
+		return
+	var attacker_slot: BattlerSlot = _get_attacker_slot()
+	if attacker_slot:
+		await attacker_slot.play_attack_animation()
+	if not is_inside_tree() or not _is_current_battler(attacker):
+		_ai_running = false
+		return
+	battle_manager.last_hit_results.clear()
+	var dmg = battle_manager.perform_attack(attacker, target)
+	_apply_hit_results(battle_manager.last_hit_results)
+	_log_attack_result(attacker.stats.display_name, target.stats.display_name, dmg, battle_manager.last_hit_kind)
+	_refresh_arena_slots()
+	_ai_running = false
+	battle_manager.advance_turn()
+
+
+func _choose_enemy_action(attacker: Dictionary) -> Dictionary:
+	var idx: int = attacker.index
+	var hp_pct: float = float(attacker.stats.current_hp) / float(maxi(1, attacker.stats.max_hp))
+	var profile: int = idx % 3
+	if profile == 0:
+		if hp_pct > 0.5 and battle_manager.can_use_ability(attacker, "focus"):
+			return { "kind": "ability", "id": "focus", "name": "Focus" }
+		if battle_manager.can_use_ability(attacker, "barrage"):
+			return { "kind": "ability", "id": "barrage", "name": "Barrage", "needs_target": true }
+		if battle_manager.can_use_ability(attacker, "ranged_shot"):
+			return { "kind": "ability", "id": "ranged_shot", "name": "Ranged Shot", "needs_target": true }
+	elif profile == 1:
+		if hp_pct < 0.5 and battle_manager.can_use_ability(attacker, "frenzy"):
+			return { "kind": "ability", "id": "frenzy", "name": "Frenzy", "needs_target": true }
+	elif profile == 2:
+		if hp_pct < 0.4 and battle_manager.can_use_ability(attacker, "guard"):
+			return { "kind": "ability", "id": "guard", "name": "Guard" }
+	return { "kind": "attack", "needs_target": true }
+
+
+func _pick_party_target_for_enemy(attacker: Dictionary, ability_id: String) -> Dictionary:
+	var party: Array = battle_manager.get_party()
 	var candidates: Array = []
 	for i in party.size():
 		var s: BattlerStats = party[i]
 		if not s.is_alive():
 			continue
-		var t = { "stats": s, "index": i, "is_party": true }
-		if battle_manager.can_attack_target(attacker, t):
+		var t := { "stats": s, "index": i, "is_party": true }
+		if ability_id == "attack":
+			if battle_manager.can_attack_target(attacker, t):
+				candidates.append(t)
+		elif battle_manager.can_use_ability_on_target(attacker, ability_id, t):
 			candidates.append(t)
 	if candidates.is_empty():
-		battle_manager.advance_turn()
-		return
-	var target_index: int = int(randi() % candidates.size())
-	var target: Dictionary = candidates[target_index]
-	var attacker_slot: BattlerSlot = _get_attacker_slot()
-	if not chosen_ability.is_empty() and chosen_ability.id in ["ranged_shot", "barrage"]:
-		if attacker_slot:
-			await attacker_slot.play_attack_animation()
-		battle_manager.perform_ability(attacker, chosen_ability.id, target)
-		_log("%s uses %s on %s!" % [attacker.stats.display_name, chosen_ability.name, target.stats.display_name])
-		_refresh_arena_slots()
-		battle_manager.advance_turn()
-		return
-	if attacker_slot:
-		await attacker_slot.play_attack_animation()
-	var dmg = battle_manager.perform_attack(attacker, target)
-	var target_slot: BattlerSlot = _get_target_slot(target.index, true)
-	if dmg > 0 and target_slot:
-		target_slot.play_hit_flash()
-	_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, target.stats.display_name, dmg])
-	_refresh_arena_slots()
-	battle_manager.advance_turn()
+		return {}
+	return candidates[int(randi() % candidates.size())]
+
+
+func _pick_ability_target(attacker: Dictionary, ability_id: String) -> Dictionary:
+	var enemies: Array = battle_manager.get_enemies()
+	var candidates: Array = []
+	for i in enemies.size():
+		var s: BattlerStats = enemies[i]
+		if not s.is_alive():
+			continue
+		var t := { "stats": s, "index": i, "is_party": false }
+		if battle_manager.can_use_ability_on_target(attacker, ability_id, t):
+			candidates.append(t)
+	if candidates.is_empty():
+		return {}
+	if not _selected_target.is_empty() and battle_manager.can_use_ability_on_target(attacker, ability_id, _selected_target):
+		return _selected_target
+	return candidates[int(randi() % candidates.size())]
+
+
+func _log_enemy_ability(attacker: Dictionary, ability_id: String, ability_name: String, target: Dictionary) -> void:
+	match ability_id:
+		"focus":
+			_log("%s uses Focus! Attack boosted for 2 rounds." % attacker.stats.display_name)
+		"guard":
+			_log("%s braces for impact! Damage halved until its next turn." % attacker.stats.display_name)
+		"frenzy":
+			_log("%s enters Frenzy on %s for %d total damage!" % [
+				attacker.stats.display_name, target.stats.display_name, battle_manager.last_ability_damage
+			])
+		"barrage":
+			_log("%s barrages %s for %d total damage!" % [
+				attacker.stats.display_name, target.stats.display_name, battle_manager.last_ability_damage
+			])
+		_:
+			if target.is_empty():
+				_log("%s uses %s!" % [attacker.stats.display_name, ability_name])
+			else:
+				_log("%s uses %s on %s for %d damage!" % [
+					attacker.stats.display_name, ability_name, target.stats.display_name, battle_manager.last_ability_damage
+				])
+
+
+func _log_hero_ability(attacker: Dictionary, ability_id: String, ability_name: String, target: Dictionary) -> void:
+	match ability_id:
+		"fly":
+			_log("%s is flying! Only ranged attacks can hit." % attacker.stats.display_name, "ability")
+		"shield":
+			_log("%s gains a shield (%d HP) for 3 rounds." % [attacker.stats.display_name, attacker.stats.shield_amount], "ability")
+		"guard":
+			_log("%s takes a defensive stance! Incoming damage halved until next turn." % attacker.stats.display_name, "ability")
+		"grenade":
+			_log("%s lobs a grenade at %s for %d total damage!" % [
+				attacker.stats.display_name, target.stats.display_name, battle_manager.last_ability_damage
+			], "damage")
+		"slash":
+			_log("%s slashes %s for %d damage!" % [
+				attacker.stats.display_name, target.stats.display_name, battle_manager.last_ability_damage
+			], "damage")
+		"strike":
+			_log("%s strikes through armor on %s for %d damage!" % [
+				attacker.stats.display_name, target.stats.display_name, battle_manager.last_ability_damage
+			], "damage")
+		"snipe":
+			_log("%s snipes the airborne %s for %d damage!" % [
+				attacker.stats.display_name, target.stats.display_name, battle_manager.last_ability_damage
+			], "damage")
+		_:
+			_log("%s uses %s!" % [attacker.stats.display_name, ability_name], "ability")
 
 func _pick_random_enemy_target(attacker: Dictionary) -> Dictionary:
 	var enemies = battle_manager.get_enemies()
@@ -627,23 +804,31 @@ func _pick_random_enemy_target(attacker: Dictionary) -> Dictionary:
 	return candidates[target_index]
 
 func _on_battle_ended(party_wins: bool) -> void:
+	_action_busy = true
+	_ai_running = false
+	_set_player_actions_enabled(false)
 	actions_panel.visible = false
 	next_floor_btn.visible = false
 	if party_wins:
-		_log("Victory! All enemies defeated.")
+		_log("Victory! All enemies defeated.", "victory")
 		if MissionProgress.meridian_has_next_floor_after_clear():
 			end_title.text = "Floor clear!"
 			next_floor_btn.visible = true
 			back_to_menu_btn.text = "Abort to menu"
 		else:
-			if MissionProgress.is_meridian_spire_active():
+			if MissionProgress.is_meridian_spire_active() and MissionProgress.meridian_floor >= MissionProgress.MERIDIAN_MAX_FLOOR:
+				end_title.text = "Rooftop secured!"
+				MissionProgress.mark_rooftop_cleared()
+				back_to_menu_btn.text = "Continue"
+			elif MissionProgress.is_meridian_spire_active():
 				end_title.text = "Meridian Spire secured!"
 				MissionProgress.finish_meridian_spire()
+				back_to_menu_btn.text = "Back to Main Menu"
 			else:
 				end_title.text = "Victory!"
-			back_to_menu_btn.text = "Back to Main Menu"
+				back_to_menu_btn.text = "Back to Main Menu"
 	else:
-		_log("Defeat! Party was defeated.")
+		_log("Defeat! Party was defeated.", "defeat")
 		end_title.text = "Defeat!"
 		back_to_menu_btn.text = "Back to Main Menu"
 		MissionProgress.finish_meridian_spire()
@@ -665,22 +850,31 @@ func _on_next_floor_pressed() -> void:
 			var st: BattlerStats = s as BattlerStats
 			st.current_hp = st.max_hp
 			st.current_energy = st.max_energy
+			st.is_flying = false
+			st.guard_active = false
+			st.shield_amount = 0
+			st.shield_rounds_left = 0
 	var enemies: Array = _build_sample_enemies()
 	battle_manager.setup_battle(party, enemies)
 	_build_arena()
 	_apply_mission_floor_visuals()
 	_refresh_party_stats_panel()
-	_log("=== %s ===" % MissionProgress.get_meridian_floor_info().title)
+	_log("=== %s ===" % MissionProgress.get_meridian_floor_info().title, "system")
 
 
 func _on_back_to_menu_pressed() -> void:
+	if MissionProgress.meridian_epilogue_pending:
+		get_tree().change_scene_to_file("res://scenes/story/meridian_epilogue.tscn")
+		return
 	MissionProgress.finish_meridian_spire()
 	get_tree().change_scene_to_file("res://scenes/main_menu/main_menu.tscn")
 
 # --- Attack button: play attack animation on attacker, then damage (if target not flying or attacker ranged), refresh, advance_turn ---
 func _on_attack_pressed() -> void:
+	if _action_busy:
+		return
 	var attacker = battle_manager.get_current_battler()
-	if attacker.is_empty() or not attacker.stats.is_alive():
+	if attacker.is_empty() or not attacker.is_party or not attacker.stats.is_alive():
 		return
 	if _selected_target.is_empty():
 		_selected_target = _pick_random_enemy_target(attacker)
@@ -692,27 +886,39 @@ func _on_attack_pressed() -> void:
 	if not battle_manager.can_attack_target(attacker, _selected_target):
 		_log("Can't reach %s (flying) with a melee attack!" % _selected_target.stats.display_name)
 		return
+	_action_busy = true
+	_set_player_actions_enabled(false)
+	var target: Dictionary = _selected_target.duplicate()
 	var attacker_slot: BattlerSlot = _get_attacker_slot()
 	if attacker_slot:
 		await attacker_slot.play_attack_animation()
-	var dmg = battle_manager.perform_attack(attacker, _selected_target)
-	var target_slot: BattlerSlot = _get_target_slot(_selected_target.index, _selected_target.is_party)
-	if dmg > 0 and target_slot:
-		target_slot.play_hit_flash()
-	_log("%s attacks %s for %d damage!" % [attacker.stats.display_name, _selected_target.stats.display_name, dmg])
+	if not is_inside_tree() or not _is_current_party_battler(attacker):
+		_action_busy = false
+		if battle_manager.get_current_battler().get("is_party", false):
+			_set_player_actions_enabled(true)
+		return
+	_maybe_hero_bark(attacker.index, "attack")
+	battle_manager.last_hit_results.clear()
+	var dmg = battle_manager.perform_attack(attacker, target)
+	_apply_hit_results(battle_manager.last_hit_results)
+	_log_attack_result(attacker.stats.display_name, target.stats.display_name, dmg, battle_manager.last_hit_kind)
 	_refresh_arena_slots()
 	_selected_target = {}
 	_highlight_selected_enemy()
 	battle_manager.advance_turn()
 
 func _on_end_turn_pressed() -> void:
+	if _action_busy:
+		return
+	_action_busy = true
+	_set_player_actions_enabled(false)
 	battle_manager.advance_turn()
 
 func _on_abilities_pressed() -> void:
 	var current = battle_manager.get_current_battler()
 	if current.is_empty() or not current.is_party:
 		return
-	var abilities: Array = HERO_ABILITIES.get(current.index, [])
+	var abilities: Array = HeroRoster.get_abilities(current.index)
 	if abilities.is_empty():
 		_log("%s has no abilities." % current.stats.display_name)
 		return
@@ -720,38 +926,71 @@ func _on_abilities_pressed() -> void:
 	for c in ability_buttons_container.get_children():
 		c.queue_free()
 	for ab in abilities:
-		var cost: int = battle_manager.get_ability_cost(ab.id)
-		var can_afford: bool = battle_manager.can_use_ability(current, ab.id)
+		var ability_id: String = str(ab.get("id", ""))
+		var ability_name: String = str(ab.get("name", ability_id))
+		var cost: int = battle_manager.get_ability_cost(ability_id)
+		var can_afford: bool = battle_manager.can_use_ability(current, ability_id)
+		var can_use: bool = can_afford
+		if battle_manager.ability_needs_target(ability_id):
+			can_use = can_use and battle_manager.has_valid_target_for_ability(
+				current, ability_id, battle_manager.get_enemies()
+			)
 		var btn = Button.new()
-		btn.text = "%s (%d)" % [ab.name, cost]
-		btn.disabled = not can_afford
+		btn.text = "%s (%d)" % [ability_name, cost]
+		btn.tooltip_text = battle_manager.get_ability_hint(ability_id)
+		btn.disabled = not can_use
 		btn.add_theme_color_override("font_color", _COLOR_TEXT if can_afford else Color(0.5, 0.5, 0.5, 1))
 		btn.add_theme_stylebox_override("normal", _make_btn_style(false))
 		btn.add_theme_stylebox_override("hover", _make_btn_style(true))
-		btn.pressed.connect(_on_ability_used.bind(ab.id, ab.name))
+		btn.pressed.connect(_on_ability_used.bind(ability_id, ability_name))
 		ability_buttons_container.add_child(btn)
 
 func _on_ability_back_pressed() -> void:
 	ability_sub_panel.visible = false
 
 func _on_ability_used(ability_id: String, ability_name: String) -> void:
+	if _action_busy:
+		return
 	var current = battle_manager.get_current_battler()
-	if current.is_empty():
+	if current.is_empty() or not current.is_party:
 		ability_sub_panel.visible = false
 		return
+	var target: Dictionary = {}
+	if battle_manager.ability_needs_target(ability_id):
+		target = _pick_ability_target(current, ability_id)
+		if target.is_empty():
+			if ability_id == "snipe":
+				_log("Snipe needs a flying enemy — use Fly first or wait for one.")
+			else:
+				_log("No valid target for %s." % ability_name)
+			return
+		if not battle_manager.can_use_ability_on_target(current, ability_id, target):
+			_log("Can't use %s on that target." % ability_name)
+			return
 	if not battle_manager.can_use_ability(current, ability_id):
 		_log("Not enough energy for %s." % ability_name)
 		ability_sub_panel.visible = false
 		return
-	if not battle_manager.perform_ability(current, ability_id, {}):
+	_action_busy = true
+	_set_player_actions_enabled(false)
+	var attacker_slot: BattlerSlot = _get_attacker_slot()
+	if ability_id in ATTACK_ANIM_ABILITIES and attacker_slot:
+		await attacker_slot.play_attack_animation()
+	if not is_inside_tree() or not _is_current_party_battler(current):
+		_action_busy = false
+		_set_player_actions_enabled(true)
+		return
+	if not battle_manager.perform_ability(current, ability_id, target):
+		_action_busy = false
+		_set_player_actions_enabled(true)
 		ability_sub_panel.visible = false
 		return
-	_log("%s uses %s!" % [current.stats.display_name, ability_name])
-	if ability_id == "fly":
-		_log("%s is flying! Only ranged attacks can hit her." % current.stats.display_name)
-	if ability_id == "shield":
-		_log("%s gains a shield (%d HP) for 3 rounds." % [current.stats.display_name, current.stats.shield_amount])
+	_maybe_hero_bark(current.index, ability_id)
+	_log_hero_ability(current, ability_id, ability_name, target)
+	_apply_hit_results(battle_manager.last_hit_results)
 	_refresh_arena_slots()
+	_selected_target = {}
+	_highlight_selected_enemy()
 	ability_sub_panel.visible = false
 	battle_manager.advance_turn()
 
@@ -762,10 +1001,109 @@ func _unhandled_input(event: InputEvent) -> void:
 
 const _LOG_MAX_LINES := 50
 
-func _log(msg: String) -> void:
-	log_label.text = msg + "\n" + log_label.text
-	var lines = log_label.text.split("\n")
+func _log(msg: String, kind: String = "normal") -> void:
+	var color: Color = _log_color_for_kind(kind)
+	var line := "[color=#%s]%s[/color]\n" % [_color_to_hex(color), msg]
+	log_label.text = line + log_label.text
+	var lines := log_label.text.split("\n", false)
 	if lines.size() > _LOG_MAX_LINES:
 		log_label.text = "\n".join(lines.slice(0, _LOG_MAX_LINES))
-	# Keep scroll at top so newest message is visible; player can scroll down to read older
 	log_scroll.scroll_vertical = 0
+
+
+func _log_color_for_kind(kind: String) -> Color:
+	match kind:
+		"turn":
+			return _COLOR_NEXT
+		"enemy_turn":
+			return _COLOR_LOG_ENEMY
+		"damage", "crit":
+			return _COLOR_LOG_CRIT
+		"absorb":
+			return _COLOR_LOG_ABSORB
+		"miss":
+			return _COLOR_LOG_MISS
+		"bark":
+			return _COLOR_LOG_BARK
+		"ability":
+			return _COLOR_ACCENT
+		"victory":
+			return _COLOR_LOG_VICTORY
+		"defeat":
+			return _COLOR_LOG_DEFEAT
+		"system":
+			return _COLOR_TEXT
+		_:
+			return _COLOR_LOG
+
+
+func _color_to_hex(color: Color) -> String:
+	return color.to_html(false)
+
+
+func _log_attack_result(attacker_name: String, target_name: String, damage: int, kind: String) -> void:
+	match kind:
+		"miss":
+			_log("%s attacks %s — MISS!" % [attacker_name, target_name], "miss")
+		"absorb":
+			_log("%s attacks %s — absorbed by shield!" % [attacker_name, target_name], "absorb")
+		"crit":
+			_log("CRITICAL! %s hits %s for %d damage!" % [attacker_name, target_name, damage], "crit")
+		_:
+			_log("%s attacks %s for %d damage!" % [attacker_name, target_name, damage], "damage")
+
+
+func _maybe_hero_bark(hero_index: int, context: String) -> void:
+	var line: String = HeroRoster.get_bark(hero_index, context)
+	if line.is_empty():
+		return
+	var hero_name: String = str(HeroRoster.get_hero(hero_index).get("display_name", "Hero"))
+	_log('%s: "%s"' % [hero_name, line], "bark")
+	BattleSfx.play_bark()
+
+
+func _apply_hit_results(results: Array) -> void:
+	for hit in results:
+		var idx: int = int(hit.get("target_index", -1))
+		var is_party: bool = bool(hit.get("is_party", false))
+		var damage: int = int(hit.get("damage", 0))
+		var kind: String = str(hit.get("kind", "hit"))
+		var slot: BattlerSlot = _get_target_slot(idx, is_party)
+		if slot == null:
+			continue
+		if damage > 0:
+			slot.play_hit_flash()
+		_spawn_floating_text(slot, damage, kind)
+		match kind:
+			"crit":
+				BattleSfx.play_crit()
+			"miss":
+				BattleSfx.play_miss()
+			"absorb":
+				BattleSfx.play_absorb()
+			_:
+				if damage > 0:
+					BattleSfx.play_hit()
+
+
+func _spawn_floating_text(slot: BattlerSlot, damage: int, kind: String) -> void:
+	if floating_text_layer == null or slot == null:
+		return
+	var text := ""
+	var color := Color.WHITE
+	match kind:
+		"miss":
+			text = "MISS"
+			color = _COLOR_LOG_MISS
+		"absorb":
+			text = "ABSORB"
+			color = _COLOR_LOG_ABSORB
+		"crit":
+			text = "-%d!" % damage
+			color = _COLOR_LOG_CRIT
+		_:
+			if damage <= 0:
+				return
+			text = "-%d" % damage
+			color = Color(1.0, 0.92, 0.55)
+	FloatingCombatText.spawn(floating_text_layer, slot.get_combat_text_position(), text, color)

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://daiesfhh2wuee"
-path="res://.godot/imported/menu_street_bg.png-c88cd40ba7135db62372ce6ce8fcfe8e.ctex"
+uid="uid://qo564jbu8s2w"
+path="res://.godot/imported/andar.jpg-4adcb401749c170d2af17dc7a4c318a5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/menu_street_bg.png"
-dest_files=["res://.godot/imported/menu_street_bg.png-c88cd40ba7135db62372ce6ce8fcfe8e.ctex"]
+source_file="res://assets/andar.jpg"
+dest_files=["res://.godot/imported/andar.jpg-4adcb401749c170d2af17dc7a4c318a5.ctex"]
 
 [params]
 

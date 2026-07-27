@@ -1,0 +1,114 @@
+name: Beta Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - "v*-beta*"
+
+jobs:
+  export-macos:
+    name: Export macOS beta
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Godot 4.6
+        run: |
+          curl -L -o godot.zip "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_macos.universal.zip"
+          unzip -q godot.zip
+          sudo mv Godot.app /Applications/Godot.app
+
+      - name: Install export templates
+        run: |
+          mkdir -p "$HOME/Library/Application Support/Godot/export_templates/4.6.stable"
+          curl -L -o templates.tpz "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz"
+          unzip -q templates.tpz
+          cp -r templates/* "$HOME/Library/Application Support/Godot/export_templates/4.6.stable/"
+
+      - name: Prepare export preset
+        run: cp build/export_presets.cfg export_presets.cfg
+
+      - name: Import project
+        run: /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --import --quit
+
+      - name: Export macOS build
+        run: |
+          mkdir -p export
+          /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --export-release "macOS" export/ThreeGame_macOS.zip || true
+          test -s export/ThreeGame_macOS.zip
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThreeGame_macOS
+          path: export/ThreeGame_macOS.zip
+          retention-days: 30
+
+  export-windows:
+    name: Export Windows beta
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.6
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install export templates
+        run: |
+          apt-get update -qq && apt-get install -y -qq curl unzip > /dev/null
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.6.stable"
+          curl -L -o templates.tpz "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz"
+          unzip -q templates.tpz
+          cp -r templates/* "$HOME/.local/share/godot/export_templates/4.6.stable/"
+
+      - name: Prepare export preset
+        run: cp build/export_presets.cfg export_presets.cfg
+
+      - name: Import project
+        run: godot --headless --path . --import --quit
+
+      - name: Export Windows build
+        run: |
+          mkdir -p export
+          godot --headless --path . --export-release "Windows Desktop" export/ThreeGame_Windows.zip || true
+          test -s export/ThreeGame_Windows.zip
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThreeGame_Windows
+          path: export/ThreeGame_Windows.zip
+          retention-days: 30
+
+  publish:
+    name: Publish GitHub Release
+    needs: [export-macos, export-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download macOS build
+        uses: actions/download-artifact@v4
+        with:
+          name: ThreeGame_macOS
+          path: release-assets
+
+      - name: Download Windows build
+        uses: actions/download-artifact@v4
+        with:
+          name: ThreeGame_Windows
+          path: release-assets
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Three Game ${{ github.ref_name }}
+          body_path: docs/BETA_PLAY.md
+          draft: false
+          prerelease: true
+          files: |
+            release-assets/ThreeGame_macOS.zip
+            release-assets/ThreeGame_Windows.zip
+          generate_release_notes: true

@@ -23,6 +23,7 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 
 MusicPlayer="*res://scripts/audio/music_player.gd"
 MissionProgress="*res://scripts/autoload/mission_progress.gd"
+BattleSfx="*res://scripts/audio/battle_sfx.gd"
 
 [display]
 
@@ -48,6 +49,10 @@ ui_cancel={
 [layer_names]
 
 2d_physics/layer_1="default"
+
+[rendering]
+
+textures/vram_compression/import_etc2_astc=true
 
 [plugins]
 

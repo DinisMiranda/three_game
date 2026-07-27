@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dp0pkopgc1eyc"
-valid=false
+uid="uid://mev3h8vr4i4"
+path="res://.godot/imported/mapa.png-700d049b583dcbc2fbe737e8a328b2a6.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
-source_file="res://assets/andar.png"
+source_file="res://assets/mapa.png"
+dest_files=["res://.godot/imported/mapa.png-700d049b583dcbc2fbe737e8a328b2a6.ctex"]
 
 [params]
 

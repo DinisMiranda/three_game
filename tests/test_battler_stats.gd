@@ -29,6 +29,20 @@ func test_take_damage_shield_absorbs_first() -> void:
 	assert_int(stats.shield_amount).is_equal(0)
 	assert_int(stats.shield_rounds_left).is_equal(0)
 
+func test_take_damage_guard_halves_incoming() -> void:
+	var stats := BattlerStats.new()
+	stats.current_hp = 100
+	stats.defense = 0
+	stats.apply_guard()
+	stats.take_damage(20)
+	assert_int(stats.current_hp).is_equal(90)
+
+func test_apply_attack_buff_increases_attack_power() -> void:
+	var stats := BattlerStats.new()
+	stats.attack = 20
+	stats.apply_attack_buff(10, 2)
+	assert_int(stats.get_attack_power()).is_equal(30)
+
 func test_heal_caps_at_max_hp() -> void:
 	var stats := BattlerStats.new()
 	stats.max_hp = 100

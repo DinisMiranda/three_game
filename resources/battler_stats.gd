@@ -24,6 +24,16 @@ var is_flying: bool = false
 var shield_amount: int = 0
 var shield_rounds_left: int = 0  ## 0 = no shield
 
+## Guard: halves incoming damage until this battler's next turn begins.
+var guard_active: bool = false
+
+## Temporary attack buff (Focus and similar). Ticks down at round end.
+var attack_buff_amount: int = 0
+var attack_buff_rounds_left: int = 0
+
+func get_attack_power() -> int:
+	return attack + attack_buff_amount
+
 func has_energy(cost: int) -> bool:
 	return current_energy >= cost
 
@@ -36,16 +46,19 @@ func spend_energy(cost: int) -> bool:
 func restore_energy(amount: int) -> void:
 	current_energy = mini(max_energy, current_energy + amount)
 
-# --- Damage: shield absorbs first (1:1); remainder is reduced by defense and applied to HP ---
-func take_damage(amount: int) -> int:
-	var to_hp := amount
+# --- Damage: shield absorbs first; guard halves damage; defense reduces HP loss. ---
+func take_damage(amount: int, ignore_defense: bool = false) -> int:
+	var incoming := amount
+	if guard_active:
+		incoming = int(ceil(incoming * 0.5))
+	var to_hp := incoming
 	if shield_amount > 0:
-		var absorbed = mini(amount, shield_amount)
+		var absorbed = mini(incoming, shield_amount)
 		shield_amount -= absorbed
 		if shield_amount <= 0:
 			shield_rounds_left = 0
-		to_hp = amount - absorbed
-	var actual = maxi(0, to_hp - defense)
+		to_hp = incoming - absorbed
+	var actual := maxi(0, to_hp - (0 if ignore_defense else defense))
 	current_hp = maxi(0, current_hp - actual)
 	return actual
 
@@ -62,6 +75,22 @@ func is_alive() -> bool:
 func apply_shield(amount: int, rounds: int) -> void:
 	shield_amount = amount
 	shield_rounds_left = rounds
+
+
+func apply_guard() -> void:
+	guard_active = true
+
+
+func apply_attack_buff(bonus: int, rounds: int) -> void:
+	attack_buff_amount = bonus
+	attack_buff_rounds_left = rounds
+
+
+func tick_buff_rounds() -> void:
+	if attack_buff_rounds_left > 0:
+		attack_buff_rounds_left -= 1
+		if attack_buff_rounds_left <= 0:
+			attack_buff_amount = 0
 
 # --- Call at end of each round; decrements duration and clears shield when it expires. ---
 func tick_shield_round() -> void:
