@@ -22,7 +22,12 @@ const _TURN_FLASH_OUT := 0.22
 @export var slot_index: int = 0
 @export var is_party: bool = true
 
+const _BOSS_SHADER: Shader = preload("res://assets/shaders/boss_aura.gdshader")
+## Fraction of the quad the sprite fills under the aura shader (rest = glow margin).
+const _BOSS_CONTENT_SCALE: float = 0.84
+
 var _boss_visual: bool = false
+var _base_scale: Vector2 = Vector2.ONE   # resting sprite scale (boss > 1)
 
 @onready var texture_rect: TextureRect = $VBox/SpriteContainer/TextureRect
 @onready var name_label: Label = $VBox/NameLabel
@@ -142,13 +147,60 @@ func get_sprite_tint() -> Color:
 	return texture_rect.self_modulate if texture_rect else Color.WHITE
 
 
-## Boss presentation hook (Phase 1B). Today the boss look is only the archetype's
-## sprite_scale (passed to setup() as the size) and tint (set_sprite_tint()); this
-## records the flag. The boss aura shader will attach here: when [param enabled],
-## assign its ShaderMaterial to texture_rect (or an aura node behind it); when
-## false, clear it.
-func set_boss_visual(enabled: bool) -> void:
+## Boss presentation hook. When [param enabled], applies the boss aura
+## ShaderMaterial (pulsing glow in [param aura_color] + red/amber grade) to the
+## sprite and enlarges the sprite by [param visual_scale] about its bottom-centre
+## (feet), growing upward into empty space so the name/HP bar are not covered.
+## When false, removes the material and restores scale. Hit flash and death fade
+## tween [code]modulate[/code], which the material respects (COLOR is modulated).
+## Omitted/zero [param aura_color] and [param visual_scale] are read from the
+## slot's archetype (EnemyRoster aura_color / sprite_scale) via stats.enemy_type.
+func set_boss_visual(enabled: bool, aura_color: Color = Color(0.0, 0.0, 0.0, 0.0),
+		visual_scale: float = 0.0) -> void:
 	_boss_visual = enabled
+	if not texture_rect:
+		return
+	if enabled:
+		if _stats != null and not _stats.enemy_type.is_empty():
+			if aura_color.a <= 0.0:
+				aura_color = EnemyRoster.get_aura_color(_stats.enemy_type)
+			if visual_scale <= 0.0:
+				visual_scale = EnemyRoster.get_sprite_scale(_stats.enemy_type)
+		if aura_color.a <= 0.0:
+			aura_color = Color(1.0, 0.3, 0.08)
+		if visual_scale <= 0.0:
+			visual_scale = 1.0
+		var mat := ShaderMaterial.new()
+		mat.shader = _BOSS_SHADER
+		mat.set_shader_parameter("glow_color", aura_color)
+		mat.set_shader_parameter("content_scale", _BOSS_CONTENT_SCALE)
+		texture_rect.material = mat
+		# Compensate the shader's shrink so the mech keeps its size, then apply
+		# the boss scale.
+		var s: float = maxf(visual_scale, 0.1) / _BOSS_CONTENT_SCALE
+		_base_scale = Vector2(s, s)
+		if not texture_rect.resized.is_connected(_update_boss_pivot):
+			texture_rect.resized.connect(_update_boss_pivot)
+		_update_boss_pivot()
+	else:
+		texture_rect.material = null
+		_base_scale = Vector2.ONE
+		if texture_rect.resized.is_connected(_update_boss_pivot):
+			texture_rect.resized.disconnect(_update_boss_pivot)
+	if not _downed:
+		texture_rect.scale = _base_scale
+	# The enlarged sprite grows up over the name/HP bar rows; draw those above it.
+	var overlay_z: int = 1 if enabled else 0
+	for n: Control in [name_label, role_label, hp_bar_container, energy_bar,
+			flying_label, shielded_label, guarded_label]:
+		if n:
+			n.z_index = overlay_z
+
+
+## Pivot at the sprite's bottom-centre so boss scaling grows upward from the feet.
+func _update_boss_pivot() -> void:
+	if texture_rect:
+		texture_rect.pivot_offset = Vector2(texture_rect.size.x * 0.5, texture_rect.size.y)
 
 
 ## True if this slot shows a boss (see set_boss_visual).
@@ -173,8 +225,8 @@ func play_attack_animation(duration: float = _ATTACK_DURATION) -> void:
 	if frames.is_empty():
 		frames.append(_texture_idle)
 	var tween: Tween = create_tween()
-	tween.tween_property(texture_rect, "scale", Vector2(1.08, 1.08), duration * 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween.tween_property(texture_rect, "scale", Vector2.ONE, duration * 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tween.tween_property(texture_rect, "scale", _base_scale * 1.08, duration * 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(texture_rect, "scale", _base_scale, duration * 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	var frame_time := duration / float(frames.size())
 	for tex in frames:
 		if not is_inside_tree():

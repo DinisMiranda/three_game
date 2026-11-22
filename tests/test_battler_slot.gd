@@ -52,3 +52,17 @@ func test_set_turn_highlight() -> void:
 	assert_object(_slot).is_not_null()
 	_slot.set_turn_highlight(false)
 	assert_object(_slot).is_not_null()
+
+
+func test_boss_visual_applies_and_removes_aura_material() -> void:
+	assert_object(load("res://assets/shaders/boss_aura.gdshader")).is_not_null()
+	# @onready nodes only exist once the slot is inside the tree.
+	add_child(_root)
+	_slot.set_boss_visual(true, Color(1.0, 0.3, 0.1), 1.25)
+	assert_bool(_slot.is_boss_visual()).is_true()
+	var mat := _slot.texture_rect.material as ShaderMaterial
+	assert_object(mat).is_not_null()
+	assert_str(mat.shader.resource_path).is_equal("res://assets/shaders/boss_aura.gdshader")
+	_slot.set_boss_visual(false)
+	assert_object(_slot.texture_rect.material).is_null()
+	assert_bool(_slot.is_boss_visual()).is_false()
