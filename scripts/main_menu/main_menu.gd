@@ -120,20 +120,7 @@ func _apply_repeat_count(mat: ShaderMaterial, tex: Texture2D) -> void:
 func _on_start_pressed() -> void:
 	start_btn.disabled = true
 	options_btn.disabled = true
-	var layer := CanvasLayer.new()
-	layer.layer = 120
-	var rect := ColorRect.new()
-	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-	rect.color = Color.BLACK
-	rect.mouse_filter = Control.MOUSE_FILTER_STOP
-	rect.modulate = Color(1, 1, 1, 0)
-	layer.add_child(rect)
-	add_child(layer)
-	var tw := create_tween()
-	tw.tween_property(rect, "modulate:a", 1.0, 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_callback(func () -> void:
-		get_tree().change_scene_to_file(BRIEFING_SCENE)
-	)
+	SceneFader.change_scene(BRIEFING_SCENE)
 
 func _on_options_pressed() -> void:
 	_options_menu.show_menu()

@@ -8,7 +8,7 @@ How the project is structured and how the main pieces connect.
 - **Logic**: `BattleManager` (Node) owns party and enemies, builds turn order by speed, resolves attacks and abilities, and emits signals.
 - **UI**: `BattleScene` (Control) owns the layout, creates `BattlerSlot` instances for each character, applies the sci-fi theme, runs the enemy AI, and reacts to BattleManager signals and button/clicks.
 - **Story**: one Control scene per story step (`briefing_dialogue`, `world_map_select`, `meridian_epilogue`, `hideout_select`, `hideout_debrief`), each a script that changes scene when it finishes.
-- **Cross-scene state**: three autoloads (below).
+- **Cross-scene state and transitions**: four autoloads (below).
 
 Inside a battle there is no separate “game state” object; the source of truth is the BattleManager’s arrays of `BattlerStats` and the current turn index. State that must survive scene changes (which floor, story outcome flags, chosen hideout) lives in the `MissionProgress` autoload.
 
@@ -21,6 +21,7 @@ Registered in `project.godot`:
 | `MusicPlayer` | `scripts/audio/music_player.gd` | Background music. `play_menu()` / `play_battle()` are called from each scene’s `_ready()`. |
 | `MissionProgress` | `scripts/autoload/mission_progress.gd` | Meridian Spire run state: active mission, current floor (1–3), floor backgrounds and titles, epilogue/hideout flags, `HIDEOUTS` data. Scenes read it to decide where to go next. |
 | `BattleSfx` | `scripts/audio/battle_sfx.gd` | Procedurally generated tone SFX (`play_hit`, `play_crit`, `play_miss`, `play_absorb`, `play_bark`); no audio files. |
+| `SceneFader` | `scenes/ui/scene_fader.tscn` (`scripts/autoload/scene_fader.gd`) | Fade-through-black: `change_scene(path)` and `fade_through(callable)`. Fade timings are exported on the scene. |
 
 ## Game flow (scene graph)
 
@@ -35,7 +36,7 @@ main_menu.tscn            ← run/main_scene; Start Battle
                            └─ hideout_debrief → main_menu (MissionProgress.complete_meridian_story())
 ```
 
-Scene changes use `get_tree().change_scene_to_file(...)`. Several story scenes guard their entry on `MissionProgress` flags and redirect to the main menu when opened out of order (`meridian_epilogue` needs `meridian_epilogue_pending`, `hideout_select` needs `hideout_select_ready`, `hideout_debrief` needs a selected hideout). `hideout_select` defers that redirect with `change_scene_to_file.call_deferred(...)` because it runs inside `_ready()`.
+Scene changes use `SceneFader.change_scene(...)`, which wraps `get_tree().change_scene_to_file(...)` in a fade. Several story scenes guard their entry on `MissionProgress` flags and redirect to the main menu when opened out of order (`meridian_epilogue` needs `meridian_epilogue_pending`, `hideout_select` needs `hideout_select_ready`, `hideout_debrief` needs a selected hideout). These redirects run inside `_ready()`, so they are deferred with `SceneFader.change_scene.call_deferred(...)`.
 
 ## Who creates what (battle)
 
@@ -43,16 +44,17 @@ Scene changes use `get_tree().change_scene_to_file(...)`. Several story scenes g
 Battle (battle_scene.tscn + battle_scene.gd)  ← loaded from the world map
   ├── Background (TextureRect; changed per floor), EnemyTurnFlash, FloatingTextLayer (CanvasLayer)
   ├── Margin (UI)
-  │     └── VBox: FloorBanner, TurnOrderBar, ArenaRow (Party + Enemies + Stats), BottomRow (Actions + Log)
+  │     └── VBox: FloorBanner, TopBar (TurnOrderBar + SpeedBtn), ArenaRow (Party + Enemies), BottomRow (Actions + Party status + BattleLog)
   ├── EndScreen (CanvasLayer)  ← victory/defeat overlay (Ascend / Continue / Back to Main Menu)
   ├── OptionsMenu (instanced in code from scenes/ui/options_menu.tscn)
-  └── BattleManager (battle_manager.gd)  ← created in code, add_child
+  ├── BattleManager (battle_manager.gd)  ← created in code, add_child
+  └── BattleFx (battle_fx.gd)  ← created in code; combat presentation, tuned by BattleFeel
 ```
 
 - **BattleScene** creates the **BattleManager** in `_ready()` and adds it as a child (for lifecycle only; it’s not a visible node).
 - **BattleScene** creates all **BattlerSlot** instances in `_build_arena()`. Slots are **added to the tree first** (`add_child(slot)`), then `setup(stats, texture_idle, texture_attack)` is called so that `@onready` nodes (e.g. `TextureRect`) are ready and the correct idle texture applies immediately (party faces right, enemies face left). Per-hero and per-enemy attack frames are set with `set_attack_frames()`.
-- **BattlerStats** for the party come from `HeroRoster.apply_to_stats()` in `_build_sample_party()`; enemies are built per floor in `_build_sample_enemies()`. Both are given to `battle_manager.setup_battle(party, enemies)` from `_start_sample_battle()`.
-- When the battle ends, **BattleScene** shows **EndScreen**. Depending on `MissionProgress` it offers **Ascend — next floor** (re-runs `setup_battle` with a restored party and new enemies), **Continue** (rooftop cleared, goes to the epilogue) or **Back to Main Menu**.
+- **BattlerStats** for the party come from `HeroRoster.apply_to_stats()` in `_build_sample_party()`; enemies are built per floor in `_build_sample_enemies()` from the archetype ids in `MissionProgress.MERIDIAN_FLOORS` via **EnemyRoster** (boss archetypes get the aura shader and info plate through `BattlerSlot.set_boss_visual()`). Both are given to `battle_manager.setup_battle(party, enemies)` from `_start_sample_battle()`.
+- When the battle ends, **BattleScene** shows **EndScreen**. Depending on `MissionProgress` it offers **Ascend — next floor** (re-runs `setup_battle` with a restored party and new enemies inside `SceneFader.fade_through()`), **Continue** (rooftop cleared, goes to the epilogue) or **Back to Main Menu**.
 
 ## Signal flow
 
@@ -88,7 +90,8 @@ When the user clicks an enemy **BattlerSlot**, it emits `slot_clicked(slot_index
 ## Where styling lives
 
 - **Sci-fi colors and panel styles**: Defined and applied in `battle_scene.gd` (`_COLOR_*` constants, `_apply_sci_fi_theme()`, `_make_btn_style()`). Also used when creating the turn-order chips and the party stats panel bars. The options menu, main menu and story scenes each style themselves in their own scripts.
-- **BattlerSlot**: Applies its own panel, HP bar, shield bar (darker blue when shielded) and energy bar style in `_ready()`. It supports an idle texture and one or more attack frames; the battle scene passes party idle (face right), enemy idle (face left), and shared or per-character attack textures. When it’s a battler’s turn, BattleScene calls `set_turn_highlight(true)` on that slot (amber border). `play_attack_animation()` plays the attack frames for 0.75s. When a battler has an active shield, **ShieldBubble** (script `shield_bubble.gd`) draws a blue semi-transparent circle behind the sprite; **ShieldedLabel**, **GuardedLabel** and the shield bar segment (on top of the HP bar) show the state.
+- **BattleFeel** (`battle_feel.gd`, `resources/battle_feel_default.tres`): every combat-feel timing plus the status bar colours (HP cyan / low / critical thresholds, energy yellow) and the bar tags. BattleScene passes it to BattleFx, TurnOrderBar and each BattlerSlot.
+- **BattlerSlot**: Applies its own panel, HP bar (recoloured by HP ratio), shield bar and energy bar style in `_ready()`, each with a tag and a current/max number. It supports an idle texture and one or more attack frames; the battle scene passes party idle (face right), enemy idle (face left), and shared or per-character attack textures. When it’s a battler’s turn, BattleScene calls `set_turn_highlight(true)` on that slot (amber border). `play_attack_animation()` plays the attack frames (length from BattleFeel when called by BattleFx). When a battler has an active shield, **ShieldBubble** (script `shield_bubble.gd`) draws a blue semi-transparent circle behind the sprite; **ShieldedLabel**, **GuardedLabel** and the shield bar segment (on top of the HP bar) show the state.
 - **Combat text**: `FloatingCombatText` (`floating_combat_text.gd`, a Label with a static `spawn()`) creates short-lived damage numbers in the battle scene’s `FloatingTextLayer`.
 - **Background**: The battle and menu backgrounds are textures. `sci_fi_background.gd` (gradient and grid drawn in `_draw()`) is no longer instanced by any scene; it is kept only with its unit test.
 

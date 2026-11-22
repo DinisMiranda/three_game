@@ -12,6 +12,9 @@ class_name BattlerStats
 @export var speed: int = 10  ## Higher = earlier in turn order
 @export var is_party: bool = true  ## true = ally (1 of 4), false = enemy (1–4)
 @export var is_ranged: bool = false  ## If true, can attack flying targets; melee cannot.
+## Enemy archetype id (EnemyRoster.ARCHETYPES key). Empty for party members.
+## Sprite, attack frames, AI profile, scale and tint read this, never the slot index.
+@export var enemy_type: String = ""
 
 ## Energy for abilities. Restored at start of each turn (see BattleManager). Abilities cost energy.
 @export var max_energy: int = 100

@@ -20,7 +20,7 @@ var _selected_id: String = ""
 
 func _ready() -> void:
 	if not MissionProgress.hideout_select_ready:
-		get_tree().change_scene_to_file.call_deferred(MAIN_MENU_SCENE)
+		SceneFader.change_scene.call_deferred(MAIN_MENU_SCENE)
 		return
 	MusicPlayer.play_menu()
 	_style_ui()
@@ -125,8 +125,4 @@ func _on_rally_pressed() -> void:
 	if _selected_id.is_empty():
 		return
 	MissionProgress.select_hideout(_selected_id)
-	_fade.mouse_filter = Control.MOUSE_FILTER_STOP
-	var tw := create_tween()
-	tw.tween_property(_fade, "modulate:a", 1.0, 0.45)
-	await tw.finished
-	get_tree().change_scene_to_file(DEBRIEF_SCENE)
+	SceneFader.change_scene(DEBRIEF_SCENE)

@@ -13,65 +13,98 @@ script = ExtResource("1_script")
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="NameLabel" type="Label" parent="VBox"]
+[node name="InfoPlate" type="PanelContainer" parent="VBox"]
+layout_mode = 2
+
+[node name="Info" type="VBoxContainer" parent="VBox/InfoPlate"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="NameLabel" type="Label" parent="VBox/InfoPlate/Info"]
 layout_mode = 2
 text = "Name"
 
-[node name="RoleLabel" type="Label" parent="VBox"]
+[node name="RoleLabel" type="Label" parent="VBox/InfoPlate/Info"]
 layout_mode = 2
 text = "Role"
 
-[node name="FlyingLabel" type="Label" parent="VBox"]
+[node name="FlyingLabel" type="Label" parent="VBox/InfoPlate/Info"]
 visible = false
 layout_mode = 2
 text = "↑ Flying"
 
-[node name="ShieldedLabel" type="Label" parent="VBox"]
+[node name="ShieldedLabel" type="Label" parent="VBox/InfoPlate/Info"]
 visible = false
 layout_mode = 2
 text = "◇ Shielded"
 
-[node name="GuardedLabel" type="Label" parent="VBox"]
+[node name="GuardedLabel" type="Label" parent="VBox/InfoPlate/Info"]
 visible = false
 layout_mode = 2
 text = "⛨ Guarded"
 
-[node name="HPBarContainer" type="Control" parent="VBox"]
-custom_minimum_size = Vector2(200, 14)
+[node name="HPRow" type="HBoxContainer" parent="VBox/InfoPlate/Info"]
 layout_mode = 2
+theme_override_constants/separation = 6
 
-[node name="HPBar" type="ProgressBar" parent="VBox/HPBarContainer"]
+[node name="HPTag" type="Label" parent="VBox/InfoPlate/Info/HPRow"]
+custom_minimum_size = Vector2(24, 0)
+layout_mode = 2
+text = "HP"
+
+[node name="HPBarContainer" type="Control" parent="VBox/InfoPlate/Info/HPRow"]
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="HPBar" type="ProgressBar" parent="VBox/InfoPlate/Info/HPRow/HPBarContainer"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 0.0
-offset_bottom = 0.0
 max_value = 100.0
 value = 100.0
 show_percentage = false
 
-[node name="ShieldBar" type="ProgressBar" parent="VBox/HPBarContainer"]
+[node name="ShieldBar" type="ProgressBar" parent="VBox/InfoPlate/Info/HPRow/HPBarContainer"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 0.0
-offset_bottom = 0.0
 max_value = 100.0
 value = 0.0
 show_percentage = false
 
-[node name="EnergyBar" type="ProgressBar" parent="VBox"]
+[node name="HPValue" type="Label" parent="VBox/InfoPlate/Info/HPRow"]
+custom_minimum_size = Vector2(60, 0)
 layout_mode = 2
-custom_minimum_size = Vector2(200, 10)
+text = "100/100"
+horizontal_alignment = 2
+
+[node name="EnergyRow" type="HBoxContainer" parent="VBox/InfoPlate/Info"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="EnergyTag" type="Label" parent="VBox/InfoPlate/Info/EnergyRow"]
+custom_minimum_size = Vector2(24, 0)
+layout_mode = 2
+text = "EN"
+
+[node name="EnergyBar" type="ProgressBar" parent="VBox/InfoPlate/Info/EnergyRow"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
 max_value = 100.0
 value = 100.0
 show_percentage = false
+
+[node name="EnergyValue" type="Label" parent="VBox/InfoPlate/Info/EnergyRow"]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+text = "100/100"
+horizontal_alignment = 2
 
 [node name="SpriteContainer" type="Control" parent="VBox"]
 custom_minimum_size = Vector2(200, 260)

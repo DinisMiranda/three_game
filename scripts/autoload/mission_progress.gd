@@ -5,11 +5,12 @@ enum MissionId { NONE, MERIDIAN_SPIRE }
 
 const MERIDIAN_MAX_FLOOR := 3
 
-## One entry per floor (background + banner). Floor 3 = rooftop / skyline.
+## One entry per floor (background + banner + enemy lineup). Floor 3 = rooftop / skyline.
+## "enemies" lists EnemyRoster.ARCHETYPES type ids, in arena slot order.
 const MERIDIAN_FLOORS: Array[Dictionary] = [
-	{"bg": "res://assets/andar.jpg", "title": "Floor 1 — Corridor breach"},
-	{"bg": "res://assets/andar.jpg", "title": "Floor 2 — Security landing"},
-	{"bg": "res://assets/e32ee0a6-a11a-4f0a-b8be-ec9723487b2b.png", "title": "Floor 3 — Rooftop extraction"},
+	{"bg": "res://assets/andar.jpg", "title": "Floor 1 — Corridor breach", "enemies": ["warden"]},
+	{"bg": "res://assets/andar.jpg", "title": "Floor 2 — Security landing", "enemies": ["warden", "hound"]},
+	{"bg": "res://assets/e32ee0a6-a11a-4f0a-b8be-ec9723487b2b.png", "title": "Floor 3 — Rooftop extraction", "enemies": ["custodian"]},
 ]
 
 var active_mission: MissionId = MissionId.NONE
@@ -102,6 +103,22 @@ func is_meridian_spire_active() -> bool:
 func get_meridian_floor_info() -> Dictionary:
 	var idx := clampi(meridian_floor - 1, 0, MERIDIAN_MAX_FLOOR - 1)
 	return MERIDIAN_FLOORS[idx]
+
+
+## Enemy type ids for the current battle. Without an active mission (e.g. the
+## battle scene launched on its own) this is floor 1's lineup.
+func get_current_floor_enemy_types() -> Array:
+	var idx: int = 0
+	if is_meridian_spire_active():
+		idx = clampi(meridian_floor - 1, 0, MERIDIAN_MAX_FLOOR - 1)
+	return MERIDIAN_FLOORS[idx].get("enemies", [])
+
+
+## Combat floor (1-based) used for enemy stat scaling; 1 when no mission is active.
+func get_current_combat_floor() -> int:
+	if is_meridian_spire_active():
+		return clampi(meridian_floor, 1, MERIDIAN_MAX_FLOOR)
+	return 1
 
 
 func meridian_has_next_floor_after_clear() -> bool:

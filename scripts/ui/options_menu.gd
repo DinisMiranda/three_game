@@ -79,7 +79,7 @@ func _on_volume_changed(value: float) -> void:
 
 func _on_back_pressed() -> void:
 	hide()
-	get_tree().change_scene_to_file("res://scenes/main_menu/main_menu.tscn")
+	SceneFader.change_scene("res://scenes/main_menu/main_menu.tscn")
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()
