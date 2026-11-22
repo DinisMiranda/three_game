@@ -418,6 +418,7 @@ func _build_arena() -> void:
 		var slot: BattlerSlot = BattlerSlotScene.instantiate()
 		slot.slot_index = i
 		slot.is_party = true
+		slot.feel = battle_feel
 		party_row.add_child(slot)
 		slot.setup(party[i], idle_i, attack_party)
 		slot.set_role_display(HeroRoster.get_role_label(i), HeroRoster.get_role_color(i))
@@ -442,6 +443,7 @@ func _build_arena() -> void:
 				slot.slot_index = i
 				slot.is_party = false
 				slot.slot_clicked.connect(_on_enemy_slot_clicked)
+				slot.feel = battle_feel
 				enemy_back_row.add_child(slot)
 				_setup_enemy_slot(slot, enemies[i], attack_enemy)
 				_enemy_slots.append(slot)
@@ -452,6 +454,7 @@ func _build_arena() -> void:
 			slot.slot_index = i
 			slot.is_party = false
 			slot.slot_clicked.connect(_on_enemy_slot_clicked)
+			slot.feel = battle_feel
 			enemy_front_row.add_child(slot)
 			_setup_enemy_slot(slot, enemies[i], attack_enemy)
 			_enemy_slots.append(slot)
@@ -469,40 +472,61 @@ func _refresh_arena_slots() -> void:
 			_enemy_slots[i].refresh()
 	_refresh_party_stats_panel()
 
-# --- Rebuild the right-hand party status list: name, HP bar, HP numbers ---
+# --- Rebuild the Party status list: name, HP bar + numbers, EN bar + numbers ---
+# Colours, tags and the "current/max" format come from BattleFeel, the same as
+# the arena slots, so HP (cyan, orange/red when low) and energy (yellow) read
+# the same everywhere.
 func _refresh_party_stats_panel() -> void:
 	for c in stats_list.get_children():
 		c.queue_free()
 	var party = battle_manager.get_party()
+	var f: BattleFeel = battle_feel if battle_feel else DEFAULT_BATTLE_FEEL
+	for i in party.size():
+		var s: BattlerStats = party[i]
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		var name_l = Label.new()
+		name_l.text = s.display_name + ":"
+		name_l.custom_minimum_size.x = 80
+		name_l.add_theme_color_override("font_color", HeroRoster.get_role_color(i))
+		row.add_child(name_l)
+		row.add_child(_make_stat_bar(s.current_hp, s.max_hp, f.get_hp_color(s.current_hp, s.max_hp), 12, 3.0))
+		row.add_child(_make_stat_label(BattleFeel.format_bar_value(s.current_hp, s.max_hp), f.hp_text_color, 58))
+		row.add_child(_make_stat_label(f.energy_tag, f.energy_text_color, 0))
+		row.add_child(_make_stat_bar(s.current_energy, s.max_energy, f.energy_color, 9, 2.0))
+		row.add_child(_make_stat_label(BattleFeel.format_bar_value(s.current_energy, s.max_energy), f.energy_text_color, 58))
+		stats_list.add_child(row)
+
+
+## One bar of a Party status row. [param stretch] shares the free width.
+func _make_stat_bar(value: int, maximum: int, fill_color: Color, height: int, stretch: float) -> ProgressBar:
 	var bar_bg = StyleBoxFlat.new()
 	bar_bg.bg_color = Color(0.06, 0.07, 0.1, 1)
 	bar_bg.set_corner_radius_all(2)
 	var bar_fill = StyleBoxFlat.new()
-	bar_fill.bg_color = _COLOR_ACCENT
+	bar_fill.bg_color = fill_color
 	bar_fill.set_corner_radius_all(2)
-	for i in party.size():
-		var s: BattlerStats = party[i]
-		var row = HBoxContainer.new()
-		var name_l = Label.new()
-		name_l.text = s.display_name + ":"
-		name_l.custom_minimum_size.x = 96
-		name_l.add_theme_color_override("font_color", HeroRoster.get_role_color(i))
-		row.add_child(name_l)
-		var bar = ProgressBar.new()
-		bar.max_value = float(s.max_hp)
-		bar.value = float(s.current_hp)
-		bar.show_percentage = false
-		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		bar.custom_minimum_size = Vector2(0, 12)
-		bar.add_theme_stylebox_override("background", bar_bg)
-		bar.add_theme_stylebox_override("fill", bar_fill)
-		row.add_child(bar)
-		var hp_l = Label.new()
-		hp_l.text = " %d/%d  E:%d/%d" % [s.current_hp, s.max_hp, s.current_energy, s.max_energy]
-		hp_l.add_theme_color_override("font_color", _COLOR_TEXT)
-		row.add_child(hp_l)
-		stats_list.add_child(row)
+	var bar = ProgressBar.new()
+	bar.max_value = float(maxi(1, maximum))
+	bar.value = float(value)
+	bar.show_percentage = false
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.size_flags_stretch_ratio = stretch
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bar.custom_minimum_size = Vector2(0, height)
+	bar.add_theme_stylebox_override("background", bar_bg)
+	bar.add_theme_stylebox_override("fill", bar_fill)
+	return bar
+
+
+## A small right-aligned number or tag label for a Party status row.
+func _make_stat_label(text: String, color: Color, min_width: int) -> Label:
+	var l = Label.new()
+	l.text = text
+	l.custom_minimum_size.x = min_width
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	l.add_theme_color_override("font_color", color)
+	return l
 
 # --- Feed the turn order bar (sorted by speed, alive only) and highlight the active slot ---
 func _on_turn_order_updated(_order_arg = null) -> void:
@@ -851,8 +875,17 @@ func _on_battle_ended(party_wins: bool) -> void:
 	end_screen.visible = true
 
 func _on_next_floor_pressed() -> void:
+	# Same scene, new floor: fade through black (SceneFader) and rebuild while
+	# the screen is covered. Falls back to an instant rebuild if no fade runs.
+	next_floor_btn.disabled = true
+	if not SceneFader.fade_through(_advance_to_next_floor):
+		_advance_to_next_floor()
+
+
+func _advance_to_next_floor() -> void:
 	end_screen.visible = false
 	next_floor_btn.visible = false
+	next_floor_btn.disabled = false
 	MissionProgress.meridian_advance_floor()
 	var party: Array = battle_manager.get_party()
 	for s in party:
@@ -874,10 +907,10 @@ func _on_next_floor_pressed() -> void:
 
 func _on_back_to_menu_pressed() -> void:
 	if MissionProgress.meridian_epilogue_pending:
-		get_tree().change_scene_to_file("res://scenes/story/meridian_epilogue.tscn")
+		SceneFader.change_scene("res://scenes/story/meridian_epilogue.tscn")
 		return
 	MissionProgress.finish_meridian_spire()
-	get_tree().change_scene_to_file("res://scenes/main_menu/main_menu.tscn")
+	SceneFader.change_scene("res://scenes/main_menu/main_menu.tscn")
 
 # --- Attack button: play attack animation on attacker, then damage (if target not flying or attacker ranged), refresh, advance_turn ---
 func _on_attack_pressed() -> void:

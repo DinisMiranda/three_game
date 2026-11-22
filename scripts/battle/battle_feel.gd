@@ -88,6 +88,30 @@ extends Resource
 ## Scale the active chip pops from before settling at 1.0.
 @export_range(0.5, 1.5, 0.05) var turn_chip_activate_from_scale: float = 0.85
 
+@export_group("Status Bars")
+## HP fill colour while the battler is healthy (the sci-fi cyan).
+@export var hp_color: Color = Color(0.0, 0.9, 1.0, 0.85)
+## HP fill colour at or below [member hp_low_ratio] of max HP.
+@export var hp_low_color: Color = Color(1.0, 0.58, 0.16, 0.9)
+## HP fill colour at or below [member hp_critical_ratio] of max HP.
+@export var hp_critical_color: Color = Color(1.0, 0.26, 0.24, 0.95)
+## HP fraction at or below which the bar turns [member hp_low_color].
+@export_range(0.0, 1.0, 0.01) var hp_low_ratio: float = 0.5
+## HP fraction at or below which the bar turns [member hp_critical_color].
+@export_range(0.0, 1.0, 0.01) var hp_critical_ratio: float = 0.25
+## Energy fill colour (yellow, so it never reads as HP).
+@export var energy_color: Color = Color(1.0, 0.84, 0.22, 0.92)
+## Colour of the "EN" tag and energy numbers.
+@export var energy_text_color: Color = Color(1.0, 0.88, 0.45, 1.0)
+## Colour of the "HP" tag and HP numbers.
+@export var hp_text_color: Color = Color(0.78, 0.92, 1.0, 1.0)
+## Font size of the bar tags and numbers in a BattlerSlot (1920x1080 space).
+@export_range(8, 32, 1) var bar_text_font_size: int = 14
+## Short tag shown before the energy bar.
+@export var energy_tag: String = "EN"
+## Short tag shown before the HP bar.
+@export var hp_tag: String = "HP"
+
 @export_group("Battle Speed")
 ## Speeds the speed toggle cycles through. Index 0 is the default.
 @export var speed_multipliers: Array[float] = [1.0, 2.0]
@@ -130,6 +154,28 @@ func get_shake(is_crit: bool) -> Vector2:
 	if is_crit:
 		return Vector2(shake_crit_strength_px, shake_crit_duration)
 	return Vector2(shake_strength_px, shake_duration)
+
+
+## Returns the HP fill colour for [param current] of [param maximum] HP:
+## [member hp_color] when healthy, [member hp_low_color] at or below
+## [member hp_low_ratio], [member hp_critical_color] at or below
+## [member hp_critical_ratio]. A non-positive maximum reads as healthy.
+func get_hp_color(current: int, maximum: int) -> Color:
+	if maximum <= 0:
+		return hp_color
+	var ratio: float = clampf(float(current) / float(maximum), 0.0, 1.0)
+	if ratio <= hp_critical_ratio:
+		return hp_critical_color
+	if ratio <= hp_low_ratio:
+		return hp_low_color
+	return hp_color
+
+
+## Formats a bar value as "current/max" (e.g. "60/100"). Current is clamped to
+## 0..max and a negative max is shown as 0, so the read never looks broken.
+static func format_bar_value(current: int, maximum: int) -> String:
+	var m: int = maxi(0, maximum)
+	return "%d/%d" % [clampi(current, 0, m), m]
 
 
 func _style(text: String, color: Color, size_scale: float) -> Dictionary:

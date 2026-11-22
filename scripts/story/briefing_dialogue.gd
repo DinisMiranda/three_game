@@ -388,7 +388,4 @@ func _go_to_world_map() -> void:
 	_finish_typewriter()
 	_is_exiting = true
 	_hint.visible = false
-	var tw := create_tween()
-	tw.tween_property(_fade, "modulate:a", 1.0, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	await tw.finished
-	get_tree().change_scene_to_file(WORLD_MAP_SCENE)
+	SceneFader.change_scene(WORLD_MAP_SCENE)

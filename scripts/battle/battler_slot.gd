@@ -1,6 +1,7 @@
 extends PanelContainer
 class_name BattlerSlot
-## One slot in the arena: shows character sprite, name, HP bar.
+## One slot in the arena: shows character sprite, name, HP bar and energy bar
+## (each with a short tag and a "current/max" read; colours from BattleFeel).
 ## Used for both party (left) and enemies (right). Enemies get texture flipped (face left).
 ## Emits slot_clicked(slot_index, is_party) when the user clicks an alive slot (for targeting).
 
@@ -29,16 +30,31 @@ const _BOSS_CONTENT_SCALE: float = 0.84
 var _boss_visual: bool = false
 var _base_scale: Vector2 = Vector2.ONE   # resting sprite scale (boss > 1)
 
+const _DEFAULT_FEEL: BattleFeel = preload("res://resources/battle_feel_default.tres")
+## Boss info plate: dark backing behind name and bars so the enlarged boss
+## sprite (and its aura) cannot wash them out.
+const _BOSS_PLATE_BG := Color(0.02, 0.03, 0.06, 0.82)
+const _BOSS_PLATE_BORDER_ALPHA: float = 0.7
+
+## Bar colours, tags and font size. BattleScene assigns its BattleFeel before
+## adding the slot to the tree; standalone slots use the default resource.
+var feel: BattleFeel = _DEFAULT_FEEL
+
 @onready var texture_rect: TextureRect = $VBox/SpriteContainer/TextureRect
-@onready var name_label: Label = $VBox/NameLabel
-@onready var role_label: Label = $VBox/RoleLabel
-@onready var flying_label: Label = $VBox/FlyingLabel
-@onready var shielded_label: Label = $VBox/ShieldedLabel
-@onready var guarded_label: Label = $VBox/GuardedLabel
-@onready var hp_bar_container: Control = $VBox/HPBarContainer
-@onready var hp_bar: ProgressBar = $VBox/HPBarContainer/HPBar
-@onready var shield_bar: ProgressBar = $VBox/HPBarContainer/ShieldBar
-@onready var energy_bar: ProgressBar = $VBox/EnergyBar
+@onready var info_plate: PanelContainer = $VBox/InfoPlate
+@onready var name_label: Label = $VBox/InfoPlate/Info/NameLabel
+@onready var role_label: Label = $VBox/InfoPlate/Info/RoleLabel
+@onready var flying_label: Label = $VBox/InfoPlate/Info/FlyingLabel
+@onready var shielded_label: Label = $VBox/InfoPlate/Info/ShieldedLabel
+@onready var guarded_label: Label = $VBox/InfoPlate/Info/GuardedLabel
+@onready var hp_tag: Label = $VBox/InfoPlate/Info/HPRow/HPTag
+@onready var hp_bar_container: Control = $VBox/InfoPlate/Info/HPRow/HPBarContainer
+@onready var hp_bar: ProgressBar = $VBox/InfoPlate/Info/HPRow/HPBarContainer/HPBar
+@onready var shield_bar: ProgressBar = $VBox/InfoPlate/Info/HPRow/HPBarContainer/ShieldBar
+@onready var hp_value_label: Label = $VBox/InfoPlate/Info/HPRow/HPValue
+@onready var energy_tag: Label = $VBox/InfoPlate/Info/EnergyRow/EnergyTag
+@onready var energy_bar: ProgressBar = $VBox/InfoPlate/Info/EnergyRow/EnergyBar
+@onready var energy_value_label: Label = $VBox/InfoPlate/Info/EnergyRow/EnergyValue
 @onready var sprite_container: Control = $VBox/SpriteContainer
 @onready var shield_bubble: Control = $VBox/SpriteContainer/ShieldBubble
 
@@ -51,6 +67,7 @@ var _attack_size: Vector2 = _ATTACK_SIZE
 var _is_flying: bool = false
 var _downed: bool = false        # set once the death animation has started (BattleFx)
 var _flash_tween: Tween
+var _hp_fill_style: StyleBoxFlat  # per-slot, recoloured by HP ratio in refresh()
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -82,12 +99,25 @@ func _ready() -> void:
 		shielded_label.add_theme_color_override("font_color", Color(0.4, 0.65, 0.95, 1))
 	if guarded_label:
 		guarded_label.add_theme_color_override("font_color", Color(0.75, 0.9, 0.55, 1))
+	if feel == null:
+		feel = _DEFAULT_FEEL
+	_hp_fill_style = _make_bar_style(true)
+	_hp_fill_style.bg_color = feel.hp_color
 	if hp_bar:
 		hp_bar.add_theme_stylebox_override("background", _make_bar_style(false))
-		hp_bar.add_theme_stylebox_override("fill", _make_bar_style(true))
+		hp_bar.add_theme_stylebox_override("fill", _hp_fill_style)
 	if shield_bar:
-		shield_bar.add_theme_stylebox_override("background", _make_bar_style(false))
+		# Transparent background so the HP fill underneath stays visible.
+		shield_bar.add_theme_stylebox_override("background", StyleBoxEmpty.new())
 		shield_bar.add_theme_stylebox_override("fill", _make_shield_bar_style())
+	if energy_bar:
+		energy_bar.add_theme_stylebox_override("background", _make_bar_style(false))
+		energy_bar.add_theme_stylebox_override("fill", _make_energy_bar_style())
+	_style_bar_label(hp_tag, feel.hp_text_color, feel.hp_tag)
+	_style_bar_label(hp_value_label, feel.hp_text_color)
+	_style_bar_label(energy_tag, feel.energy_text_color, feel.energy_tag)
+	_style_bar_label(energy_value_label, feel.energy_text_color)
+	_set_info_plate(false, Color.TRANSPARENT)
 
 	# Space for the sprite; keep aspect ratio. Size updated in setup() to match.
 	if texture_rect:
@@ -125,14 +155,9 @@ func setup(stats: BattlerStats, texture_idle: Texture2D, texture_attack: Texture
 		texture_rect.custom_minimum_size = _idle_size
 	if sprite_container:
 		sprite_container.custom_minimum_size = _idle_size
-	if hp_bar_container:
-		hp_bar_container.custom_minimum_size.x = _idle_size.x
-	if hp_bar:
-		hp_bar.custom_minimum_size.x = _idle_size.x
-	if shield_bar:
-		shield_bar.custom_minimum_size.x = _idle_size.x
-	if energy_bar:
-		energy_bar.custom_minimum_size.x = _idle_size.x
+	# Bars fill the row (tag + bar + numbers); the row is as wide as the sprite.
+	if info_plate:
+		info_plate.custom_minimum_size.x = _idle_size.x
 	refresh()
 
 ## Tints the sprite (archetype colour, e.g. the boss's red/amber). Uses
@@ -189,12 +214,37 @@ func set_boss_visual(enabled: bool, aura_color: Color = Color(0.0, 0.0, 0.0, 0.0
 			texture_rect.resized.disconnect(_update_boss_pivot)
 	if not _downed:
 		texture_rect.scale = _base_scale
-	# The enlarged sprite grows up over the name/HP bar rows; draw those above it.
-	var overlay_z: int = 1 if enabled else 0
-	for n: Control in [name_label, role_label, hp_bar_container, energy_bar,
-			flying_label, shielded_label, guarded_label]:
-		if n:
-			n.z_index = overlay_z
+	# The enlarged sprite grows up over the name/bar rows: draw them above it,
+	# on a dark plate so the aura and sprite detail cannot wash them out.
+	_set_info_plate(enabled, aura_color)
+
+
+## Shows or hides the dark backing plate behind the name and bars. Off (normal
+## slots) the plate is an empty style, so the layout is the same either way.
+func _set_info_plate(on: bool, border_color: Color) -> void:
+	if not info_plate:
+		return
+	info_plate.z_index = 1 if on else 0
+	if not on:
+		info_plate.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+		return
+	var plate := StyleBoxFlat.new()
+	plate.bg_color = _BOSS_PLATE_BG
+	plate.border_color = Color(border_color.r, border_color.g, border_color.b, _BOSS_PLATE_BORDER_ALPHA)
+	plate.set_border_width_all(1)
+	plate.set_corner_radius_all(4)
+	plate.content_margin_left = 8.0
+	plate.content_margin_right = 8.0
+	plate.content_margin_top = 4.0
+	plate.content_margin_bottom = 6.0
+	info_plate.add_theme_stylebox_override("panel", plate)
+
+
+## True when the dark info plate is drawn (boss slots).
+func has_info_plate() -> bool:
+	if not info_plate:
+		return false
+	return info_plate.get_theme_stylebox("panel") is StyleBoxFlat
 
 
 ## Pivot at the sprite's bottom-centre so boss scaling grows upward from the feet.
@@ -329,8 +379,21 @@ func _make_shield_bar_style() -> StyleBoxFlat:
 func _make_energy_bar_style() -> StyleBoxFlat:
 	var s = StyleBoxFlat.new()
 	s.set_corner_radius_all(2)
-	s.bg_color = Color(0.95, 0.75, 0.2, 0.9)
+	s.bg_color = feel.energy_color if feel else Color(1.0, 0.84, 0.22, 0.92)
 	return s
+
+
+## Small tag / number label next to a bar ([param text] empty = keep current).
+func _style_bar_label(label: Label, color: Color, text: String = "") -> void:
+	if label == null:
+		return
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_font_size_override("font_size", feel.bar_text_font_size)
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	label.add_theme_constant_override("outline_size", 3)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	if not text.is_empty():
+		label.text = text
 
 # --- 1) Godot's resource loader (uses imported .ctex). Can fail if import is missing or path wrong. ---
 func _load_placeholder_here() -> Texture2D:
@@ -383,7 +446,9 @@ func refresh() -> void:
 	if hp_bar and shield_bar:
 		hp_bar.max_value = float(_stats.max_hp)
 		hp_bar.value = float(_stats.current_hp)
-		hp_bar.visible = _stats.is_alive()
+		hp_bar.visible = alive
+		if _hp_fill_style and feel:
+			_hp_fill_style.bg_color = feel.get_hp_color(_stats.current_hp, _stats.max_hp)
 		if has_shield and _stats.shield_amount > 0:
 			# Barra do escudo: mesma escala (max_hp), valor = shield_amount → ocupa o tamanho exato do escudo a partir da esquerda
 			shield_bar.max_value = float(_stats.max_hp)
@@ -391,10 +456,20 @@ func refresh() -> void:
 			shield_bar.visible = true
 		else:
 			shield_bar.visible = false
+	if hp_value_label:
+		hp_value_label.text = BattleFeel.format_bar_value(_stats.current_hp, _stats.max_hp)
+		hp_value_label.visible = alive
+	if hp_tag:
+		hp_tag.visible = alive
 	if energy_bar:
 		energy_bar.max_value = float(_stats.max_energy)
 		energy_bar.value = float(_stats.current_energy)
-		energy_bar.visible = _stats.is_alive()
+		energy_bar.visible = alive
+	if energy_value_label:
+		energy_value_label.text = BattleFeel.format_bar_value(_stats.current_energy, _stats.max_energy)
+		energy_value_label.visible = alive
+	if energy_tag:
+		energy_tag.visible = alive
 
 func set_flying(flying: bool) -> void:
 	_is_flying = flying

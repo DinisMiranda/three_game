@@ -78,7 +78,7 @@ static var ARCHETYPES: Dictionary = {
 		"attack_per_floor": 2,
 		"defense": 3,
 		"speed": 7,
-		"sprite_scale": 1.3,
+		"sprite_scale": 1.2,  # was 1.3; the head no longer reaches the name plate
 		"tint": Color(1.0, 0.72, 0.6),
 		"aura_color": Color(1.0, 0.3, 0.08),
 		"is_boss": true,

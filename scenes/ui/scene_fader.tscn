@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/autoload/scene_fader.gd" id="1_fader"]
+
+[node name="SceneFader" type="CanvasLayer"]
+layer = 128
+script = ExtResource("1_fader")
+fade_out_duration = 0.4
+fade_in_duration = 0.45
+
+[node name="Overlay" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+modulate = Color(1, 1, 1, 0)
