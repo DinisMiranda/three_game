@@ -52,3 +52,22 @@ func test_battle_scene_direct_launch_uses_floor1_roster() -> void:
 	var slot: BattlerSlot = _scene._enemy_slots[0]
 	assert_bool(slot.is_boss_visual()).is_false()
 	assert_object(slot.get_sprite_tint()).is_equal(Color.WHITE)
+
+func test_battle_scene_turn_order_bar_has_one_chip_per_living_battler() -> void:
+	await get_tree().process_frame
+	var bar: TurnOrderBar = _scene.turn_order_bar
+	var m: BattleManager = _scene.battle_manager
+	assert_int(bar.get_chip_count()).is_equal(m.get_party().size() + m.get_enemies().size())
+	var cur: Dictionary = m.get_current_battler()
+	assert_str(bar.get_active_key()).is_equal(_scene._turn_key(cur.is_party, cur.index))
+
+func test_battle_scene_speed_button_outside_actions_panel() -> void:
+	await get_tree().process_frame
+	assert_bool(_scene.actions_panel.is_ancestor_of(_scene.speed_btn)).is_false()
+	_scene._set_actions_panel_shown(false)
+	assert_bool(_scene.speed_btn.is_visible_in_tree()).is_true()
+
+func test_battle_scene_log_writes_to_battle_log() -> void:
+	await get_tree().process_frame
+	_scene._log("hello log")
+	assert_str(_scene.battle_log.get_history()[0]).contains("hello log")
