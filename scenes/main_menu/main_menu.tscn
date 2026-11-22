@@ -1,9 +1,11 @@
-[gd_scene load_steps=3 format=3 uid="uid://main_menu_001"]
+[gd_scene load_steps=4 format=3 uid="uid://main_menu_001"]
 
 [ext_resource type="Script" path="res://scripts/main_menu/main_menu.gd" id="1_menu"]
 [ext_resource type="Texture2D" path="res://assets/background_blue.png" id="2_bg"]
+[ext_resource type="Theme" path="res://assets/ui/triad_theme.tres" id="99_theme"]
 
 [node name="MainMenu" type="Control"]
+theme = ExtResource("99_theme")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -19,9 +21,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 texture = ExtResource("2_bg")
 expand_mode = 1
-stretch_mode = 5
+stretch_mode = 6
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -36,68 +39,94 @@ theme_override_constants/margin_right = 64
 theme_override_constants/margin_bottom = 56
 
 [node name="ContentRow" type="HBoxContainer" parent="Margin"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 2
 theme_override_constants/separation = 48
-alignment = 0
 
 [node name="MenuColumn" type="VBoxContainer" parent="Margin/ContentRow"]
 layout_mode = 2
 size_flags_horizontal = 0
-theme_override_constants/separation = 6
-alignment = 0
+theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="Margin/ContentRow/MenuColumn"]
 layout_mode = 2
 size_flags_horizontal = 0
+theme_type_variation = &"TitleLabel"
 text = "TRIAD PROTOCOL"
-horizontal_alignment = 0
 
 [node name="Subtitle" type="Label" parent="Margin/ContentRow/MenuColumn"]
 layout_mode = 2
 size_flags_horizontal = 0
-text = "Turn-based battle"
-horizontal_alignment = 0
+theme_type_variation = &"SubheadingLabel"
+text = "Three out, three up, one box."
 
 [node name="Spacer" type="Control" parent="Margin/ContentRow/MenuColumn"]
+custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
-custom_minimum_size = Vector2(0, 24)
 
-[node name="StartBtn" type="Button" parent="Margin/ContentRow/MenuColumn"]
+[node name="ContinueBtn" type="Button" parent="Margin/ContentRow/MenuColumn"]
+visible = false
+custom_minimum_size = Vector2(340, 56)
 layout_mode = 2
 size_flags_horizontal = 0
-text = "Start Battle"
+text = "Continue"
+alignment = 0
+
+[node name="NewMissionBtn" type="Button" parent="Margin/ContentRow/MenuColumn"]
+custom_minimum_size = Vector2(340, 56)
+layout_mode = 2
+size_flags_horizontal = 0
+text = "New Mission"
+alignment = 0
 
 [node name="OptionsBtn" type="Button" parent="Margin/ContentRow/MenuColumn"]
+custom_minimum_size = Vector2(340, 56)
 layout_mode = 2
 size_flags_horizontal = 0
 text = "Options"
+alignment = 0
+
+[node name="QuitBtn" type="Button" parent="Margin/ContentRow/MenuColumn"]
+custom_minimum_size = Vector2(340, 56)
+layout_mode = 2
+size_flags_horizontal = 0
+text = "Quit"
+alignment = 0
 
 [node name="RightSpacer" type="Control" parent="Margin/ContentRow"]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 2
 
-[node name="ConceptPanel" type="PanelContainer" parent="Margin/ContentRow"]
+[node name="TeaserPanel" type="PanelContainer" parent="Margin/ContentRow"]
+custom_minimum_size = Vector2(600, 0)
 layout_mode = 2
 size_flags_horizontal = 0
-custom_minimum_size = Vector2(500, 0)
+size_flags_vertical = 8
 
-[node name="ConceptVBox" type="VBoxContainer" parent="Margin/ContentRow/ConceptPanel"]
+[node name="TeaserVBox" type="VBoxContainer" parent="Margin/ContentRow/TeaserPanel"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="ConceptTitle" type="Label" parent="Margin/ContentRow/ConceptPanel/ConceptVBox"]
+[node name="MissionKicker" type="Label" parent="Margin/ContentRow/TeaserPanel/TeaserVBox"]
 layout_mode = 2
-text = "ABOUT THE GAME"
-horizontal_alignment = 0
+theme_type_variation = &"KickerLabel"
+text = "MISSION · MERIDIAN SPIRE"
 
-[node name="ConceptText" type="Label" parent="Margin/ContentRow/ConceptPanel/ConceptVBox"]
+[node name="MissionHook" type="Label" parent="Margin/ContentRow/TeaserPanel/TeaserVBox"]
 layout_mode = 2
-size_flags_vertical = 3
-text = "Placeholder"
-horizontal_alignment = 0
-autowrap_mode = 2
+text = "Meridian Spire, rooftop. One package, one window."
+autowrap_mode = 3
+
+[node name="MissionStatus" type="Label" parent="Margin/ContentRow/TeaserPanel/TeaserVBox"]
+layout_mode = 2
+theme_type_variation = &"CaptionLabel"
+text = "Rooftop extraction — PRIMARY"
+
+[node name="SquadKicker" type="Label" parent="Margin/ContentRow/TeaserPanel/TeaserVBox"]
+layout_mode = 2
+theme_type_variation = &"KickerLabel"
+text = "SQUAD"
+
+[node name="HeroRow" type="HBoxContainer" parent="Margin/ContentRow/TeaserPanel/TeaserVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12

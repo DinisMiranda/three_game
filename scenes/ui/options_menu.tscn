@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://options_menu_001"]
+[gd_scene load_steps=3 format=3 uid="uid://options_menu_001"]
 
 [ext_resource type="Script" path="res://scripts/ui/options_menu.gd" id="1_script"]
+[ext_resource type="Theme" path="res://assets/ui/triad_theme.tres" id="2_theme"]
 
 [node name="OptionsMenu" type="CanvasLayer"]
 layer = 10
@@ -10,9 +11,10 @@ script = ExtResource("1_script")
 anchors_preset = 0
 offset_right = 1920.0
 offset_bottom = 1080.0
-color = Color(0.02, 0.02, 0.06, 0.85)
+color = Color(0.039215688, 0.050980393, 0.078431375, 0.85)
 
 [node name="Center" type="CenterContainer" parent="."]
+theme = ExtResource("2_theme")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -30,6 +32,7 @@ alignment = 1
 
 [node name="Title" type="Label" parent="Center/Panel/VBox"]
 layout_mode = 2
+theme_type_variation = &"HeadingLabel"
 text = "Options"
 horizontal_alignment = 1
 

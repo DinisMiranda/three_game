@@ -20,9 +20,6 @@ const _BOSS_PORTRAIT_STRIP_ALLEY := 820.0
 ## Dark tint over background texture.
 const _BG_OVERLAY_OFFICE := Color(0.06, 0.07, 0.1, 0.55)
 const _BG_OVERLAY_ALLEY := Color(0.04, 0.05, 0.12, 0.52)
-const _BOX_BG := Color(0.05, 0.06, 0.12, 0.96)
-const _BOX_BORDER := Color(0.0, 0.88, 1.0, 0.72)
-const _TEXT_COLOR := Color(0.95, 0.96, 1.0, 1.0)
 const _TYPEWRITER_CHARS_PER_SEC := 48.0
 
 enum Phase { OFFICE, ALLEY }
@@ -123,6 +120,10 @@ var _is_typing: bool = false
 var _typing_tween: Tween
 var _typing_label: Label = null
 
+## Speaker name tags above each dialogue box (DialogueBoxStyle).
+var _boss_tag: Label
+var _merc_tag: Label
+
 @onready var _office_bg: TextureRect = $OfficeBackground
 @onready var _background: ColorRect = $Background
 @onready var _boss_side: Control = $BossSide
@@ -141,10 +142,8 @@ func _ready() -> void:
 	_background.color = _BG_OVERLAY_OFFICE
 	_apply_dialogue_panel_style(_boss_panel)
 	_apply_dialogue_panel_style(_merc_panel)
-	_boss_label.add_theme_color_override("font_color", _TEXT_COLOR)
-	_merc_label.add_theme_color_override("font_color", _TEXT_COLOR)
-	_setup_monospace(_boss_label)
-	_setup_monospace(_merc_label)
+	_boss_tag = DialogueBoxStyle.attach_speaker_tag(_boss_label)
+	_merc_tag = DialogueBoxStyle.attach_speaker_tag(_merc_label)
 	_load_portraits_for_phase()
 	_apply_boss_portrait_strip_width()
 	_boss_label.text = ""
@@ -169,23 +168,8 @@ func _current_lines() -> Array[Dictionary]:
 	return _office_lines if _phase == Phase.OFFICE else _alley_lines
 
 
-func _setup_monospace(label: Label) -> void:
-	var sf := SystemFont.new()
-	sf.font_names = PackedStringArray(["Courier New", "Consolas", "Monaco", "monospace"])
-	sf.font_weight = 500
-	label.add_theme_font_override("font", sf)
-	label.add_theme_font_size_override("font_size", 27)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-
-
 func _apply_dialogue_panel_style(panel: PanelContainer) -> void:
-	var s := StyleBoxFlat.new()
-	s.bg_color = _BOX_BG
-	s.border_color = _BOX_BORDER
-	s.set_border_width_all(2)
-	s.set_content_margin_all(24)
-	s.set_corner_radius_all(0)
-	panel.add_theme_stylebox_override("panel", s)
+	DialogueBoxStyle.style_panel(panel)
 
 
 func _load_portraits_for_phase() -> void:
@@ -193,15 +177,19 @@ func _load_portraits_for_phase() -> void:
 		var left_tex: Texture2D = load(_PORTRAIT_OFFICE_LEFT) as Texture2D
 		var right_tex: Texture2D = load(_PORTRAIT_OFFICE_RIGHT) as Texture2D
 		if left_tex:
+			PortraitMaterial.clear(_merc_portrait)
 			_merc_portrait.texture = left_tex
 		if right_tex:
+			PortraitMaterial.clear(_boss_portrait)
 			_boss_portrait.texture = right_tex
 	else:
 		var l: Texture2D = load(_PORTRAIT_ALLEY_LEFT) as Texture2D
 		var r: Texture2D = load(_PORTRAIT_ALLEY_RIGHT) as Texture2D
 		if l:
+			PortraitMaterial.clear(_merc_portrait)
 			_merc_portrait.texture = l
 		if r:
+			PortraitMaterial.clear(_boss_portrait)
 			_boss_portrait.texture = r
 
 
@@ -272,10 +260,12 @@ func _advance_line() -> void:
 	_merc_label.text = ""
 	_boss_label.text = ""
 	if speaker == Speaker.BOSS:
-		_boss_label.text = "%s\n\"%s\"" % [speaker_name, text]
+		_boss_tag.text = DialogueBoxStyle.format_speaker(speaker_name)
+		_boss_label.text = DialogueBoxStyle.format_line(text)
 		_start_typewriter(_boss_label)
 	else:
-		_merc_label.text = "%s\n\"%s\"" % [speaker_name, text]
+		_merc_tag.text = DialogueBoxStyle.format_speaker(speaker_name)
+		_merc_label.text = DialogueBoxStyle.format_line(text)
 		_start_typewriter(_merc_label)
 	_show_only_speaker(speaker)
 	_pulse_panel(speaker)
@@ -351,10 +341,14 @@ func _apply_speaker_portrait(speaker: Speaker, speaker_name: String) -> void:
 	var tex: Texture2D = HeroRoster.get_story_portrait(speaker_name)
 	if tex == null:
 		return
-	if speaker == Speaker.MERC:
-		_merc_portrait.texture = tex
+	var rect: TextureRect = _merc_portrait if speaker == Speaker.MERC else _boss_portrait
+	var hero_index: int = HeroRoster.find_index_by_name(speaker_name)
+	if hero_index >= 0:
+		# Squad members get their battle look (outline, rim, roster grade).
+		PortraitMaterial.apply(rect, tex, HeroRoster.get_shader_grade(hero_index), true)
 	else:
-		_boss_portrait.texture = tex
+		PortraitMaterial.clear(rect)
+		rect.texture = tex
 	var bright := Color.WHITE
 	var dim := Color(0.45, 0.48, 0.55, 1.0)
 	if speaker == Speaker.MERC:
@@ -375,8 +369,8 @@ func _pulse_panel(speaker: Speaker) -> void:
 	var s := panel.get_theme_stylebox("panel") as StyleBoxFlat
 	if s == null:
 		return
-	var base := _BOX_BORDER
-	var bright := Color(base.r, base.g, base.b, 1.0)
+	var base := Palette.LINE_CYAN
+	var bright := Palette.ACCENT_CYAN
 	s.border_color = bright
 	var tw := create_tween()
 	tw.tween_property(s, "border_color", base, 0.35).set_trans(Tween.TRANS_SINE)

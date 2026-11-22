@@ -1,113 +1,59 @@
 class_name HeroRoster
 extends RefCounted
 ## Squad roster: 3 active heroes today, 2 reserved slots for future tank + healer.
+## Phase 3B: hero data lives in [HeroData] resources (resources/heroes/*.tres);
+## this class is a thin static loader that keeps the pre-3B API. Balance or art
+## changes are .tres edits; adding a hero is a .tres plus one line in HERO_PATHS.
 
 const ACTIVE_PARTY_SIZE := 3
 const FULL_ROSTER_SIZE := 5
 
-static var _ROSTER: Array[Dictionary] = [
-	{
-		"id": "kael",
-		"display_name": "Kael",
-		"role_label": "Grenadier",
-		"role_color": "#ff8c3a",
-		"enabled": true,
-		"max_hp": 92,
-		"attack": 14,
-		"defense": 5,
-		"speed": 9,
-		"portrait": "res://assets/sevro_pixel_no_bg-removebg-preview.png",
-		"abilities": [
-			{ "id": "grenade", "name": "Grenade" },
-			{ "id": "guard", "name": "Guard" },
-		],
-		"barks": {
-			"attack": ["Eat this!", "Coming in hot!"],
-			"grenade": ["Fire in the hole!", "Brace for impact!"],
-			"guard": ["Dig in!", "Cover me!"],
-		},
-	},
-	{
-		"id": "nova",
-		"display_name": "Nova",
-		"role_label": "Skirmisher",
-		"role_color": "#5ce1ff",
-		"enabled": true,
-		"max_hp": 78,
-		"attack": 11,
-		"defense": 3,
-		"speed": 13,
-		"portrait": "res://assets/hero 2 no bg.png",
-		"abilities": [
-			{ "id": "fly", "name": "Fly" },
-			{ "id": "snipe", "name": "Snipe" },
-		],
-		"barks": {
-			"attack": ["On target.", "Keep them busy down there."],
-			"fly": ["I've got the high ground!", "Up and out of reach."],
-			"snipe": ["One shot.", "Dropping them."],
-		},
-	},
-	{
-		"id": "rin",
-		"display_name": "Rin",
-		"role_label": "Field Support",
-		"role_color": "#9dff7a",
-		"enabled": true,
-		"max_hp": 86,
-		"attack": 10,
-		"defense": 5,
-		"speed": 10,
-		"portrait": "res://assets/hero 3 no bg copy.png",
-		"abilities": [
-			{ "id": "strike", "name": "Strike" },
-			{ "id": "shield", "name": "Shield" },
-		],
-		"barks": {
-			"attack": ["Opening the lane.", "Hold formation."],
-			"strike": ["Through the gap!", "Armor won't save you."],
-			"shield": ["Shield up!", "I've got you covered."],
-		},
-	},
-	# Reserved — enable when art + kit are ready (FULL_ROSTER_SIZE = 5).
-	{
-		"id": "brick",
-		"display_name": "Brick",
-		"role_label": "Frontliner",
-		"role_color": "#c9a0ff",
-		"enabled": false,
-		"max_hp": 120,
-		"attack": 11,
-		"defense": 9,
-		"speed": 7,
-		"portrait": "res://assets/character_placeholder.png",
-		"abilities": [
-			{ "id": "guard", "name": "Guard" },
-			{ "id": "strike", "name": "Strike" },
-		],
-		"barks": {},
-	},
-	{
-		"id": "sage",
-		"display_name": "Sage",
-		"role_label": "Medic",
-		"role_color": "#7dffb8",
-		"enabled": false,
-		"max_hp": 72,
-		"attack": 8,
-		"defense": 4,
-		"speed": 11,
-		"portrait": "res://assets/character_placeholder.png",
-		"abilities": [
-			{ "id": "shield", "name": "Shield" },
-			{ "id": "strike", "name": "Strike" },
-		],
-		"barks": {},
-	},
+## Roster order (index = party slot). An explicit list, not a directory scan:
+## DirAccess listing is unreliable in exported / web builds.
+const HERO_PATHS: Array[String] = [
+	"res://resources/heroes/kael.tres",
+	"res://resources/heroes/nova.tres",
+	"res://resources/heroes/rin.tres",
+	# Reserved (enabled = false) until art + kit are ready.
+	"res://resources/heroes/brick.tres",
+	"res://resources/heroes/sage.tres",
 ]
 
+static var _heroes: Array[HeroData] = []
+## Legacy dictionary view of each hero (HeroData.to_dict()), same order as _heroes.
+static var _ROSTER: Array[Dictionary] = []
 
+
+## Loads HERO_PATHS once. Missing or wrong-typed files are skipped with an error.
+static func _ensure_loaded() -> void:
+	if not _heroes.is_empty():
+		return
+	for path in HERO_PATHS:
+		var h := load(path) as HeroData
+		if h == null:
+			push_error("HeroRoster: cannot load HeroData at %s" % path)
+			continue
+		_heroes.append(h)
+		_ROSTER.append(h.to_dict())
+
+
+## All loaded heroes in roster order.
+static func get_all() -> Array[HeroData]:
+	_ensure_loaded()
+	return _heroes
+
+
+## The [HeroData] at roster [param index], or null.
+static func get_data(index: int) -> HeroData:
+	_ensure_loaded()
+	if index < 0 or index >= _heroes.size():
+		return null
+	return _heroes[index]
+
+
+## Legacy dictionary view of hero [param index] (keys as HeroData.to_dict()), or {}.
 static func get_hero(index: int) -> Dictionary:
+	_ensure_loaded()
 	if index < 0 or index >= _ROSTER.size():
 		return {}
 	return _ROSTER[index]
@@ -123,8 +69,8 @@ static func apply_to_stats(index: int, stats: BattlerStats) -> bool:
 	stats.attack = int(hero.attack)
 	stats.defense = int(hero.defense)
 	stats.speed = int(hero.speed)
-	stats.max_energy = 100
-	stats.current_energy = 100
+	stats.max_energy = int(hero.get("max_energy", 100))
+	stats.current_energy = stats.max_energy
 	stats.is_party = true
 	return true
 
@@ -146,6 +92,15 @@ static func get_portrait_path(index: int) -> String:
 	return str(get_hero(index).get("portrait", ""))
 
 
+## Roster index of the hero named [param display_name], or -1.
+static func find_index_by_name(display_name: String) -> int:
+	_ensure_loaded()
+	for i in _ROSTER.size():
+		if str(_ROSTER[i].get("display_name", "")) == display_name:
+			return i
+	return -1
+
+
 static func get_portrait_path_for_name(display_name: String) -> String:
 	match display_name:
 		"Handler":
@@ -153,6 +108,7 @@ static func get_portrait_path_for_name(display_name: String) -> String:
 		"Custodian", "Helicopter":
 			return "res://assets/enemy_1-removebg-preview.png"
 		_:
+			_ensure_loaded()
 			for hero in _ROSTER:
 				if str(hero.get("display_name", "")) == display_name:
 					return str(hero.get("portrait", ""))
@@ -166,8 +122,24 @@ static func get_story_portrait(display_name: String) -> Texture2D:
 	return load(path) as Texture2D
 
 
+## Per-sprite grade for the character shader: Vector3(saturation, contrast,
+## brightness). Defaults 1 / 1 / 0 (no change) for missing keys or bad index.
+static func get_shader_grade(index: int) -> Vector3:
+	var hero: Dictionary = get_hero(index)
+	return Vector3(
+		float(hero.get("shader_saturation", 1.0)),
+		float(hero.get("shader_contrast", 1.0)),
+		float(hero.get("shader_brightness", 0.0)))
+
+
+## Visible (trimmed) figure height in px at 1920x1080 for hero [param index].
+static func get_figure_height(index: int) -> float:
+	return float(get_hero(index).get("figure_height", 240.0))
+
+
 static func get_hideout_heroes() -> Array[Dictionary]:
 	## Brick + Sage — story roster, not yet in combat party.
+	_ensure_loaded()
 	var out: Array[Dictionary] = []
 	for i in range(ACTIVE_PARTY_SIZE, _ROSTER.size()):
 		out.append(_ROSTER[i])
@@ -181,3 +153,23 @@ static func get_bark(index: int, context: String) -> String:
 	if lines.is_empty():
 		return ""
 	return str(lines[randi() % lines.size()])
+
+
+## Builds the active party's [BattlerStats] (ACTIVE_PARTY_SIZE heroes); a
+## generic hero stands in for any roster entry that cannot be applied.
+static func build_party() -> Array:
+	var party: Array = []
+	for i in ACTIVE_PARTY_SIZE:
+		var s := BattlerStats.new()
+		if not apply_to_stats(i, s):
+			s.display_name = "Hero %d" % (i + 1)
+			s.max_hp = 80 + i * 10
+			s.current_hp = s.max_hp
+			s.max_energy = 100
+			s.current_energy = 100
+			s.attack = 12 + i
+			s.defense = 4
+			s.speed = 8 + i * 2
+			s.is_party = true
+		party.append(s)
+	return party

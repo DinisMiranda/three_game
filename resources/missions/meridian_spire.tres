@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MissionData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/missions/mission_data.gd" id="1_mission"]
+[ext_resource type="Script" path="res://scripts/missions/floor_data.gd" id="2_floor"]
+
+[sub_resource type="Resource" id="FloorData_1"]
+script = ExtResource("2_floor")
+title = "Floor 1 — Corridor breach"
+background = "res://assets/andar.jpg"
+enemies = Array[String](["warden"])
+
+[sub_resource type="Resource" id="FloorData_2"]
+script = ExtResource("2_floor")
+title = "Floor 2 — Security landing"
+background = "res://assets/andar.jpg"
+enemies = Array[String](["warden", "hound"])
+
+[sub_resource type="Resource" id="FloorData_3"]
+script = ExtResource("2_floor")
+title = "Floor 3 — Rooftop extraction"
+background = "res://assets/e32ee0a6-a11a-4f0a-b8be-ec9723487b2b.png"
+enemies = Array[String](["custodian"])
+
+[resource]
+script = ExtResource("1_mission")
+id = "meridian_spire"
+display_name = "Meridian Spire"
+floors = Array[ExtResource("2_floor")]([SubResource("FloorData_1"), SubResource("FloorData_2"), SubResource("FloorData_3")])

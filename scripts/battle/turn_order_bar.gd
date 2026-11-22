@@ -20,17 +20,17 @@ const _FALLBACK_REMOVE_DURATION := 0.3
 
 @export_group("Colours")
 ## Underline and border tint of party chips (teal, matches the battle accent).
-@export var party_color: Color = Color(0.0, 0.85, 0.9, 1.0)
+@export var party_color: Color = Palette.PARTY_TEAL
 ## Underline and border tint of enemy chips (red-amber).
-@export var enemy_color: Color = Color(1.0, 0.42, 0.32, 1.0)
+@export var enemy_color: Color = Palette.ENEMY_RED
 ## Border and name colour of the active battler's chip.
-@export var active_color: Color = Color(1.0, 0.75, 0.2, 1.0)
+@export var active_color: Color = Palette.SELECT_AMBER
 ## Chip background.
-@export var chip_bg_color: Color = Color(0.08, 0.09, 0.12, 0.95)
+@export var chip_bg_color: Color = Palette.PANEL_FILL
 ## Chip background while active.
-@export var active_bg_color: Color = Color(0.15, 0.12, 0.05, 0.98)
+@export var active_bg_color: Color = Palette.BG_DEEP
 ## Name colour of inactive chips.
-@export var text_color: Color = Color(0.9, 0.92, 0.95, 1.0)
+@export var text_color: Color = Palette.TEXT_PRIMARY
 ## Alpha of the side-coloured border on inactive chips.
 @export_range(0.0, 1.0, 0.05) var inactive_border_alpha: float = 0.45
 
@@ -49,7 +49,7 @@ const _FALLBACK_REMOVE_DURATION := 0.3
 @export_range(0, 12, 1) var underline_px: int = 3
 ## Normalised region of the battler sprite used as the portrait (head and
 ## shoulders of a full-body sprite). Rect2(0, 0, 1, 1) uses the whole sprite.
-@export var portrait_crop: Rect2 = Rect2(0.2, 0.02, 0.6, 0.42)
+@export var portrait_crop: Rect2 = PortraitMaterial.HEAD_REGION
 
 ## Presentation speed (BattleFx speed multiplier); animation lengths are divided by it.
 var speed_multiplier: float = 1.0
@@ -57,7 +57,6 @@ var speed_multiplier: float = 1.0
 var _chips: Dictionary = {}  # key -> _Chip (live chips only)
 var _dying: Array[Control] = []
 var _active_key: String = ""
-var _portrait_cache: Dictionary = {}  # Texture2D -> AtlasTexture
 
 
 ## One turn-order chip. Built in code so the component has no scene dependency.
@@ -133,6 +132,7 @@ func build_chip_specs(entries: Array, active_key: String) -> Array[Dictionary]:
 			"is_active": key == active_key and not active_key.is_empty(),
 			"side_color": get_side_color(is_party),
 			"texture": e.get("texture", null),
+			"grade": e.get("grade", Vector3(1.0, 1.0, 0.0)),
 		})
 	return specs
 
@@ -224,9 +224,11 @@ func _apply_spec(chip: _Chip, spec: Dictionary) -> void:
 	chip.side_color = spec.side_color
 	var edge: float = active_portrait_size if chip.is_active else portrait_size
 	var tex: Texture2D = spec.texture as Texture2D
-	chip.portrait.texture = _get_portrait(tex)
-	chip.portrait.visible = tex != null
 	chip.portrait.custom_minimum_size = Vector2(edge, edge)
+	# Character shader + roster grade, head crop of the trimmed figure.
+	PortraitMaterial.apply(chip.portrait, tex, spec.get("grade", Vector3(1.0, 1.0, 0.0)),
+		chip.is_party, _portrait_region(), true)
+	chip.portrait.visible = tex != null
 	chip.name_label.text = spec.name
 	chip.name_label.add_theme_font_size_override("font_size", active_font_size if chip.is_active else font_size)
 	chip.name_label.add_theme_color_override("font_color", active_color if chip.is_active else text_color)
@@ -234,7 +236,7 @@ func _apply_spec(chip: _Chip, spec: Dictionary) -> void:
 	chip.underline.custom_minimum_size = Vector2(0.0, float(underline_px))
 	chip.underline.visible = underline_px > 0
 	var style := StyleBoxFlat.new()
-	style.bg_color = active_bg_color if chip.is_active else chip_bg_color
+	style.bg_color = active_bg_color.lerp(active_color, 0.12) if chip.is_active else chip_bg_color
 	if chip.is_active:
 		style.border_color = active_color
 		style.set_border_width_all(2)
@@ -242,7 +244,7 @@ func _apply_spec(chip: _Chip, spec: Dictionary) -> void:
 		var c := chip.side_color
 		style.border_color = Color(c.r, c.g, c.b, c.a * inactive_border_alpha)
 		style.set_border_width_all(1)
-	style.set_corner_radius_all(3)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 6.0
 	style.content_margin_right = 8.0
 	style.content_margin_top = 4.0
@@ -251,25 +253,9 @@ func _apply_spec(chip: _Chip, spec: Dictionary) -> void:
 	chip.tooltip_text = str(spec.name)
 
 
-## Crops [param tex] to [member portrait_crop]; cached per texture.
-func _get_portrait(tex: Texture2D) -> Texture2D:
-	if tex == null:
-		return null
-	if _portrait_cache.has(tex):
-		return _portrait_cache[tex]
-	var tex_size := tex.get_size()
-	var region := Rect2(
-		portrait_crop.position * tex_size,
-		portrait_crop.size * tex_size
-	).intersection(Rect2(Vector2.ZERO, tex_size))
-	var result: Texture2D = tex
-	if region.has_area():
-		var atlas := AtlasTexture.new()
-		atlas.atlas = tex
-		atlas.region = region
-		result = atlas
-	_portrait_cache[tex] = result
-	return result
+## Head region used for chip portraits (normalised, of the trimmed figure).
+func _portrait_region() -> Rect2:
+	return portrait_crop
 
 
 func _remove_chip(key: String) -> void:

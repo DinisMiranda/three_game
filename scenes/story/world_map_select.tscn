@@ -1,9 +1,11 @@
-[gd_scene load_steps=3 format=3 uid="uid://world_map_select_001"]
+[gd_scene load_steps=4 format=3 uid="uid://world_map_select_001"]
 
 [ext_resource type="Script" path="res://scripts/story/world_map_select.gd" id="1_script"]
 [ext_resource type="Script" path="res://scripts/story/map_player_marker.gd" id="2_marker"]
+[ext_resource type="Theme" path="res://assets/ui/triad_theme.tres" id="99_theme"]
 
 [node name="WorldMapSelect" type="Control"]
+theme = ExtResource("99_theme")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -13,6 +15,16 @@ grow_vertical = 2
 mouse_filter = 0
 script = ExtResource("1_script")
 
+[node name="Backdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.039215688, 0.050980393, 0.078431375, 1)
+
 [node name="Layout" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -20,13 +32,11 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 0
 
-[node name="HudTop" type="MarginContainer" parent="Layout"]
+[node name="HudTop" type="PanelContainer" parent="Layout"]
 layout_mode = 2
-theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 28
+theme_type_variation = &"BarPanel"
 
 [node name="TopVBox" type="VBoxContainer" parent="Layout/HudTop"]
 layout_mode = 2
@@ -34,14 +44,12 @@ theme_override_constants/separation = 4
 
 [node name="Kicker" type="Label" parent="Layout/HudTop/TopVBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.45, 0.95, 1, 0.75)
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"KickerLabel"
 text = "/// LONDON SECTOR · WESTMINSTER GRID ///"
 
 [node name="Title" type="Label" parent="Layout/HudTop/TopVBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.95, 1, 1, 1)
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"HeadingLabel"
 text = "TACTICAL MAP"
 
 [node name="MapScroll" type="ScrollContainer" parent="Layout"]
@@ -68,11 +76,9 @@ layout_mode = 0
 mouse_filter = 2
 script = ExtResource("2_marker")
 
-[node name="Hud" type="MarginContainer" parent="Layout"]
+[node name="Hud" type="PanelContainer" parent="Layout"]
 layout_mode = 2
-theme_override_constants/margin_left = 28
-theme_override_constants/margin_right = 28
-theme_override_constants/margin_bottom = 24
+theme_type_variation = &"BarPanel"
 
 [node name="HudHBox" type="HBoxContainer" parent="Layout/Hud"]
 layout_mode = 2
@@ -85,19 +91,25 @@ theme_override_constants/separation = 4
 
 [node name="ZoneTitle" type="Label" parent="Layout/Hud/HudHBox/InfoPanel"]
 layout_mode = 2
+theme_type_variation = &"SubheadingLabel"
 text = "Meridian Spire"
 
 [node name="ZoneSubtitle" type="Label" parent="Layout/Hud/HudHBox/InfoPanel"]
 layout_mode = 2
+theme_type_variation = &"CaptionLabel"
 text = "Select a zone on the map"
 
 [node name="DeployBtn" type="Button" parent="Layout/Hud/HudHBox"]
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(240, 56)
 layout_mode = 2
+size_flags_vertical = 4
 text = "Deploy to zone"
 
 [node name="Hint" type="Label" parent="Layout/Hud"]
 layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"CaptionLabel"
+mouse_filter = 2
 text = "Drag or ← → to pan  ·  click a highlighted zone  ·  Enter to deploy"
 horizontal_alignment = 1
 

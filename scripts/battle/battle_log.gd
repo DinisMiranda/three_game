@@ -38,6 +38,7 @@ var _history_label: RichTextLabel
 
 
 func _init() -> void:
+	theme_type_variation = &"LogPanel"
 	var vbox := VBoxContainer.new()
 	vbox.name = "VBox"
 	vbox.add_theme_constant_override("separation", 4)
@@ -47,10 +48,13 @@ func _init() -> void:
 	vbox.add_child(header)
 	_title_label = Label.new()
 	_title_label.name = "Title"
+	_title_label.theme_type_variation = &"KickerLabel"
 	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_title_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	header.add_child(_title_label)
 	_toggle_btn = Button.new()
 	_toggle_btn.name = "ToggleBtn"
+	_toggle_btn.theme_type_variation = &"CompactButton"
 	_toggle_btn.focus_mode = Control.FOCUS_ALL
 	_toggle_btn.pressed.connect(toggle_expanded)
 	header.add_child(_toggle_btn)
@@ -60,6 +64,7 @@ func _init() -> void:
 
 	_history_panel = PanelContainer.new()
 	_history_panel.name = "History"
+	_history_panel.theme_type_variation = &"HistoryPanel"
 	_history_panel.top_level = true
 	_history_panel.visible = false
 	add_child(_history_panel)
@@ -133,18 +138,11 @@ func get_toggle_button() -> Button:
 	return _toggle_btn
 
 
-## Applies the owner's theme: panel styles, text colour and toggle button styles.
-func apply_style(panel_style: StyleBox, history_style: StyleBox, text_color: Color,
-		title_color: Color, btn_normal: StyleBox, btn_hover: StyleBox) -> void:
-	add_theme_stylebox_override("panel", panel_style)
-	_history_panel.add_theme_stylebox_override("panel", history_style)
+## Sets the default log text colour (the log's own semantic green; chrome
+## comes from the Theme: LogPanel, HistoryPanel, KickerLabel, CompactButton).
+func set_text_color(text_color: Color) -> void:
 	_lines_label.add_theme_color_override("default_color", text_color)
 	_history_label.add_theme_color_override("default_color", text_color)
-	_title_label.add_theme_color_override("font_color", title_color)
-	_toggle_btn.add_theme_color_override("font_color", title_color)
-	_toggle_btn.add_theme_stylebox_override("normal", btn_normal)
-	_toggle_btn.add_theme_stylebox_override("hover", btn_hover)
-	_toggle_btn.add_theme_stylebox_override("pressed", btn_hover)
 
 
 func _make_rich_label(node_name: String) -> RichTextLabel:

@@ -1,9 +1,11 @@
-[gd_scene load_steps=3 format=3 uid="uid://meridian_epilogue_001"]
+[gd_scene load_steps=4 format=3 uid="uid://meridian_epilogue_001"]
 
 [ext_resource type="Script" path="res://scripts/story/meridian_epilogue.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/e32ee0a6-a11a-4f0a-b8be-ec9723487b2b.png" id="2_rooftop"]
+[ext_resource type="Theme" path="res://assets/ui/triad_theme.tres" id="99_theme"]
 
 [node name="MeridianEpilogue" type="Control"]
+theme = ExtResource("99_theme")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -159,7 +161,7 @@ offset_top = -52.0
 offset_right = 220.0
 offset_bottom = -16.0
 grow_horizontal = 2
-theme_override_colors/font_color = Color(0.55, 0.62, 0.7, 0.95)
+theme_override_colors/font_color = Color(0.6509804, 0.72156864, 0.8, 1)
 theme_override_font_sizes/font_size = 18
 text = "Click or SPACE to continue"
 horizontal_alignment = 1

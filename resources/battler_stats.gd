@@ -116,3 +116,13 @@ func duplicate_stats() -> BattlerStats:
 	s.max_energy = max_energy
 	s.current_energy = current_energy
 	return s
+
+
+## Full heal and status reset between floors (HP, energy, flying, guard, shield).
+func restore_for_new_floor() -> void:
+	current_hp = max_hp
+	current_energy = max_energy
+	is_flying = false
+	guard_active = false
+	shield_amount = 0
+	shield_rounds_left = 0
