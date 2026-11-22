@@ -37,7 +37,7 @@ If Godot is not in `PATH`, set `GODOT_BIN` first:
 
 ## CI
 
-The **Unit tests** job in `.github/workflows/ci-cd.yml` runs on every push/PR to develop, staging, and main. It installs GdUnit4 and Godot 4.6 and runs all tests under `tests/`.
+The **Unit tests** job in `.github/workflows/ci-cd.yml` runs on every push/PR to develop, staging, and main. It installs GdUnit4 and Godot 4.7.2 and runs all tests under `tests/`.
 
 ## Test files
 
