@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/enemy_archetype.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "warden"
+display_name = "Spire Warden"
+is_boss = false
+ai_profile = 0
+is_ranged = true
+base_hp = 40
+hp_per_floor = 10
+base_attack = 16
+attack_per_floor = 2
+defense = 3
+speed = 5
+max_energy = 100
+idle_sprite = "res://assets/enemy_1-removebg-preview.png"
+attack_frames = Array[String](["res://assets/enemy_1_attack_animantion_part1-removebg-preview.png", "res://assets/enemy1_attack_animation_part2-removebg-preview.png"])
+sprite_scale = 1.0
+tint = Color(1.0, 1.0, 1.0, 1)
+has_aura_color = false
+aura_color = Color(1.0, 1.0, 1.0, 1)
+figure_height = 240.0
+shader_saturation = 1.0
+shader_contrast = 1.0
+shader_brightness = 0.0

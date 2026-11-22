@@ -1,8 +1,10 @@
-[gd_scene load_steps=2 format=3 uid="uid://hideout_select_001"]
+[gd_scene load_steps=3 format=3 uid="uid://hideout_select_001"]
 
 [ext_resource type="Script" path="res://scripts/story/hideout_select.gd" id="1_script"]
+[ext_resource type="Theme" path="res://assets/ui/triad_theme.tres" id="99_theme"]
 
 [node name="HideoutSelect" type="Control"]
+theme = ExtResource("99_theme")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -41,7 +43,7 @@ theme_override_constants/separation = 8
 
 [node name="Kicker" type="Label" parent="Layout/Header/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.45, 0.95, 1, 0.75)
+theme_override_colors/font_color = Color(0, 0.8980392, 1, 1)
 theme_override_font_sizes/font_size = 14
 text = "/// SQUAD STATUS · HANDLER LOST · PACKAGE SECURED ///"
 

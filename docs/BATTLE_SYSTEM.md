@@ -40,7 +40,7 @@ Hero kits come from `HeroRoster`: **Kael** (Grenadier): Grenade, Guard. **Nova**
 
 ## Enemy AI
 
-Implemented in `battle_scene.gd` (`_choose_enemy_action`, `_pick_party_target_for_enemy`), by enemy index (`index % 3`):
+Implemented in `enemy_ai.gd` (`EnemyAI.choose_action`, `EnemyAI.pick_target`), by the archetype's AI profile (`EnemyRoster.get_ai_profile`):
 
 - **Profile 0**: Focus when HP is above 50%, else Barrage, else Ranged Shot, else a basic attack.
 - **Profile 1**: Frenzy when HP is below 50%, else a basic attack.
@@ -57,7 +57,7 @@ Each action picks a random valid party target. Before acting, the enemy slot fla
    - BattleManager clears the battler’s flying/guard state and restores energy, then emits `turn_started(battler_index, is_party)`.  
    - BattleScene: dead battlers are skipped via `advance_turn()`.  
    - If **party**: shows the actions panel; the user picks a target (click, or Attack auto-picks a random valid enemy) and clicks Attack, Abilities, or End Turn.  
-   - If **enemy**: hides actions, plays the turn intro, then `_ai_turn()` and `advance_turn()`.
+   - If **enemy**: hides actions, plays the turn intro, then `_run_enemy_turn()` and `advance_turn()`.
 
 3. **advance_turn()**  
    - Emits `turn_ended` for the current battler.  
@@ -77,17 +77,23 @@ Each action picks a random valid party target. Before acting, the enemy slot fla
 ## Data structures
 
 - **BattlerStats** (Resource): `display_name`, `max_hp`, `current_hp`, `attack`, `defense`, `speed`, `is_party`, `is_ranged`, `max_energy`, `current_energy`, runtime state `is_flying`, `shield_amount`, `shield_rounds_left`, `guard_active`, `attack_buff_amount`, `attack_buff_rounds_left`. Methods include `take_damage(amount, ignore_defense)`, `heal`, `is_alive`, `get_attack_power`, `has_energy` / `spend_energy` / `restore_energy`, `apply_shield`, `apply_guard`, `apply_attack_buff`, `tick_shield_round`, `tick_buff_rounds`, `duplicate_stats()`.
-- **HeroRoster** (RefCounted, static): per hero `id`, `display_name`, `role_label`, `role_color`, `enabled`, base stats, `portrait`, `abilities`, `barks`. `ACTIVE_PARTY_SIZE` is 3, `FULL_ROSTER_SIZE` is 5.
+- **Data resources (Phase 3B)**: hero, enemy and floor data are Godot Resources, so balance changes are `.tres` edits with no code change (open the file in the Inspector or edit the text).
+  - **HeroData** (`scripts/battle/hero_data.gd`, one per hero in `resources/heroes/`: kael, nova, rin, brick, sage). Groups: *Identity* (`id`, `display_name`, `role_label`, `role_color` as Color, `enabled` — false for the reserved Brick / Sage), *Stats* (`max_hp`, `attack`, `defense`, `speed`, `max_energy`), *Kit* (`abilities`: `[{id, name}]`, `barks`: context -> lines), *Visuals* (`portrait` path, `figure_height`, `shader_saturation` / `_contrast` / `_brightness`).
+  - **EnemyArchetype** (`scripts/battle/enemy_archetype.gd`, one per type in `resources/enemies/`: warden, hound, custodian, enforcer). Groups: *Identity* (`id` = type id, `display_name`, `is_boss`), *Behaviour* (`ai_profile` enum Tactician / Berserker / Soldier = 0 / 1 / 2, `is_ranged`), *Stats* (`base_hp`, `hp_per_floor`, `base_attack`, `attack_per_floor`, `defense`, `speed`, `max_energy`), *Sprites* (`idle_sprite`, `attack_frames` paths), *Visuals* (`sprite_scale`, `tint`, `has_aura_color` + `aura_color`, `figure_height`, shader grade). Floor scaling: `max_hp = base_hp + hp_per_floor * (floor - 1)`, same shape for attack.
+  - **MissionData** / **FloorData** (`scripts/missions/`, `resources/missions/meridian_spire.tres`): per floor `title`, `background`, `enemies` (type ids in arena slot order). Today: `["warden"]`, `["warden", "hound"]`, `["custodian"]`.
+  - Sprites are stored as `res://` path strings (`@export_file`), not `Texture2D`, so loading the roster does not load every texture and the getters keep returning paths.
+- **HeroRoster** (RefCounted, static): thin loader over the HeroData files listed in `HeroRoster.HERO_PATHS` (index = party slot). Loads once on first use; `get_hero(i)` still returns the legacy dictionary (`HeroData.to_dict()`, `role_color` as `"#rrggbb"`), `get_data(i)` returns the resource. `ACTIVE_PARTY_SIZE` is 3, `FULL_ROSTER_SIZE` is 5.
+- **EnemyRoster** (RefCounted, static): thin loader over `EnemyRoster.ARCHETYPE_PATHS`; `get_archetype(id)` returns the legacy dictionary, `get_data(id)` the resource. Paths are an explicit list, not a directory scan, because `DirAccess` listing is unreliable in exported / web builds. Adding a hero or archetype = a new `.tres` plus one line in the path list.
 - **Turn order entry** (Dictionary): `{ "stats": BattlerStats, "index": int, "is_party": bool }`. The `index` is the position in the party or enemy array.
 - **Current battler / target**: Same structure. BattleScene and BattleManager pass these dicts around (e.g. `get_current_battler()`, `perform_attack(attacker, target)`).
 
 ## Where it’s implemented
 
 - **BattleManager** (`scripts/battle/battle_manager.gd`): `setup_battle`, `_build_turn_order`, `advance_turn`, `_tick_round_effects`, `perform_attack`, `perform_ability`, ability/target validation helpers, `_check_battle_end`, and all signals.
-- **BattleScene** (`scripts/battle/battle_scene.gd`): `_on_turn_started`, `_ai_turn` and `_choose_enemy_action`, `_on_attack_pressed`, `_on_abilities_pressed`, `_on_ability_used`, `_on_end_turn_pressed`, `_on_battle_ended`, `_on_next_floor_pressed`, floor setup (`_build_sample_party`, `_build_sample_enemies`, `_apply_mission_floor_visuals`), the turn-order bar (current battler gets “► TURN:” in an amber panel), arena turn highlight, hero barks, battle log and floating combat text.
+- **BattleScene** (`scripts/battle/battle_scene.gd`): `_on_turn_started`, `_run_enemy_turn`, `_on_attack_requested`, `_on_abilities_requested`, `_on_ability_selected`, `_on_end_turn_requested`, `_on_battle_ended`, `_on_next_floor_requested`, floor setup (`HeroRoster.build_party`, `_build_enemies`, `_apply_mission_floor_visuals`), the turn-order bar (current battler gets “► TURN:” in an amber panel), arena turn highlight, hero barks, battle log and floating combat text.
 - **BattlerSlot** (`scripts/battle/battler_slot.gd`): `setup`, `set_attack_frames`, `play_attack_animation()`, `play_hit_flash()`, `play_enemy_turn_flash()`, `set_role_display()`, `set_turn_highlight(active)`, `refresh()` (HP, shield and energy bars; Flying/Shielded/Guarded labels; shield bubble).
-- **HeroRoster** (`scripts/battle/hero_roster.gd`): hero data and `apply_to_stats()`.
+- **HeroRoster** (`scripts/battle/hero_roster.gd`) / **EnemyRoster** (`scripts/battle/enemy_roster.gd`): loaders over `resources/heroes/*.tres` and `resources/enemies/*.tres`; `apply_to_stats()`, `build_party()`, `build_enemies()`.
 - **ShieldBubble** (`scripts/battle/shield_bubble.gd`) and **FloatingCombatText** (`scripts/battle/floating_combat_text.gd`): visual effects.
 - **BattlerStats** (`resources/battler_stats.gd`): damage, shield, guard, buff and energy state.
 
-To add abilities, you would extend `ABILITY_COSTS` and `perform_ability` in BattleManager, add the id to a hero’s `abilities` in `HeroRoster`, and (if it needs a target or an attack animation) add it to `TARGETED_ABILITIES` and `ATTACK_ANIM_ABILITIES`.
+To add abilities, you would extend `ABILITY_COSTS` and `perform_ability` in BattleManager, add the id to a hero’s `abilities` in its `resources/heroes/*.tres`, and (if it needs a target or an attack animation) add it to `TARGETED_ABILITIES` and `ATTACK_ANIM_ABILITIES`.

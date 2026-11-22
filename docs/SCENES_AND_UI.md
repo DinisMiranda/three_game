@@ -8,7 +8,7 @@ The game starts at **MainMenu** (`scenes/main_menu/main_menu.tscn`, `run/main_sc
 
 | Scene | Script | Role |
 |-------|--------|------|
-| `main_menu/main_menu.tscn` | `scripts/main_menu/main_menu.gd` | Title, **Start Battle**, **Options**, concept panel. |
+| `main_menu/main_menu.tscn` | `scripts/main_menu/main_menu.gd` | Title, **Continue** (only with progress), **New Mission**, **Options**, **Quit**, mission teaser. |
 | `story/briefing_dialogue.tscn` | `scripts/story/briefing_dialogue.gd` | Office and alley briefing dialogue. |
 | `story/world_map_select.tscn` | `scripts/story/world_map_select.gd` | Tactical map; zones are `story/map_zone.tscn` instances. |
 | `battle/battle_scene.tscn` | `scripts/battle/battle_scene.gd` | The battle. Slots are `battle/battler_slot.tscn`. |
@@ -26,16 +26,21 @@ Every step goes through **SceneFader** (`SceneFader.change_scene(path)`): fade t
 ## Main menu tree
 
 ```
-MainMenu (Control, main_menu.gd)
-  ├── Background (TextureRect; background_blue.png, repeated by menu_bg_repeat.gdshader)
+MainMenu (Control, main_menu.gd; theme = triad_theme.tres)
+  ├── Background (TextureRect; background_blue.png, STRETCH_KEEP_ASPECT_COVERED, no tiling)
   └── Margin (MarginContainer)
         └── ContentRow (HBoxContainer)
-              ├── MenuColumn: Title, Subtitle, Spacer, StartBtn, OptionsBtn
+              ├── MenuColumn: Title (TitleLabel), Subtitle (tagline), Spacer,
+              │               ContinueBtn, NewMissionBtn, OptionsBtn, QuitBtn
               ├── RightSpacer
-              └── ConceptPanel (PanelContainer: ConceptTitle, ConceptText)
+              └── TeaserPanel (PanelContainer): MissionKicker, MissionHook, MissionStatus,
+                                                SquadKicker, HeroRow (built in code)
 ```
 
-**Start Battle** loads `briefing_dialogue.tscn` through SceneFader. ESC (or **Options**) shows the options overlay, instanced in code.
+- **Continue** is shown only when `get_continue_scene()` returns a scene: pending epilogue → `meridian_epilogue`, active Meridian Spire run → `battle_scene` (current floor), hideout choice pending → `hideout_select`. Otherwise it is hidden and **New Mission** has focus.
+- **New Mission** loads `briefing_dialogue.tscn` through SceneFader. **Options** (or ESC) shows the options overlay, instanced in code. **Quit** is hidden on web builds.
+- **Teaser**: the three active heroes from HeroRoster (portrait on a `PlatePanel`, name, role), the mission hook from the briefing, and the status (“In progress · Floor N — …” while a run is active).
+- The old `menu_bg_repeat.gdshader` tiling (1.25 repeats of a 1536 px image, seam at x = 1536) is no longer used: the art is drawn once, aspect-covered.
 
 ## Battle scene tree
 
@@ -81,7 +86,7 @@ End screen titles: “Victory!”, “Floor clear!” (with NextFloorBtn, back b
 - **Party (left)**: One row of three slots, visual order Nova, Kael, Rin (Kael, party index 0, is in the middle).
 - **Enemies (right)**: Two rows pushed right by a spacer. Enemy indices 0 and 1 are in the front row; 2 and 3, if present, in an indented back row. The Meridian Spire floors use one or two enemies.
 
-Rows are built in `_build_arena()` with `_make_row(container, behind, add_leading_spacer, top_margin)`. When `behind == true`, the row is wrapped in a MarginContainer with `margin_left = 28`. Enemy slots are set up with a larger sprite size (380×494).
+Rows are built in `ArenaView.build()` with `_make_row(container, behind, push_right)`. When `behind == true`, the row is wrapped in a MarginContainer with `margin_left = 28`. Enemy slots are set up with a larger sprite size (380×494).
 
 Enemies come from **EnemyRoster** (`enemy_roster.gd`): each floor lists archetype ids and the roster gives name, sprites, stats, `sprite_scale`, tint and boss flag. The boss (Custodian Unit, floor 3) gets `set_boss_visual(true)`: the `boss_aura.gdshader` glow, a 1.2× sprite scaled up from its feet, and a dark info plate behind its name and bars.
 
@@ -104,10 +109,10 @@ Slots are instanced from `scenes/battle/battler_slot.tscn`. BattleScene adds eac
 
 ## Story scenes
 
-The briefing, epilogue and debrief share one layout: a full-screen background texture (`SceneBackground` or `OfficeBackground`) plus a dark tint (`Background` ColorRect), a portrait and dialogue panel on each side (`MercSide`, `BossSide`), a `Hint` label and a `FadeOverlay`. Lines are revealed with a typewriter effect (48 characters/second); click, SPACE or Enter advances (finishing the typing first). **ESC skips** the current phase in the briefing and epilogue, and to the end in the debrief.
+The briefing, epilogue and debrief share one layout: a full-screen background texture (`SceneBackground` or `OfficeBackground`) plus a dark tint (`Background` ColorRect), a portrait and dialogue panel on each side (`MercSide`, `BossSide`), a `Hint` label and a `FadeOverlay`. Dialogue boxes are styled by `DialogueBoxStyle` (`scripts/ui/dialogue_box_style.gd`): themed panel, a Roboto Mono `SpeakerTag` above the Exo 2 `DialogueBody` text. Lines are revealed with a typewriter effect (48 characters/second); click, SPACE or Enter advances (finishing the typing first). **ESC skips** the current phase in the briefing and epilogue, and to the end in the debrief.
 
 - **briefing_dialogue**: phases OFFICE (Handler and Nova) then ALLEY (Nova and Kael), then fade to the world map.
-- **world_map_select**: `Layout` VBox with `HudTop` (Kicker, Title), a horizontally scrolling `MapScroll` → `MapCanvas` (`MapBg` using `mapa.png`, `ZonesLayer` with `MapZone` instances, `PlayerMarker`), and a `Hud` with `InfoPanel` (ZoneTitle, ZoneSubtitle), `DeployBtn` and a hint. Drag with the mouse or use the arrow keys to pan; Enter deploys. Zones: Meridian Spire (unlocked), North Grid, Central Archive, South Docks (locked).
+- **world_map_select**: a `Backdrop` (bg_deep) and a `Layout` VBox with `HudTop` (BarPanel: Kicker, Title), a horizontally scrolling `MapScroll` → `MapCanvas` (`MapBg` using `mapa.png`, `ZonesLayer` with `MapZone` instances, `PlayerMarker`), and a `Hud` (BarPanel) with `InfoPanel` (ZoneTitle, ZoneSubtitle), `DeployBtn` (theme button) and a hint. Each `MapZone` draws its own state (unlocked: line_cyan border + 14% accent_cyan fill; hover/selected: accent_cyan border + 22% fill; locked: text_disabled border on a dark fill) with 3 px corner brackets (Godot 4.7 draws lines without the AA feather), and a `PlatePanel` name plate on its bottom edge. Drag with the mouse or use the arrow keys to pan; Enter deploys. Zones: Meridian Spire (unlocked), North Grid, Central Archive, South Docks (locked).
 - **meridian_epilogue**: phases ROOFTOP, OFFICE, BASE, plus a `BagProp` label; ends at `hideout_select`.
 - **hideout_select**: `Layout` → `Header/VBox` (Kicker, Title, Subtitle), `CardsWrap/CardsRow` (one card per entry of `MissionProgress.HIDEOUTS`), `Footer/VBox` (SelectedTitle, SelectedSubtitle, RallyBtn), `Hint`. The script’s node paths include the `VBox` nodes under Header and Footer.
 - **hideout_debrief**: same dialogue layout plus a `LocationBanner`, background taken from the chosen hideout.
@@ -116,16 +121,17 @@ The briefing, epilogue and debrief share one layout: a full-screen background te
 
 `OptionsMenu` (CanvasLayer, `options_menu.gd`): `Overlay` ColorRect and a centered `Panel` with a Title, a `VolumeRow` (slider mapped from −40 dB to 0 dB on the Master bus, percentage label), **Back** (to main menu), **Quit** and **Close**. ESC opens it from the main menu and the battle and closes it again.
 
-## Sci-fi theme (colors and styles)
+## Theme and palette
 
-Applied in `battle_scene.gd` (`_apply_sci_fi_theme()` and related):
+All screens use one Theme, **`assets/ui/triad_theme.tres`**, set on each scene root (and on the first Control under each CanvasLayer: `EndScreen/Center`, `OptionsMenu/Center`, since a CanvasLayer does not pass a theme down). Spec: `docs/design/art-direction.md`.
 
-- **Panels**: Dark background (`_COLOR_PANEL`), thin cyan border (`_COLOR_BORDER`), 12px content margin.
-- **Labels**: Light gray text (`_COLOR_TEXT`); turn bar and stats title use accent (`_COLOR_ACCENT`); the **current turn** in the turn bar is shown in a small panel with amber border and “► TURN: P Name” / “► TURN: E Name” in amber (`_COLOR_NEXT`), larger font. The log is a RichTextLabel colored per line kind (normal, enemy, crit, absorb, miss, victory, defeat, bark).
-- **Buttons**: Dark background, cyan border; slightly lighter on hover (`_make_btn_style`).
-- **Progress bars**: Dark background style. HP fill is cyan, orange when low, red when critical; energy fill is yellow. Colours, tags and thresholds live in BattleFeel and are shared by the slots and the Party status panel.
-- **BattlerSlot**: Its own panel style (transparent by default), HP, shield and energy bars with “HP” / “EN” tags and current/max numbers. When it’s that character’s turn, BattleScene calls `set_turn_highlight(true)` and the slot gets an amber border; otherwise the default style is restored. The selected enemy is tinted, and enemies the current attacker cannot reach are dimmed.
-- **Story and menu scenes** use their own constants (`_BOX_BG`, `_BOX_BORDER`, `_NEON_CYAN`) in each script; the main menu uses green accents.
+- **Source of truth**: `scripts/ui/triad_theme_builder.gd` (`TriadThemeBuilder`). Regenerate the `.tres` after changing it: `godot --headless --path . -s res://scripts/ui/build_triad_theme.gd`. A test checks the saved file still matches the builder.
+- **Palette**: `scripts/ui/palette.gd` (`Palette`) holds the colour tokens (`BG_DEEP`, `PANEL_FILL`, `LINE_CYAN`, `ACCENT_CYAN`, `TEXT_*`, `PARTY_TEAL`, `ENEMY_RED`, `SELECT_AMBER`, …). Code that must set a colour uses a token, never a literal. Log/combat-text semantic colours stay in BattleFeel and `battle_scene.gd`.
+- **Fonts**: Exo 2 (variable, `FontVariation` at 400/600/700) is the default font, size 18. Roboto Mono is accent only (kickers, speaker tags, numbers).
+- **Type variations**: labels `TitleLabel` 64, `HeadingLabel` 32, `SubheadingLabel` 22, `CaptionLabel` 14, `KickerLabel`/`MonoLabel`/`SpeakerTag` (mono), `HudLabel`/`HudHeading` (2 px outline over battle art), `DialogueBody`; buttons `CompactButton`; panels `ActivePanel` (cyan glow, actions panel only), `BarPanel`, `LogPanel`, `HistoryPanel`, `PlatePanel`.
+- **Buttons**: normal/hover/pressed/disabled per spec; keyboard/gamepad focus is a 2 px amber ring (expanded 2 px).
+- **Progress bars**: theme trough (`bg_deep`, radius 2); the fill colour is set per value in code (BattleFeel HP ramp, energy yellow).
+- **Battle**: `_apply_theme_colors()` now only wires runtime colours (turn chips, floor banner, log text). Party/Enemy headers sit on `PlatePanel`s. `BattlerSlot` keeps its own styles (owned separately).
 
 ## Window and stretch
 

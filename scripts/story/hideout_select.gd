@@ -4,9 +4,6 @@ extends Control
 const DEBRIEF_SCENE := "res://scenes/story/hideout_debrief.tscn"
 const MAIN_MENU_SCENE := "res://scenes/main_menu/main_menu.tscn"
 
-const _NEON_CYAN := Color(0.0, 0.92, 1.0, 1.0)
-const _PANEL_BG := Color(0.05, 0.06, 0.12, 0.96)
-const _PANEL_BORDER := Color(0.0, 0.88, 1.0, 0.72)
 
 @onready var _fade: ColorRect = $FadeOverlay
 @onready var _cards_row: HBoxContainer = $Layout/CardsWrap/CardsRow
@@ -37,22 +34,14 @@ func _ready() -> void:
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
+## Panels, buttons and labels come from the Theme; code sets the token colours.
 func _style_ui() -> void:
-	$Layout/Header/VBox/Title.add_theme_color_override("font_color", _NEON_CYAN)
-	$Layout/Header/VBox/Title.add_theme_font_size_override("font_size", 38)
-	$Layout/Header/VBox/Subtitle.add_theme_color_override("font_color", Color(0.65, 0.78, 0.9))
-	_selected_title.add_theme_color_override("font_color", Color(0.92, 0.95, 1.0))
-	_selected_subtitle.add_theme_color_override("font_color", Color(0.55, 0.65, 0.75))
-	_hint.add_theme_color_override("font_color", Color(0.5, 0.6, 0.7))
-	var btn_style := StyleBoxFlat.new()
-	btn_style.bg_color = Color(0.08, 0.1, 0.14, 1)
-	btn_style.border_color = _PANEL_BORDER
-	btn_style.set_border_width_all(1)
-	btn_style.set_content_margin_all(14)
-	_rally_btn.add_theme_stylebox_override("normal", btn_style)
-	_rally_btn.add_theme_stylebox_override("hover", btn_style.duplicate())
-	_rally_btn.add_theme_stylebox_override("disabled", btn_style.duplicate())
-	_rally_btn.add_theme_color_override("font_color", _NEON_CYAN)
+	var title: Label = $Layout/Header/VBox/Title
+	title.theme_type_variation = &"HeadingLabel"
+	title.add_theme_color_override("font_color", Palette.ACCENT_CYAN)
+	$Layout/Header/VBox/Subtitle.add_theme_color_override("font_color", Palette.TEXT_SECONDARY)
+	_selected_subtitle.add_theme_color_override("font_color", Palette.TEXT_SECONDARY)
+	_hint.theme_type_variation = &"CaptionLabel"
 
 
 func _build_cards() -> void:
@@ -66,41 +55,30 @@ func _build_cards() -> void:
 func _make_card(hideout: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(320, 280)
-	var style := StyleBoxFlat.new()
-	style.bg_color = _PANEL_BG
-	style.border_color = _PANEL_BORDER
-	style.set_border_width_all(1)
-	style.set_content_margin_all(20)
-	panel.add_theme_stylebox_override("panel", style)
+	# Own copy of the themed panel so the selection border can change per card.
+	panel.add_theme_stylebox_override("panel", TriadThemeBuilder.make_panel_box())
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 12)
 	panel.add_child(vbox)
 	var title := Label.new()
 	title.text = str(hideout.get("title", ""))
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title.add_theme_color_override("font_color", _NEON_CYAN)
-	title.add_theme_font_size_override("font_size", 22)
+	title.theme_type_variation = &"SubheadingLabel"
+	title.add_theme_color_override("font_color", Palette.ACCENT_CYAN)
 	vbox.add_child(title)
 	var sub := Label.new()
 	sub.text = str(hideout.get("subtitle", ""))
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	sub.add_theme_color_override("font_color", Color(0.7, 0.8, 0.9))
+	sub.add_theme_color_override("font_color", Palette.TEXT_SECONDARY)
 	vbox.add_child(sub)
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(spacer)
 	var pick := Button.new()
 	pick.text = "Select"
-	pick.add_theme_color_override("font_color", Color(0.9, 0.94, 1.0))
-	var pick_style := StyleBoxFlat.new()
-	pick_style.bg_color = Color(0.06, 0.08, 0.12, 1)
-	pick_style.border_color = _PANEL_BORDER
-	pick_style.set_border_width_all(1)
-	pick_style.set_content_margin_all(10)
-	pick.add_theme_stylebox_override("normal", pick_style)
-	pick.add_theme_stylebox_override("hover", pick_style.duplicate())
 	var hid := str(hideout.get("id", ""))
 	pick.pressed.connect(_on_hideout_selected.bind(hid, panel))
+	vbox.add_child(pick)
 	panel.set_meta("hideout_id", hid)
 	return panel
 
@@ -111,7 +89,7 @@ func _on_hideout_selected(hideout_id: String, panel: PanelContainer) -> void:
 		if child is PanelContainer:
 			var s := (child as PanelContainer).get_theme_stylebox("panel") as StyleBoxFlat
 			if s != null:
-				s.border_color = _PANEL_BORDER if child != panel else Color(1.0, 0.82, 0.25, 1.0)
+				s.border_color = Palette.LINE_CYAN if child != panel else Palette.SELECT_AMBER
 	for hideout: Dictionary in MissionProgress.HIDEOUTS:
 		if str(hideout.get("id", "")) == hideout_id:
 			_selected_title.text = str(hideout.get("title", ""))

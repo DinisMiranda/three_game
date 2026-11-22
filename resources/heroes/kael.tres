@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="HeroData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/hero_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "kael"
+display_name = "Kael"
+role_label = "Grenadier"
+role_color = Color(1.0, 0.5490196078431373, 0.22745098039215686, 1)
+enabled = true
+max_hp = 92
+attack = 14
+defense = 5
+speed = 9
+max_energy = 100
+abilities = Array[Dictionary]([{"id": "grenade", "name": "Grenade"}, {"id": "guard", "name": "Guard"}])
+barks = {"attack": ["Eat this!", "Coming in hot!"], "grenade": ["Fire in the hole!", "Brace for impact!"], "guard": ["Dig in!", "Cover me!"]}
+portrait = "res://assets/sevro_pixel_no_bg-removebg-preview.png"
+figure_height = 240.0
+shader_saturation = 1.4
+shader_contrast = 1.25
+shader_brightness = -0.08

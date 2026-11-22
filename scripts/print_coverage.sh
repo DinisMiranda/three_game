@@ -6,7 +6,7 @@
 set -e
 cd "$(dirname "$0")/.."
 
-COVERED_FILES=(resources/battler_stats.gd scripts/battle/battle_manager.gd scripts/battle/shield_bubble.gd scripts/battle/sci_fi_background.gd scripts/battle/battler_slot.gd scripts/battle/battle_scene.gd scripts/audio/music_player.gd scripts/main/main.gd)
+COVERED_FILES=(resources/battler_stats.gd scripts/battle/battle_manager.gd scripts/battle/shield_bubble.gd scripts/battle/battler_slot.gd scripts/battle/battle_scene.gd scripts/audio/music_player.gd scripts/main/main.gd)
 
 total_lines=0
 while IFS= read -r -d '' f; do
