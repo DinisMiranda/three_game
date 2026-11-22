@@ -83,12 +83,17 @@ What each file does. Godot sidecar files (`*.import`, `*.uid`) sit next to their
 | File | Purpose |
 |------|--------|
 | `scripts/battle/battle_manager.gd` | **BattleManager** (Node). Party/enemy storage, turn order by speed, `advance_turn`, energy restore, `perform_attack` (crit, defense, hit recording), `perform_ability` and ability costs/validation, round-end effect ticks, win/lose check. Signals: `turn_started`, `turn_ended`, `battle_ended`, `turn_order_updated`. No UI. |
-| `scripts/battle/battle_scene.gd` | BattleScene root (~1100 lines). Creates BattleManager and the options menu, loads textures, builds per-floor party and enemies, builds the arena, turn bar and stats panel, handles target selection, Attack, Abilities, End Turn, enemy AI, floor progression, end screen, battle log, barks and floating combat text. |
+| `scripts/battle/battle_scene.gd` | BattleScene controller (~480 lines). Creates BattleManager and the components below, connects their signals, runs the turn flow (player actions, enemy turn, hit results) and floor progression. |
+| `scripts/battle/action_panel.gd` | ActionPanel: Attack / Abilities / End Turn buttons and the ability list; emits request signals. |
+| `scripts/battle/arena_view.gd` | ArenaView (RefCounted): builds the party and enemy slot rows, owns sprite textures, turn and target highlights, turn order entries. |
+| `scripts/battle/party_status_panel.gd` | PartyStatusPanel: the Party status HP / energy rows. |
+| `scripts/battle/battle_narrator.gd` | BattleNarrator (RefCounted): coloured log lines, attack and ability messages, hero barks. |
+| `scripts/battle/enemy_ai.gd` | EnemyAI (RefCounted): AI profile action choice (pure, unit tested) and party target choice. |
+| `scripts/battle/battle_end_screen.gd` | BattleEndScreen: victory / defeat overlay and its buttons. |
 | `scripts/battle/battler_slot.gd` | **BattlerSlot** (PanelContainer). One character slot: name, role, status labels, HP/shield/energy bars, sprite with attack frames. `setup`, `set_attack_frames`, `play_attack_animation`, `play_hit_flash`, `play_enemy_turn_flash`, `set_role_display`, `set_turn_highlight`, `refresh`. Emits `slot_clicked(slot_index, is_party)`. |
 | `scripts/battle/hero_roster.gd` | **HeroRoster** (static data). Five heroes (Kael, Nova, Rin active; Brick, Sage reserved) with stats, abilities, role labels, portraits and barks; `apply_to_stats`, portrait lookups for story scenes. |
 | `scripts/battle/floating_combat_text.gd` | **FloatingCombatText** (Label). Static `spawn()` creates a rising, fading damage/status number. |
 | `scripts/battle/shield_bubble.gd` | **ShieldBubble** (Control). Draws a blue semi-transparent circle when visible. |
-| `scripts/battle/sci_fi_background.gd` | Unused: draws a gradient and grid. No scene instances it any more; kept with its unit test and coverage scripts. |
 
 ### Coverage helpers
 
@@ -105,7 +110,7 @@ What each file does. Godot sidecar files (`*.import`, `*.uid`) sit next to their
 | `scenes/story/briefing_dialogue.tscn` | Briefing UI: office background, tint, MercSide and BossSide portraits and dialogue panels, hint, fade overlay. |
 | `scenes/story/world_map_select.tscn` | Tactical map: HUD title, scrolling map canvas (map, zones layer, player marker), info panel and Deploy button. |
 | `scenes/story/map_zone.tscn` | Root for a MapZone (Control + `map_zone.gd`). |
-| `scenes/battle/battle_scene.tscn` | BattleScene: Background, EnemyTurnFlash, FloatingTextLayer, Margin/VBox (FloorBanner, TurnOrderBar, ArenaRow, BottomRow with ActionsPanel and LogPanel), EndScreen. Slot containers are empty at design time; `_build_arena()` fills them. |
+| `scenes/battle/battle_scene.tscn` | BattleScene: Background, EnemyTurnFlash, FloatingTextLayer, Margin/VBox (FloorBanner, TurnOrderBar, ArenaRow, BottomRow with ActionsPanel and LogPanel), EndScreen. Slot containers are empty at design time; `ArenaView.build()` fills them. ActionsPanel, StatsList and EndScreen carry component scripts. |
 | `scenes/battle/battler_slot.tscn` | BattlerSlot: NameLabel, RoleLabel, Flying/Shielded/Guarded labels, HPBarContainer (HPBar, ShieldBar), EnergyBar, SpriteContainer (ShieldBubble, TextureRect). |
 | `scenes/story/meridian_epilogue.tscn` | Epilogue dialogue UI (same layout as the briefing, plus BagProp). |
 | `scenes/story/hideout_select.tscn` | Hideout selection: header, cards row, footer with RallyBtn, hint, fade overlay. |
@@ -145,8 +150,6 @@ Backgrounds, map and shaders:
 | `assets/alley.png` | Alley background (briefing, epilogue base; Rust Alley hideout). |
 | `assets/background_blue.png` | Main menu background; North Grid hideout. |
 | `assets/mapa.png` | Tactical world map image. |
-| `assets/menu_bg_repeat.gdshader` | Horizontal repeat shader for the main menu background. |
-| `assets/menu_bg.gdshader`, `assets/map_select_atmosphere.gdshader` | Shaders not referenced by any script or scene in the repo. |
 
 Music:
 
@@ -163,10 +166,11 @@ Music:
 | `tests/test_battler_stats.gd` | BattlerStats (12 tests). |
 | `tests/test_battle_manager.gd` | BattleManager (21 tests). |
 | `tests/test_battler_slot.gd` | BattlerSlot (3 tests). |
-| `tests/test_battle_scene.gd` | BattleScene (2 tests). |
+| `tests/test_battle_scene.gd` | BattleScene (wiring). |
+| `tests/test_enemy_ai.gd` | EnemyAI profiles and target choice (11 tests). |
+| `tests/test_action_panel.gd` | ActionPanel signals and ability list (6 tests). |
 | `tests/test_music_player.gd` | MusicPlayer (4 tests). |
 | `tests/test_shield_bubble.gd` | ShieldBubble (1 test). |
-| `tests/test_sci_fi_background.gd` | SciFiBackground (1 test). |
 | `tests/test_main.gd` | Main script (1 test). |
 
 ## Docs

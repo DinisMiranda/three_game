@@ -40,7 +40,7 @@ Hero kits come from `HeroRoster`: **Kael** (Grenadier): Grenade, Guard. **Nova**
 
 ## Enemy AI
 
-Implemented in `battle_scene.gd` (`_choose_enemy_action`, `_pick_party_target_for_enemy`), by enemy index (`index % 3`):
+Implemented in `enemy_ai.gd` (`EnemyAI.choose_action`, `EnemyAI.pick_target`), by the archetype's AI profile (`EnemyRoster.get_ai_profile`):
 
 - **Profile 0**: Focus when HP is above 50%, else Barrage, else Ranged Shot, else a basic attack.
 - **Profile 1**: Frenzy when HP is below 50%, else a basic attack.
@@ -57,7 +57,7 @@ Each action picks a random valid party target. Before acting, the enemy slot fla
    - BattleManager clears the battler’s flying/guard state and restores energy, then emits `turn_started(battler_index, is_party)`.  
    - BattleScene: dead battlers are skipped via `advance_turn()`.  
    - If **party**: shows the actions panel; the user picks a target (click, or Attack auto-picks a random valid enemy) and clicks Attack, Abilities, or End Turn.  
-   - If **enemy**: hides actions, plays the turn intro, then `_ai_turn()` and `advance_turn()`.
+   - If **enemy**: hides actions, plays the turn intro, then `_run_enemy_turn()` and `advance_turn()`.
 
 3. **advance_turn()**  
    - Emits `turn_ended` for the current battler.  
@@ -84,7 +84,7 @@ Each action picks a random valid party target. Before acting, the enemy slot fla
 ## Where it’s implemented
 
 - **BattleManager** (`scripts/battle/battle_manager.gd`): `setup_battle`, `_build_turn_order`, `advance_turn`, `_tick_round_effects`, `perform_attack`, `perform_ability`, ability/target validation helpers, `_check_battle_end`, and all signals.
-- **BattleScene** (`scripts/battle/battle_scene.gd`): `_on_turn_started`, `_ai_turn` and `_choose_enemy_action`, `_on_attack_pressed`, `_on_abilities_pressed`, `_on_ability_used`, `_on_end_turn_pressed`, `_on_battle_ended`, `_on_next_floor_pressed`, floor setup (`_build_sample_party`, `_build_sample_enemies`, `_apply_mission_floor_visuals`), the turn-order bar (current battler gets “► TURN:” in an amber panel), arena turn highlight, hero barks, battle log and floating combat text.
+- **BattleScene** (`scripts/battle/battle_scene.gd`): `_on_turn_started`, `_run_enemy_turn`, `_on_attack_requested`, `_on_abilities_requested`, `_on_ability_selected`, `_on_end_turn_requested`, `_on_battle_ended`, `_on_next_floor_requested`, floor setup (`HeroRoster.build_party`, `_build_enemies`, `_apply_mission_floor_visuals`), the turn-order bar (current battler gets “► TURN:” in an amber panel), arena turn highlight, hero barks, battle log and floating combat text.
 - **BattlerSlot** (`scripts/battle/battler_slot.gd`): `setup`, `set_attack_frames`, `play_attack_animation()`, `play_hit_flash()`, `play_enemy_turn_flash()`, `set_role_display()`, `set_turn_highlight(active)`, `refresh()` (HP, shield and energy bars; Flying/Shielded/Guarded labels; shield bubble).
 - **HeroRoster** (`scripts/battle/hero_roster.gd`): hero data and `apply_to_stats()`.
 - **ShieldBubble** (`scripts/battle/shield_bubble.gd`) and **FloatingCombatText** (`scripts/battle/floating_combat_text.gd`): visual effects.

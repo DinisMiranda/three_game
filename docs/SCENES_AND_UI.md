@@ -86,7 +86,7 @@ End screen titles: “Victory!”, “Floor clear!” (with NextFloorBtn, back b
 - **Party (left)**: One row of three slots, visual order Nova, Kael, Rin (Kael, party index 0, is in the middle).
 - **Enemies (right)**: Two rows pushed right by a spacer. Enemy indices 0 and 1 are in the front row; 2 and 3, if present, in an indented back row. The Meridian Spire floors use one or two enemies.
 
-Rows are built in `_build_arena()` with `_make_row(container, behind, add_leading_spacer, top_margin)`. When `behind == true`, the row is wrapped in a MarginContainer with `margin_left = 28`. Enemy slots are set up with a larger sprite size (380×494).
+Rows are built in `ArenaView.build()` with `_make_row(container, behind, push_right)`. When `behind == true`, the row is wrapped in a MarginContainer with `margin_left = 28`. Enemy slots are set up with a larger sprite size (380×494).
 
 Enemies come from **EnemyRoster** (`enemy_roster.gd`): each floor lists archetype ids and the roster gives name, sprites, stats, `sprite_scale`, tint and boss flag. The boss (Custodian Unit, floor 3) gets `set_boss_visual(true)`: the `boss_aura.gdshader` glow, a 1.2× sprite scaled up from its feet, and a dark info plate behind its name and bars.
 
@@ -131,7 +131,7 @@ All screens use one Theme, **`assets/ui/triad_theme.tres`**, set on each scene r
 - **Type variations**: labels `TitleLabel` 64, `HeadingLabel` 32, `SubheadingLabel` 22, `CaptionLabel` 14, `KickerLabel`/`MonoLabel`/`SpeakerTag` (mono), `HudLabel`/`HudHeading` (2 px outline over battle art), `DialogueBody`; buttons `CompactButton`; panels `ActivePanel` (cyan glow, actions panel only), `BarPanel`, `LogPanel`, `HistoryPanel`, `PlatePanel`.
 - **Buttons**: normal/hover/pressed/disabled per spec; keyboard/gamepad focus is a 2 px amber ring (expanded 2 px).
 - **Progress bars**: theme trough (`bg_deep`, radius 2); the fill colour is set per value in code (BattleFeel HP ramp, energy yellow).
-- **Battle**: `_apply_sci_fi_theme()` now only wires runtime colours (turn chips, floor banner, log text). Party/Enemy headers sit on `PlatePanel`s. `BattlerSlot` keeps its own styles (owned separately).
+- **Battle**: `_apply_theme_colors()` now only wires runtime colours (turn chips, floor banner, log text). Party/Enemy headers sit on `PlatePanel`s. `BattlerSlot` keeps its own styles (owned separately).
 
 ## Window and stretch
 

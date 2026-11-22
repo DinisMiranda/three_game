@@ -11,7 +11,7 @@ The character slots (BattlerSlots) should show a sprite for each hero and enemy.
 
 So there are two places that can show an image:
 
-- **Battle scene** (`battle_scene.gd`): In `_ready()` it does `load("res://assets/character_placeholder.png")` (and falls back to `preload(...)`). That texture is passed to each slot in `_build_arena()` as `slot.setup(party[i], tex)`.
+- **Battle scene** (`battle_scene.gd`): `ArenaView` loads `res://assets/character_placeholder.png` when constructed. That texture is passed to each slot in `ArenaView.build()` as `slot.setup(party[i], tex)`.
 - **BattlerSlot** (`battler_slot.gd`): In `setup()` it only uses that texture if it’s not `null`. If it is `null`, the slot tries, in order:
   1. `_load_placeholder_here()` — Godot’s ResourceLoader
   2. `_load_placeholder_from_file()` — raw file read + PNG decode
