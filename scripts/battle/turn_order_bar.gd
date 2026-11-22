@@ -20,17 +20,17 @@ const _FALLBACK_REMOVE_DURATION := 0.3
 
 @export_group("Colours")
 ## Underline and border tint of party chips (teal, matches the battle accent).
-@export var party_color: Color = Color(0.0, 0.85, 0.9, 1.0)
+@export var party_color: Color = Palette.PARTY_TEAL
 ## Underline and border tint of enemy chips (red-amber).
-@export var enemy_color: Color = Color(1.0, 0.42, 0.32, 1.0)
+@export var enemy_color: Color = Palette.ENEMY_RED
 ## Border and name colour of the active battler's chip.
-@export var active_color: Color = Color(1.0, 0.75, 0.2, 1.0)
+@export var active_color: Color = Palette.SELECT_AMBER
 ## Chip background.
-@export var chip_bg_color: Color = Color(0.08, 0.09, 0.12, 0.95)
+@export var chip_bg_color: Color = Palette.PANEL_FILL
 ## Chip background while active.
-@export var active_bg_color: Color = Color(0.15, 0.12, 0.05, 0.98)
+@export var active_bg_color: Color = Palette.BG_DEEP
 ## Name colour of inactive chips.
-@export var text_color: Color = Color(0.9, 0.92, 0.95, 1.0)
+@export var text_color: Color = Palette.TEXT_PRIMARY
 ## Alpha of the side-coloured border on inactive chips.
 @export_range(0.0, 1.0, 0.05) var inactive_border_alpha: float = 0.45
 
@@ -234,7 +234,7 @@ func _apply_spec(chip: _Chip, spec: Dictionary) -> void:
 	chip.underline.custom_minimum_size = Vector2(0.0, float(underline_px))
 	chip.underline.visible = underline_px > 0
 	var style := StyleBoxFlat.new()
-	style.bg_color = active_bg_color if chip.is_active else chip_bg_color
+	style.bg_color = active_bg_color.lerp(active_color, 0.12) if chip.is_active else chip_bg_color
 	if chip.is_active:
 		style.border_color = active_color
 		style.set_border_width_all(2)
@@ -242,7 +242,7 @@ func _apply_spec(chip: _Chip, spec: Dictionary) -> void:
 		var c := chip.side_color
 		style.border_color = Color(c.r, c.g, c.b, c.a * inactive_border_alpha)
 		style.set_border_width_all(1)
-	style.set_corner_radius_all(3)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 6.0
 	style.content_margin_right = 8.0
 	style.content_margin_top = 4.0

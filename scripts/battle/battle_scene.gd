@@ -60,17 +60,9 @@ var _enemy_turn_token: int = 0
 var _action_busy: bool = false
 var _ai_running: bool = false
 
-# Sci-fi palette used by _apply_sci_fi_theme and turn order / stats
-const _COLOR_PANEL := Color(0.08, 0.09, 0.12, 0.95)
-const _COLOR_BORDER := Color(0.0, 0.85, 1.0, 0.6)
-const _COLOR_TEXT := Color(0.9, 0.92, 0.95, 1)
-const _COLOR_ACCENT := Color(0.0, 0.9, 1.0, 1)
+# Log line colours are semantic (combat text/log only); chrome colours come from Palette.
+## Log text green: the log's own semantic colour (art-direction §1, log only).
 const _COLOR_LOG := Color(0.0, 1.0, 0.55, 0.95)
-const _COLOR_NEXT := Color(1.0, 0.75, 0.2, 1)
-const _COLOR_TURN_PARTY := Color(0.0, 0.85, 0.9, 1)  # turn-order chip accent, party (teal)
-const _COLOR_TURN_ENEMY := Color(1.0, 0.42, 0.32, 1)  # turn-order chip accent, enemies (red-amber)
-const _COLOR_LOG_BG := Color(0.04, 0.05, 0.08, 0.98)
-
 const _COLOR_LOG_ENEMY := Color(1.0, 0.45, 0.42, 1)
 const _COLOR_LOG_CRIT := Color(1.0, 0.55, 0.2, 1)
 const _COLOR_LOG_ABSORB := Color(0.45, 0.75, 1.0, 1)
@@ -135,103 +127,20 @@ func _ready() -> void:
 	_start_sample_battle()
 	_apply_mission_floor_visuals()
 
-# --- Apply dark panels, cyan borders, and text/button styles to all main UI elements ---
+# --- Theme hookup. Panels, buttons, labels and bars are styled by the project
+# Theme (assets/ui/triad_theme.tres, set on the scene root); this only wires the
+# runtime colours that code owns, using Palette tokens. ---
 func _apply_sci_fi_theme() -> void:
-	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = _COLOR_PANEL
-	panel_style.border_color = _COLOR_BORDER
-	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(0)
-	panel_style.set_content_margin_all(12)
-
-	var top_bar_style := panel_style.duplicate() as StyleBoxFlat
-	top_bar_style.content_margin_top = 6
-	top_bar_style.content_margin_bottom = 6
-	$Margin/VBox/TopBar.add_theme_stylebox_override("panel", top_bar_style)
-	$Margin/VBox/TopBar/TopHBox/TurnOrderLabel.add_theme_color_override("font_color", _COLOR_ACCENT)
-	$Margin/VBox/TopBar/TopHBox/TurnOrderLabel.add_theme_font_size_override("font_size", 13)
-	turn_order_bar.party_color = _COLOR_TURN_PARTY
-	turn_order_bar.enemy_color = _COLOR_TURN_ENEMY
-	turn_order_bar.active_color = _COLOR_NEXT
-	turn_order_bar.chip_bg_color = _COLOR_PANEL
-	turn_order_bar.text_color = _COLOR_TEXT
-
-	$Margin/VBox/ArenaRow/PartyArena/PartyLabel.add_theme_color_override("font_color", _COLOR_TEXT)
-	$Margin/VBox/ArenaRow/EnemyArena/EnemyLabel.add_theme_color_override("font_color", _COLOR_TEXT)
-
-	var stats_panel_style = panel_style.duplicate()
-	$Margin/VBox/BottomRow/PartyStatsPanel.add_theme_stylebox_override("panel", stats_panel_style)
-	$Margin/VBox/BottomRow/PartyStatsPanel/StatsVBox/StatsTitle.add_theme_color_override("font_color", _COLOR_ACCENT)
-
-	var actions_style = panel_style.duplicate()
-	(actions_style as StyleBoxFlat).set_content_margin_all(20)
-	$Margin/VBox/BottomRow/ActionsPanel.add_theme_stylebox_override("panel", actions_style)
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn.add_theme_color_override("font_color", _COLOR_TEXT)
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn.add_theme_font_size_override("font_size", 20)
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn.add_theme_color_override("font_color", _COLOR_TEXT)
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn.add_theme_font_size_override("font_size", 20)
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn.add_theme_color_override("font_color", _COLOR_TEXT)
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn.add_theme_font_size_override("font_size", 22)
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
-	speed_btn.add_theme_color_override("font_color", _COLOR_ACCENT)
-	speed_btn.add_theme_font_size_override("font_size", 18)
-	speed_btn.add_theme_stylebox_override("normal", _make_compact_btn_style(false))
-	speed_btn.add_theme_stylebox_override("hover", _make_compact_btn_style(true))
-	speed_btn.add_theme_stylebox_override("pressed", _make_compact_btn_style(true))
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityLabel.add_theme_color_override("font_color", _COLOR_TEXT)
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn.add_theme_color_override("font_color", _COLOR_TEXT)
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
-	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
-
-	var log_style := panel_style.duplicate() as StyleBoxFlat
-	log_style.bg_color = _COLOR_LOG_BG
-	log_style.content_margin_top = 8
-	log_style.content_margin_bottom = 8
-	var history_style := log_style.duplicate() as StyleBoxFlat
-	history_style.shadow_color = Color(0, 0, 0, 0.6)
-	history_style.shadow_size = 12
-	battle_log.apply_style(log_style, history_style, _COLOR_LOG, _COLOR_ACCENT,
-		_make_compact_btn_style(false), _make_compact_btn_style(true))
+	turn_order_bar.party_color = Palette.PARTY_TEAL
+	turn_order_bar.enemy_color = Palette.ENEMY_RED
+	turn_order_bar.active_color = Palette.SELECT_AMBER
+	turn_order_bar.chip_bg_color = Palette.PANEL_FILL
+	turn_order_bar.text_color = Palette.TEXT_PRIMARY
+	floor_banner.add_theme_color_override("font_color", Palette.ACCENT_CYAN)
+	battle_log.set_text_color(_COLOR_LOG)
 
 func _apply_end_screen_theme() -> void:
-	var panel = $EndScreen/Center/Panel
-	if panel is PanelContainer:
-		var s = StyleBoxFlat.new()
-		s.bg_color = _COLOR_PANEL
-		s.border_color = _COLOR_BORDER
-		s.set_border_width_all(2)
-		s.set_content_margin_all(24)
-		panel.add_theme_stylebox_override("panel", s)
-	end_title.add_theme_color_override("font_color", _COLOR_ACCENT)
-	end_title.add_theme_font_size_override("font_size", 36)
-	next_floor_btn.add_theme_color_override("font_color", _COLOR_TEXT)
-	next_floor_btn.add_theme_stylebox_override("normal", _make_btn_style(false))
-	next_floor_btn.add_theme_stylebox_override("hover", _make_btn_style(true))
-	back_to_menu_btn.add_theme_color_override("font_color", _COLOR_TEXT)
-	back_to_menu_btn.add_theme_stylebox_override("normal", _make_btn_style(false))
-	back_to_menu_btn.add_theme_stylebox_override("hover", _make_btn_style(true))
-
-## Small button style (speed toggle, log toggle): same look, tighter margins.
-func _make_compact_btn_style(hover: bool) -> StyleBoxFlat:
-	var s := _make_btn_style(hover)
-	s.content_margin_left = 10
-	s.content_margin_right = 10
-	s.content_margin_top = 4
-	s.content_margin_bottom = 4
-	return s
-
-func _make_btn_style(hover: bool) -> StyleBoxFlat:
-	var s = StyleBoxFlat.new()
-	s.bg_color = Color(0.12, 0.14, 0.18, 1) if not hover else Color(0.18, 0.22, 0.28, 1)
-	s.border_color = _COLOR_BORDER
-	s.set_border_width_all(1)
-	s.set_content_margin_all(16)
-	return s
+	end_title.add_theme_color_override("font_color", Palette.ACCENT_CYAN)
 
 
 ## Shows or hides the actions panel without removing it from the layout, so
@@ -500,9 +409,8 @@ func _refresh_party_stats_panel() -> void:
 
 ## One bar of a Party status row. [param stretch] shares the free width.
 func _make_stat_bar(value: int, maximum: int, fill_color: Color, height: int, stretch: float) -> ProgressBar:
-	var bar_bg = StyleBoxFlat.new()
-	bar_bg.bg_color = Color(0.06, 0.07, 0.1, 1)
-	bar_bg.set_corner_radius_all(2)
+	# Trough comes from the Theme (ProgressBar/background); the fill colour is
+	# per value (BattleFeel HP ramp / energy), so it is set here.
 	var bar_fill = StyleBoxFlat.new()
 	bar_fill.bg_color = fill_color
 	bar_fill.set_corner_radius_all(2)
@@ -514,7 +422,6 @@ func _make_stat_bar(value: int, maximum: int, fill_color: Color, height: int, st
 	bar.size_flags_stretch_ratio = stretch
 	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	bar.custom_minimum_size = Vector2(0, height)
-	bar.add_theme_stylebox_override("background", bar_bg)
 	bar.add_theme_stylebox_override("fill", bar_fill)
 	return bar
 
@@ -525,6 +432,7 @@ func _make_stat_label(text: String, color: Color, min_width: int) -> Label:
 	l.text = text
 	l.custom_minimum_size.x = min_width
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	l.theme_type_variation = &"MonoLabel"
 	l.add_theme_color_override("font_color", color)
 	return l
 
@@ -982,9 +890,8 @@ func _on_abilities_pressed() -> void:
 		btn.text = "%s (%d)" % [ability_name, cost]
 		btn.tooltip_text = battle_manager.get_ability_hint(ability_id)
 		btn.disabled = not can_use
-		btn.add_theme_color_override("font_color", _COLOR_TEXT if can_afford else Color(0.5, 0.5, 0.5, 1))
-		btn.add_theme_stylebox_override("normal", _make_btn_style(false))
-		btn.add_theme_stylebox_override("hover", _make_btn_style(true))
+		if not can_afford:
+			btn.add_theme_color_override("font_color", Palette.TEXT_DISABLED)
 		btn.pressed.connect(_on_ability_used.bind(ability_id, ability_name))
 		ability_buttons_container.add_child(btn)
 
@@ -1061,7 +968,7 @@ func _log(msg: String, kind: String = "normal") -> void:
 func _log_color_for_kind(kind: String) -> Color:
 	match kind:
 		"turn":
-			return _COLOR_NEXT
+			return Palette.SELECT_AMBER
 		"enemy_turn":
 			return _COLOR_LOG_ENEMY
 		"damage", "crit":
@@ -1073,13 +980,13 @@ func _log_color_for_kind(kind: String) -> Color:
 		"bark":
 			return _COLOR_LOG_BARK
 		"ability":
-			return _COLOR_ACCENT
+			return Palette.ACCENT_CYAN
 		"victory":
 			return _COLOR_LOG_VICTORY
 		"defeat":
 			return _COLOR_LOG_DEFEAT
 		"system":
-			return _COLOR_TEXT
+			return Palette.TEXT_PRIMARY
 		_:
 			return _COLOR_LOG
 

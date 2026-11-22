@@ -5,8 +5,6 @@ const BATTLE_SCENE := "res://scenes/battle/battle_scene.tscn"
 const MAP_TEXTURE_PATH := "res://assets/mapa.png"
 const MAP_ZONE_SCENE := preload("res://scenes/story/map_zone.tscn")
 
-const _NEON_CYAN := Color(0.0, 0.92, 1.0, 1.0)
-
 ## Normalized rects (x, y, w, h) on the map image. Only spire is playable for now.
 const ZONES: Array[Dictionary] = [
 	{
@@ -114,24 +112,10 @@ func _build_map() -> void:
 	_player.pivot_offset = _player.size * 0.5
 
 
+## Bars, labels and the deploy button are styled by the Theme (BarPanel,
+## KickerLabel, HeadingLabel, SubheadingLabel, CaptionLabel, Button).
 func _style_hud() -> void:
-	_zone_title.add_theme_color_override("font_color", _NEON_CYAN)
-	_zone_title.add_theme_font_size_override("font_size", 26)
-	_zone_subtitle.add_theme_color_override("font_color", Color(0.65, 0.78, 0.9, 0.95))
-	_zone_subtitle.add_theme_font_size_override("font_size", 16)
-	_hint.add_theme_color_override("font_color", Color(0.5, 0.68, 0.82, 0.9))
-	_hint.add_theme_font_size_override("font_size", 15)
-	var btn_style := StyleBoxFlat.new()
-	btn_style.bg_color = Color(0.05, 0.12, 0.16, 0.95)
-	btn_style.border_color = _NEON_CYAN
-	btn_style.set_border_width_all(2)
-	btn_style.set_content_margin_all(14)
-	_deploy_btn.add_theme_stylebox_override("normal", btn_style)
-	var hover := btn_style.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(0.08, 0.2, 0.24, 1.0)
-	_deploy_btn.add_theme_stylebox_override("hover", hover)
-	_deploy_btn.add_theme_color_override("font_color", Color(0.92, 1.0, 1.0, 1.0))
-	_deploy_btn.add_theme_font_size_override("font_size", 20)
+	_zone_title.add_theme_color_override("font_color", Palette.ACCENT_CYAN)
 
 
 func _on_zone_clicked(zone_id: String) -> void:

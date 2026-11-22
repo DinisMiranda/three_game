@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://battle_scene_001"]
+[gd_scene load_steps=6 format=3 uid="uid://battle_scene_001"]
 
 [ext_resource type="Script" path="res://scripts/battle/battle_scene.gd" id="1_battle"]
 [ext_resource type="Texture2D" path="res://assets/andar.jpg" id="2_bg"]
 [ext_resource type="Script" path="res://scripts/battle/turn_order_bar.gd" id="3_turn_bar"]
 [ext_resource type="Script" path="res://scripts/battle/battle_log.gd" id="4_battle_log"]
+[ext_resource type="Theme" path="res://assets/ui/triad_theme.tres" id="5_theme"]
 
 [node name="BattleScene" type="Control"]
 layout_mode = 3
@@ -12,6 +13,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("5_theme")
 script = ExtResource("1_battle")
 
 [node name="Background" type="TextureRect" parent="."]
@@ -57,13 +59,13 @@ layout_mode = 2
 
 [node name="FloorBanner" type="Label" parent="Margin/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.55, 0.98, 1, 0.95)
-theme_override_font_sizes/font_size = 20
+theme_type_variation = &"HudHeading"
 text = "Meridian Spire"
 horizontal_alignment = 1
 
 [node name="TopBar" type="PanelContainer" parent="Margin/VBox"]
 layout_mode = 2
+theme_type_variation = &"BarPanel"
 
 [node name="TopHBox" type="HBoxContainer" parent="Margin/VBox/TopBar"]
 layout_mode = 2
@@ -71,6 +73,7 @@ theme_override_constants/separation = 10
 
 [node name="TurnOrderLabel" type="Label" parent="Margin/VBox/TopBar/TopHBox"]
 layout_mode = 2
+theme_type_variation = &"KickerLabel"
 text = "TURN ORDER"
 
 [node name="TurnOrderBar" type="HBoxContainer" parent="Margin/VBox/TopBar/TopHBox"]
@@ -80,6 +83,7 @@ script = ExtResource("3_turn_bar")
 
 [node name="SpeedBtn" type="Button" parent="Margin/VBox/TopBar/TopHBox"]
 layout_mode = 2
+theme_type_variation = &"CompactButton"
 custom_minimum_size = Vector2(72, 44)
 size_flags_vertical = 4
 tooltip_text = "Battle speed"
@@ -96,8 +100,14 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 16
 
-[node name="PartyLabel" type="Label" parent="Margin/VBox/ArenaRow/PartyArena"]
+[node name="PartyHeader" type="PanelContainer" parent="Margin/VBox/ArenaRow/PartyArena"]
 layout_mode = 2
+size_flags_horizontal = 0
+theme_type_variation = &"PlatePanel"
+
+[node name="PartyLabel" type="Label" parent="Margin/VBox/ArenaRow/PartyArena/PartyHeader"]
+layout_mode = 2
+theme_type_variation = &"SubheadingLabel"
 text = "Party (3)"
 
 [node name="PartySlots" type="VBoxContainer" parent="Margin/VBox/ArenaRow/PartyArena"]
@@ -111,8 +121,14 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 16
 
-[node name="EnemyLabel" type="Label" parent="Margin/VBox/ArenaRow/EnemyArena"]
+[node name="EnemyHeader" type="PanelContainer" parent="Margin/VBox/ArenaRow/EnemyArena"]
 layout_mode = 2
+size_flags_horizontal = 0
+theme_type_variation = &"PlatePanel"
+
+[node name="EnemyLabel" type="Label" parent="Margin/VBox/ArenaRow/EnemyArena/EnemyHeader"]
+layout_mode = 2
+theme_type_variation = &"SubheadingLabel"
 text = "Enemy"
 
 [node name="EnemySlots" type="VBoxContainer" parent="Margin/VBox/ArenaRow/EnemyArena"]
@@ -126,6 +142,7 @@ theme_override_constants/separation = 16
 
 [node name="ActionsPanel" type="PanelContainer" parent="Margin/VBox/BottomRow"]
 layout_mode = 2
+theme_type_variation = &"ActivePanel"
 custom_minimum_size = Vector2(420, 0)
 
 [node name="ActionsVBox" type="VBoxContainer" parent="Margin/VBox/BottomRow/ActionsPanel"]
@@ -186,6 +203,7 @@ theme_override_constants/separation = 6
 
 [node name="StatsTitle" type="Label" parent="Margin/VBox/BottomRow/PartyStatsPanel/StatsVBox"]
 layout_mode = 2
+theme_type_variation = &"KickerLabel"
 text = "Party status"
 
 [node name="StatsList" type="VBoxContainer" parent="Margin/VBox/BottomRow/PartyStatsPanel/StatsVBox"]
@@ -207,9 +225,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.02, 0.02, 0.06, 0.85)
+color = Color(0.039215688, 0.050980393, 0.078431375, 0.85)
 
 [node name="Center" type="CenterContainer" parent="EndScreen"]
+theme = ExtResource("5_theme")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -227,6 +246,7 @@ alignment = 1
 
 [node name="EndTitle" type="Label" parent="EndScreen/Center/Panel/VBox"]
 layout_mode = 2
+theme_type_variation = &"HeadingLabel"
 text = "Victory!"
 horizontal_alignment = 1
 
