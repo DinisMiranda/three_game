@@ -10,9 +10,9 @@ const _PANEL_BORDER := Color(0.0, 0.88, 1.0, 0.72)
 
 @onready var _fade: ColorRect = $FadeOverlay
 @onready var _cards_row: HBoxContainer = $Layout/CardsWrap/CardsRow
-@onready var _selected_title: Label = $Layout/Footer/SelectedTitle
-@onready var _selected_subtitle: Label = $Layout/Footer/SelectedSubtitle
-@onready var _rally_btn: Button = $Layout/Footer/RallyBtn
+@onready var _selected_title: Label = $Layout/Footer/VBox/SelectedTitle
+@onready var _selected_subtitle: Label = $Layout/Footer/VBox/SelectedSubtitle
+@onready var _rally_btn: Button = $Layout/Footer/VBox/RallyBtn
 @onready var _hint: Label = $Layout/Hint
 
 var _selected_id: String = ""
@@ -20,7 +20,7 @@ var _selected_id: String = ""
 
 func _ready() -> void:
 	if not MissionProgress.hideout_select_ready:
-		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+		get_tree().change_scene_to_file.call_deferred(MAIN_MENU_SCENE)
 		return
 	MusicPlayer.play_menu()
 	_style_ui()
@@ -38,9 +38,9 @@ func _ready() -> void:
 
 
 func _style_ui() -> void:
-	$Layout/Header/Title.add_theme_color_override("font_color", _NEON_CYAN)
-	$Layout/Header/Title.add_theme_font_size_override("font_size", 38)
-	$Layout/Header/Subtitle.add_theme_color_override("font_color", Color(0.65, 0.78, 0.9))
+	$Layout/Header/VBox/Title.add_theme_color_override("font_color", _NEON_CYAN)
+	$Layout/Header/VBox/Title.add_theme_font_size_override("font_size", 38)
+	$Layout/Header/VBox/Subtitle.add_theme_color_override("font_color", Color(0.65, 0.78, 0.9))
 	_selected_title.add_theme_color_override("font_color", Color(0.92, 0.95, 1.0))
 	_selected_subtitle.add_theme_color_override("font_color", Color(0.55, 0.65, 0.75))
 	_hint.add_theme_color_override("font_color", Color(0.5, 0.6, 0.7))
