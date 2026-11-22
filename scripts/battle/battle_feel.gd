@@ -78,6 +78,16 @@ extends Resource
 ## Fade-out of the red full-screen flash at the start of an enemy turn.
 @export_range(0.0, 1.0, 0.01) var enemy_flash_out_duration: float = 0.28
 
+@export_group("Turn Order")
+## Fade-and-shrink length when a downed battler's chip leaves the turn order bar.
+@export_range(0.0, 2.0, 0.01) var turn_chip_remove_duration: float = 0.3
+## Final scale of a leaving chip (it shrinks toward its centre while fading).
+@export_range(0.0, 1.0, 0.05) var turn_chip_remove_scale: float = 0.5
+## Length of the small "pop" when a chip becomes the active battler (0 = off).
+@export_range(0.0, 1.0, 0.01) var turn_chip_activate_duration: float = 0.16
+## Scale the active chip pops from before settling at 1.0.
+@export_range(0.5, 1.5, 0.05) var turn_chip_activate_from_scale: float = 0.85
+
 @export_group("Battle Speed")
 ## Speeds the speed toggle cycles through. Index 0 is the default.
 @export var speed_multipliers: Array[float] = [1.0, 2.0]

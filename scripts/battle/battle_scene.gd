@@ -24,12 +24,11 @@ var _hero3_attack_frames: Array[Texture2D] = []
 # --- Node references (must match battle_scene.tscn tree) ---
 @onready var battle_background: TextureRect = $Background
 @onready var floor_banner: Label = $Margin/VBox/FloorBanner
-@onready var turn_order_list: HBoxContainer = $Margin/VBox/TurnOrderBar/TurnOrderHBox/TurnOrderList
+@onready var turn_order_bar: TurnOrderBar = $Margin/VBox/TopBar/TopHBox/TurnOrderBar
 @onready var party_slots_container: VBoxContainer = $Margin/VBox/ArenaRow/PartyArena/PartySlots
 @onready var enemy_slots_container: VBoxContainer = $Margin/VBox/ArenaRow/EnemyArena/EnemySlots
-@onready var stats_list: VBoxContainer = $Margin/VBox/ArenaRow/PartyStatsPanel/StatsVBox/StatsList
-@onready var log_scroll: ScrollContainer = $Margin/VBox/BottomRow/LogPanel/LogScroll
-@onready var log_label: RichTextLabel = $Margin/VBox/BottomRow/LogPanel/LogScroll/Log
+@onready var stats_list: VBoxContainer = $Margin/VBox/BottomRow/PartyStatsPanel/StatsVBox/StatsList
+@onready var battle_log: BattleLog = $Margin/VBox/BottomRow/LogPanel
 @onready var enemy_turn_flash: ColorRect = $EnemyTurnFlash
 @onready var floating_text_layer: CanvasLayer = $FloatingTextLayer
 @onready var end_screen: CanvasLayer = $EndScreen
@@ -40,7 +39,7 @@ var _hero3_attack_frames: Array[Texture2D] = []
 @onready var attack_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn
 @onready var abilities_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn
 @onready var end_turn_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn
-@onready var speed_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/SpeedBtn
+@onready var speed_btn: Button = $Margin/VBox/TopBar/TopHBox/SpeedBtn
 @onready var arena_margin: MarginContainer = $Margin
 @onready var ability_sub_panel: VBoxContainer = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel
 @onready var ability_buttons_container: HBoxContainer = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityButtonsContainer
@@ -68,6 +67,9 @@ const _COLOR_TEXT := Color(0.9, 0.92, 0.95, 1)
 const _COLOR_ACCENT := Color(0.0, 0.9, 1.0, 1)
 const _COLOR_LOG := Color(0.0, 1.0, 0.55, 0.95)
 const _COLOR_NEXT := Color(1.0, 0.75, 0.2, 1)
+const _COLOR_TURN_PARTY := Color(0.0, 0.85, 0.9, 1)  # turn-order chip accent, party (teal)
+const _COLOR_TURN_ENEMY := Color(1.0, 0.42, 0.32, 1)  # turn-order chip accent, enemies (red-amber)
+const _COLOR_LOG_BG := Color(0.04, 0.05, 0.08, 0.98)
 
 const _COLOR_LOG_ENEMY := Color(1.0, 0.45, 0.42, 1)
 const _COLOR_LOG_CRIT := Color(1.0, 0.55, 0.2, 1)
@@ -116,12 +118,14 @@ func _ready() -> void:
 	add_child(battle_fx)
 	battle_fx.configure([arena_margin] as Array[Control], floating_text_layer)
 	battle_fx.speed_changed.connect(_on_battle_speed_changed)
+	turn_order_bar.feel = battle_feel
 	speed_btn.pressed.connect(_on_speed_pressed)
 	_on_battle_speed_changed(battle_fx.get_speed_multiplier())
 	attack_btn.pressed.connect(_on_attack_pressed)
 	abilities_btn.pressed.connect(_on_abilities_pressed)
 	end_turn_btn.pressed.connect(_on_end_turn_pressed)
 	ability_back_btn.pressed.connect(_on_ability_back_pressed)
+	ability_sub_panel.visibility_changed.connect(_on_ability_sub_panel_visibility_changed)
 	back_to_menu_btn.pressed.connect(_on_back_to_menu_pressed)
 	next_floor_btn.pressed.connect(_on_next_floor_pressed)
 	_apply_end_screen_theme()
@@ -140,17 +144,24 @@ func _apply_sci_fi_theme() -> void:
 	panel_style.set_corner_radius_all(0)
 	panel_style.set_content_margin_all(12)
 
-	var turn_bar = $Margin/VBox/TurnOrderBar
-	if turn_bar is PanelContainer:
-		turn_bar.add_theme_stylebox_override("panel", panel_style.duplicate())
-	$Margin/VBox/TurnOrderBar/TurnOrderHBox/TurnOrderLabel.add_theme_color_override("font_color", _COLOR_TEXT)
+	var top_bar_style := panel_style.duplicate() as StyleBoxFlat
+	top_bar_style.content_margin_top = 6
+	top_bar_style.content_margin_bottom = 6
+	$Margin/VBox/TopBar.add_theme_stylebox_override("panel", top_bar_style)
+	$Margin/VBox/TopBar/TopHBox/TurnOrderLabel.add_theme_color_override("font_color", _COLOR_ACCENT)
+	$Margin/VBox/TopBar/TopHBox/TurnOrderLabel.add_theme_font_size_override("font_size", 13)
+	turn_order_bar.party_color = _COLOR_TURN_PARTY
+	turn_order_bar.enemy_color = _COLOR_TURN_ENEMY
+	turn_order_bar.active_color = _COLOR_NEXT
+	turn_order_bar.chip_bg_color = _COLOR_PANEL
+	turn_order_bar.text_color = _COLOR_TEXT
 
 	$Margin/VBox/ArenaRow/PartyArena/PartyLabel.add_theme_color_override("font_color", _COLOR_TEXT)
 	$Margin/VBox/ArenaRow/EnemyArena/EnemyLabel.add_theme_color_override("font_color", _COLOR_TEXT)
 
 	var stats_panel_style = panel_style.duplicate()
-	$Margin/VBox/ArenaRow/PartyStatsPanel.add_theme_stylebox_override("panel", stats_panel_style)
-	$Margin/VBox/ArenaRow/PartyStatsPanel/StatsVBox/StatsTitle.add_theme_color_override("font_color", _COLOR_ACCENT)
+	$Margin/VBox/BottomRow/PartyStatsPanel.add_theme_stylebox_override("panel", stats_panel_style)
+	$Margin/VBox/BottomRow/PartyStatsPanel/StatsVBox/StatsTitle.add_theme_color_override("font_color", _COLOR_ACCENT)
 
 	var actions_style = panel_style.duplicate()
 	(actions_style as StyleBoxFlat).set_content_margin_all(20)
@@ -168,17 +179,24 @@ func _apply_sci_fi_theme() -> void:
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
 	speed_btn.add_theme_color_override("font_color", _COLOR_ACCENT)
-	speed_btn.add_theme_stylebox_override("normal", _make_btn_style(false))
-	speed_btn.add_theme_stylebox_override("hover", _make_btn_style(true))
+	speed_btn.add_theme_font_size_override("font_size", 18)
+	speed_btn.add_theme_stylebox_override("normal", _make_compact_btn_style(false))
+	speed_btn.add_theme_stylebox_override("hover", _make_compact_btn_style(true))
+	speed_btn.add_theme_stylebox_override("pressed", _make_compact_btn_style(true))
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityLabel.add_theme_color_override("font_color", _COLOR_TEXT)
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn.add_theme_color_override("font_color", _COLOR_TEXT)
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
 
-	var log_style = panel_style.duplicate()
-	(log_style as StyleBoxFlat).bg_color = Color(0.04, 0.05, 0.08, 0.98)
-	$Margin/VBox/BottomRow/LogPanel.add_theme_stylebox_override("panel", log_style)
-	log_label.add_theme_color_override("default_color", _COLOR_LOG)
+	var log_style := panel_style.duplicate() as StyleBoxFlat
+	log_style.bg_color = _COLOR_LOG_BG
+	log_style.content_margin_top = 8
+	log_style.content_margin_bottom = 8
+	var history_style := log_style.duplicate() as StyleBoxFlat
+	history_style.shadow_color = Color(0, 0, 0, 0.6)
+	history_style.shadow_size = 12
+	battle_log.apply_style(log_style, history_style, _COLOR_LOG, _COLOR_ACCENT,
+		_make_compact_btn_style(false), _make_compact_btn_style(true))
 
 func _apply_end_screen_theme() -> void:
 	var panel = $EndScreen/Center/Panel
@@ -198,6 +216,15 @@ func _apply_end_screen_theme() -> void:
 	back_to_menu_btn.add_theme_stylebox_override("normal", _make_btn_style(false))
 	back_to_menu_btn.add_theme_stylebox_override("hover", _make_btn_style(true))
 
+## Small button style (speed toggle, log toggle): same look, tighter margins.
+func _make_compact_btn_style(hover: bool) -> StyleBoxFlat:
+	var s := _make_btn_style(hover)
+	s.content_margin_left = 10
+	s.content_margin_right = 10
+	s.content_margin_top = 4
+	s.content_margin_bottom = 4
+	return s
+
 func _make_btn_style(hover: bool) -> StyleBoxFlat:
 	var s = StyleBoxFlat.new()
 	s.bg_color = Color(0.12, 0.14, 0.18, 1) if not hover else Color(0.18, 0.22, 0.28, 1)
@@ -205,6 +232,16 @@ func _make_btn_style(hover: bool) -> StyleBoxFlat:
 	s.set_border_width_all(1)
 	s.set_content_margin_all(16)
 	return s
+
+
+## Shows or hides the actions panel without removing it from the layout, so
+## the party status and log next to it do not jump on enemy turns. Hidden
+## buttons are also disabled by _set_player_actions_enabled(false).
+func _set_actions_panel_shown(shown: bool) -> void:
+	actions_panel.modulate.a = 1.0 if shown else 0.0
+	actions_panel.mouse_filter = Control.MOUSE_FILTER_STOP if shown else Control.MOUSE_FILTER_IGNORE
+	if not shown:
+		ability_sub_panel.visible = false
 
 
 func _set_player_actions_enabled(enabled: bool) -> void:
@@ -395,9 +432,10 @@ func _build_arena() -> void:
 
 	# Enemies: idle face left + attack face left; leading spacer pushes them to the right
 	var n = enemies.size()
-	var enemy_back_row = _make_row(enemy_slots_container, true, true)
-	var enemy_front_row = _make_row(enemy_slots_container, false, true)
+	# The back row only exists with 3+ enemies; an empty row still cost the
+	# EnemySlots separation (48 px) of arena height.
 	if n >= 3:
+		var enemy_back_row = _make_row(enemy_slots_container, true, true)
 		for i in [2, 3]:
 			if i < n:
 				var slot: BattlerSlot = BattlerSlotScene.instantiate()
@@ -407,6 +445,7 @@ func _build_arena() -> void:
 				enemy_back_row.add_child(slot)
 				_setup_enemy_slot(slot, enemies[i], attack_enemy)
 				_enemy_slots.append(slot)
+	var enemy_front_row = _make_row(enemy_slots_container, false, true)
 	for i in [0, 1]:
 		if i < n:
 			var slot: BattlerSlot = BattlerSlotScene.instantiate()
@@ -454,6 +493,8 @@ func _refresh_party_stats_panel() -> void:
 		bar.value = float(s.current_hp)
 		bar.show_percentage = false
 		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		bar.custom_minimum_size = Vector2(0, 12)
 		bar.add_theme_stylebox_override("background", bar_bg)
 		bar.add_theme_stylebox_override("fill", bar_fill)
 		row.add_child(bar)
@@ -463,55 +504,13 @@ func _refresh_party_stats_panel() -> void:
 		row.add_child(hp_l)
 		stats_list.add_child(row)
 
-# --- Rebuild the turn order bar: labels for each battler; current gets "TURN" panel + amber ---
+# --- Feed the turn order bar (sorted by speed, alive only) and highlight the active slot ---
 func _on_turn_order_updated(_order_arg = null) -> void:
-	var order: Array = []
-	var party = battle_manager.get_party()
-	var enemies = battle_manager.get_enemies()
-	for i in party.size():
-		if party[i].is_alive():
-			order.append({ "stats": party[i], "index": i, "is_party": true })
-	for i in enemies.size():
-		if enemies[i].is_alive():
-			order.append({ "stats": enemies[i], "index": i, "is_party": false })
-	order.sort_custom(func(a, b): return a.stats.speed > b.stats.speed)
-
-	for c in turn_order_list.get_children():
-		c.queue_free()
-
-	var current = battle_manager.get_current_battler()
-	var cur_idx = -1
+	var current: Dictionary = battle_manager.get_current_battler()
+	var active_key := ""
 	if not current.is_empty():
-		for i in order.size():
-			var e = order[i]
-			if e.is_party == current.is_party and e.index == current.index:
-				cur_idx = i
-				break
-
-	for i in order.size():
-		var entry: Dictionary = order[i]
-		var s: BattlerStats = entry.stats
-		var side = "P" if entry.is_party else "E"
-		var is_current = (i == cur_idx)
-		if is_current:
-			var box = PanelContainer.new()
-			var style = StyleBoxFlat.new()
-			style.bg_color = Color(0.12, 0.1, 0.05, 0.95)
-			style.border_color = _COLOR_NEXT
-			style.set_border_width_all(2)
-			style.set_content_margin_all(6)
-			box.add_theme_stylebox_override("panel", style)
-			var chip = Label.new()
-			chip.text = "  ► TURN: %s %s  " % [side, s.display_name]
-			chip.add_theme_color_override("font_color", _COLOR_NEXT)
-			chip.add_theme_font_size_override("font_size", 16)
-			box.add_child(chip)
-			turn_order_list.add_child(box)
-		else:
-			var chip = Label.new()
-			chip.text = "%s %s" % [side, s.display_name]
-			chip.add_theme_color_override("font_color", _COLOR_TEXT)
-			turn_order_list.add_child(chip)
+		active_key = _turn_key(bool(current.is_party), int(current.index))
+	turn_order_bar.set_order(_build_turn_order_entries(), active_key)
 
 	# Highlight in the arena the slot whose turn it is (amber border)
 	var attacker_slot = _get_attacker_slot()
@@ -519,6 +518,31 @@ func _on_turn_order_updated(_order_arg = null) -> void:
 		slot.set_turn_highlight(slot == attacker_slot)
 	for slot in _enemy_slots:
 		slot.set_turn_highlight(slot == attacker_slot)
+
+## Stable key of a battler in the turn order bar ("P0", "E1").
+func _turn_key(is_party: bool, index: int) -> String:
+	return "%s%d" % ["P" if is_party else "E", index]
+
+
+## Turn order entries for TurnOrderBar: alive battlers sorted by speed (the
+## same order rule as before), each with name, side and idle sprite.
+func _build_turn_order_entries() -> Array:
+	var order: Array = []
+	var party: Array = battle_manager.get_party()
+	var enemies: Array = battle_manager.get_enemies()
+	for i in party.size():
+		var ps: BattlerStats = party[i]
+		if ps.is_alive():
+			var tex: Texture2D = _texture_idle_party[i] if i < _texture_idle_party.size() else _placeholder_texture
+			order.append({ "stats": ps, "key": _turn_key(true, i), "name": ps.display_name, "is_party": true, "texture": tex })
+	for i in enemies.size():
+		var es: BattlerStats = enemies[i]
+		if es.is_alive():
+			var etex: Texture2D = _get_enemy_texture(EnemyRoster.get_idle_sprite_path(es.enemy_type))
+			order.append({ "stats": es, "key": _turn_key(false, i), "name": es.display_name, "is_party": false,
+				"texture": etex if etex != null else _placeholder_texture })
+	order.sort_custom(func(a, b): return a.stats.speed > b.stats.speed)
+	return order
 
 # --- When user clicks an enemy slot: set _selected_target and highlight that slot ---
 func _on_enemy_slot_clicked(slot_index: int, is_party: bool) -> void:
@@ -561,14 +585,14 @@ func _on_turn_started(_battler_index: int, is_party: bool) -> void:
 	if is_party:
 		_action_busy = false
 		_set_player_actions_enabled(true)
-		actions_panel.visible = true
+		_set_actions_panel_shown(true)
 		ability_sub_panel.visible = false
 		_selected_target = {}
 		_highlight_selected_enemy()
 	else:
 		_action_busy = true
 		_set_player_actions_enabled(false)
-		actions_panel.visible = false
+		_set_actions_panel_shown(false)
 		ability_sub_panel.visible = false
 		_enemy_turn_token += 1
 		var token := _enemy_turn_token
@@ -793,7 +817,7 @@ func _on_battle_ended(party_wins: bool) -> void:
 	_action_busy = true
 	_ai_running = false
 	_set_player_actions_enabled(false)
-	actions_panel.visible = false
+	_set_actions_panel_shown(false)
 	next_floor_btn.visible = false
 	if party_wins:
 		_log("Victory! All enemies defeated.", "victory")
@@ -931,6 +955,13 @@ func _on_abilities_pressed() -> void:
 		btn.pressed.connect(_on_ability_used.bind(ability_id, ability_name))
 		ability_buttons_container.add_child(btn)
 
+## The ability list replaces the main action rows while open, so the actions
+## panel keeps roughly the same height and the layout fits 1080 px.
+func _on_ability_sub_panel_visibility_changed() -> void:
+	var open: bool = ability_sub_panel.visible
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons.visible = not open
+	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow.visible = not open
+
 func _on_ability_back_pressed() -> void:
 	ability_sub_panel.visible = false
 
@@ -987,16 +1018,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_options_menu.show_menu()
 		get_viewport().set_input_as_handled()
 
-const _LOG_MAX_LINES := 50
-
+## Adds one coloured line to the battle log (newest on top; BattleLog keeps
+## the history and shows the last few lines).
 func _log(msg: String, kind: String = "normal") -> void:
 	var color: Color = _log_color_for_kind(kind)
-	var line := "[color=#%s]%s[/color]\n" % [_color_to_hex(color), msg]
-	log_label.text = line + log_label.text
-	var lines := log_label.text.split("\n", false)
-	if lines.size() > _LOG_MAX_LINES:
-		log_label.text = "\n".join(lines.slice(0, _LOG_MAX_LINES))
-	log_scroll.scroll_vertical = 0
+	battle_log.add_line("[color=#%s]%s[/color]" % [_color_to_hex(color), msg])
 
 
 func _log_color_for_kind(kind: String) -> Color:
@@ -1082,6 +1108,9 @@ func _apply_hit_results(results: Array, attacker_slot: BattlerSlot = null) -> vo
 				if damage > 0:
 					BattleSfx.play_hit()
 	await battle_fx.play_impact(attacker_slot, hits)
+	# Downed battlers leave the turn order bar right away (fade + shrink).
+	if is_inside_tree():
+		_on_turn_order_updated()
 
 
 # --- Battle speed toggle (1x / 2x); presentation only, rules are unaffected ---
@@ -1091,4 +1120,5 @@ func _on_speed_pressed() -> void:
 
 func _on_battle_speed_changed(_multiplier: float) -> void:
 	speed_btn.text = battle_fx.get_speed_label()
+	turn_order_bar.speed_multiplier = battle_fx.get_speed_multiplier()
 	speed_btn.tooltip_text = "Battle speed: %s (click to change)" % battle_fx.get_speed_label()
