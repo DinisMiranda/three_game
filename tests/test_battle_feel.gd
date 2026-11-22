@@ -85,3 +85,49 @@ func test_miss_and_absorb_text_styles_are_distinct() -> void:
 func test_zero_damage_hit_shows_no_text() -> void:
 	var feel := BattleFeel.new()
 	assert_bool(feel.get_combat_text_style("hit", 0).is_empty()).is_true()
+
+
+# --- Status bars (Phase 1E) ---
+
+func test_hp_color_healthy_above_low_ratio() -> void:
+	var feel := BattleFeel.new()
+	assert_object(feel.get_hp_color(100, 100)).is_equal(feel.hp_color)
+	assert_object(feel.get_hp_color(51, 100)).is_equal(feel.hp_color)
+
+
+func test_hp_color_low_at_and_below_low_ratio() -> void:
+	var feel := BattleFeel.new()
+	feel.hp_low_ratio = 0.5
+	feel.hp_critical_ratio = 0.25
+	assert_object(feel.get_hp_color(50, 100)).is_equal(feel.hp_low_color)
+	assert_object(feel.get_hp_color(26, 100)).is_equal(feel.hp_low_color)
+
+
+func test_hp_color_critical_at_and_below_critical_ratio() -> void:
+	var feel := BattleFeel.new()
+	feel.hp_low_ratio = 0.5
+	feel.hp_critical_ratio = 0.25
+	assert_object(feel.get_hp_color(25, 100)).is_equal(feel.hp_critical_color)
+	assert_object(feel.get_hp_color(0, 100)).is_equal(feel.hp_critical_color)
+
+
+func test_hp_color_zero_max_reads_healthy() -> void:
+	var feel := BattleFeel.new()
+	assert_object(feel.get_hp_color(0, 0)).is_equal(feel.hp_color)
+
+
+func test_energy_color_differs_from_every_hp_color() -> void:
+	var feel := BattleFeel.new()
+	for c in [feel.hp_color, feel.hp_low_color, feel.hp_critical_color]:
+		assert_bool(feel.energy_color.is_equal_approx(c)).is_false()
+
+
+func test_format_bar_value() -> void:
+	assert_str(BattleFeel.format_bar_value(60, 100)).is_equal("60/100")
+	assert_str(BattleFeel.format_bar_value(0, 100)).is_equal("0/100")
+
+
+func test_format_bar_value_clamps_out_of_range() -> void:
+	assert_str(BattleFeel.format_bar_value(130, 100)).is_equal("100/100")
+	assert_str(BattleFeel.format_bar_value(-5, 100)).is_equal("0/100")
+	assert_str(BattleFeel.format_bar_value(5, -1)).is_equal("0/0")
