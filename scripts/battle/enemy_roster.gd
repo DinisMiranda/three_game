@@ -80,6 +80,7 @@ static var ARCHETYPES: Dictionary = {
 		"speed": 7,
 		"sprite_scale": 1.3,
 		"tint": Color(1.0, 0.72, 0.6),
+		"aura_color": Color(1.0, 0.3, 0.08),
 		"is_boss": true,
 	},
 	# Not placed on a floor yet. Stats chosen close to the warden.
@@ -147,6 +148,13 @@ static func get_sprite_scale(type_id: String) -> float:
 ## Sprite tint for [param type_id] (white = untinted).
 static func get_tint(type_id: String) -> Color:
 	var c: Variant = get_archetype(type_id).get("tint", Color.WHITE)
+	return c if c is Color else Color.WHITE
+
+
+## Boss aura glow colour for [param type_id]; falls back to the tint.
+static func get_aura_color(type_id: String) -> Color:
+	var a: Dictionary = get_archetype(type_id)
+	var c: Variant = a.get("aura_color", a.get("tint", Color.WHITE))
 	return c if c is Color else Color.WHITE
 
 
