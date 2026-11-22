@@ -44,7 +44,7 @@ What each file does. Godot sidecar files (`*.import`, `*.uid`) sit next to their
 
 | File | Purpose |
 |------|--------|
-| `scripts/audio/music_player.gd` | **MusicPlayer** (autoload). `play_menu()` (menu.* or background.*), `play_battle()` (battle.* or background.*), `stop()`, `set_volume_db()`. Loops OGG/MP3 from `assets/music/`. |
+| `scripts/audio/music_player.gd` | **MusicPlayer** (autoload). `play_menu()` (`menu.*` or `background.*`), `play_battle()` (`battle.*` or `background.*`), `stop()`, `set_volume_db()`. Loops OGG/MP3 from `assets/music/`. |
 | `scripts/audio/battle_sfx.gd` | **BattleSfx** (autoload). Generates short sine-tone SFX in code: hit, crit, miss, absorb, bark. |
 
 ### Autoload
