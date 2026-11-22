@@ -11,9 +11,6 @@ const _TEXTURE_BASE := "res://assets/alley.png"
 const _BG_OVERLAY_ROOFTOP := Color(0.03, 0.05, 0.12, 0.58)
 const _BG_OVERLAY_OFFICE := Color(0.06, 0.07, 0.1, 0.55)
 const _BG_OVERLAY_BASE := Color(0.04, 0.05, 0.12, 0.52)
-const _BOX_BG := Color(0.05, 0.06, 0.12, 0.96)
-const _BOX_BORDER := Color(0.0, 0.88, 1.0, 0.72)
-const _TEXT_COLOR := Color(0.95, 0.96, 1.0, 1.0)
 const _TYPEWRITER_CHARS_PER_SEC := 48.0
 
 enum Phase { ROOFTOP, OFFICE, BASE }
@@ -125,6 +122,10 @@ var _is_typing: bool = false
 var _typing_tween: Tween
 var _typing_label: Label = null
 
+## Speaker name tags above each dialogue box (DialogueBoxStyle).
+var _boss_tag: Label
+var _merc_tag: Label
+
 @onready var _scene_bg: TextureRect = $SceneBackground
 @onready var _background: ColorRect = $Background
 @onready var _bag_prop: Label = $BagProp
@@ -148,10 +149,8 @@ func _ready() -> void:
 	_background.color = _BG_OVERLAY_ROOFTOP
 	_apply_dialogue_panel_style(_boss_panel)
 	_apply_dialogue_panel_style(_merc_panel)
-	_boss_label.add_theme_color_override("font_color", _TEXT_COLOR)
-	_merc_label.add_theme_color_override("font_color", _TEXT_COLOR)
-	_setup_monospace(_boss_label)
-	_setup_monospace(_merc_label)
+	_boss_tag = DialogueBoxStyle.attach_speaker_tag(_boss_label)
+	_merc_tag = DialogueBoxStyle.attach_speaker_tag(_merc_label)
 	_boss_label.text = ""
 	_merc_label.text = ""
 	_boss_side.visible = false
@@ -177,23 +176,8 @@ func _current_lines() -> Array[Dictionary]:
 			return _base_lines
 
 
-func _setup_monospace(label: Label) -> void:
-	var sf := SystemFont.new()
-	sf.font_names = PackedStringArray(["Courier New", "Consolas", "Monaco", "monospace"])
-	sf.font_weight = 500
-	label.add_theme_font_override("font", sf)
-	label.add_theme_font_size_override("font_size", 27)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-
-
 func _apply_dialogue_panel_style(panel: PanelContainer) -> void:
-	var s := StyleBoxFlat.new()
-	s.bg_color = _BOX_BG
-	s.border_color = _BOX_BORDER
-	s.set_border_width_all(2)
-	s.set_content_margin_all(24)
-	s.set_corner_radius_all(0)
-	panel.add_theme_stylebox_override("panel", s)
+	DialogueBoxStyle.style_panel(panel)
 
 
 func _apply_speaker_portrait(speaker: Speaker, speaker_name: String) -> void:
@@ -288,10 +272,12 @@ func _advance_line() -> void:
 	_merc_label.text = ""
 	_boss_label.text = ""
 	if speaker == Speaker.OTHER:
-		_boss_label.text = "%s\n\"%s\"" % [speaker_name, text]
+		_boss_tag.text = DialogueBoxStyle.format_speaker(speaker_name)
+		_boss_label.text = DialogueBoxStyle.format_line(text)
 		_start_typewriter(_boss_label)
 	else:
-		_merc_label.text = "%s\n\"%s\"" % [speaker_name, text]
+		_merc_tag.text = DialogueBoxStyle.format_speaker(speaker_name)
+		_merc_label.text = DialogueBoxStyle.format_line(text)
 		_start_typewriter(_merc_label)
 	_show_only_speaker(speaker)
 	_pulse_panel(speaker)
@@ -415,8 +401,8 @@ func _pulse_panel(speaker: Speaker) -> void:
 	var s := panel.get_theme_stylebox("panel") as StyleBoxFlat
 	if s == null:
 		return
-	var base := _BOX_BORDER
-	var bright := Color(base.r, base.g, base.b, 1.0)
+	var base := Palette.LINE_CYAN
+	var bright := Palette.ACCENT_CYAN
 	s.border_color = bright
 	var tw := create_tween()
 	tw.tween_property(s, "border_color", base, 0.35).set_trans(Tween.TRANS_SINE)
