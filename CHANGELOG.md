@@ -8,11 +8,26 @@ Notable changes in this project. Format based on [Keep a Changelog](https://keep
 
 ### Added
 
-- (Future changes go here.)
+- **Story flow** — Typewriter briefing dialogue (office, then alley) with phase-by-phase ESC skip; tactical world map (pan, zones, deploy); Meridian Epilogue; hideout select; hideout debrief with Brick and Sage.
+- **Meridian Spire mission** — Three-floor run tracked by the `MissionProgress` autoload, with per-floor backgrounds, floor banner, party restore between floors and end-screen routing to the epilogue.
+- **Hero roster and abilities** — `HeroRoster` with Kael, Nova and Rin active (Brick and Sage reserved); new abilities (Focus, Frenzy), enemy AI profiles, energy, crits.
+- **Combat polish** — Floating combat text, hit flashes, enemy turn flash, hero barks, per-character attack frames, soldier enemy sprite; procedural `BattleSfx` autoload.
+- **Beta pipeline** — macOS and Windows beta release workflow (`beta-release.yml`) and `docs/BETA_PLAY.md`.
+- **Docs** — Portfolio plan (`docs/design/portfolio-plan.md`) and a refresh of README, ARCHITECTURE, BATTLE_SYSTEM, SCENES_AND_UI, FILE_REFERENCE to match the code.
+
+### Changed
+
+- **Godot 4.6 → 4.7.2** — CI images (godot-ci 4.7.2), gdUnit4 action, beta export templates, `config/features` and the README badge. Verified locally: clean headless import, 45/45 gdUnit4 tests, all scripts parse.
+- **Dependencies** — markdownlint-cli2-action 22 → 23, codecov-action 5 → 6, gdUnit4-action bump.
+
+### Fixed
+
+- **hideout_select** — Footer and header node paths now include the `VBox` the script skipped, and the not-ready guard defers its scene change (`change_scene_to_file.call_deferred`) so it no longer runs while the tree is still adding children.
+- **Battle stability** — Fixed an attack-spam softlock, floor progression startup and background safety issues.
 
 ---
 
-## [0.2.0] — 2025-03-03
+## [0.2.0] — 2026-03-03
 
 ### Added
 
