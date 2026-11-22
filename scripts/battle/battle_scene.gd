@@ -5,6 +5,11 @@ extends Control
 
 const BattlerSlotScene = preload("res://scenes/battle/battler_slot.tscn")
 const OptionsMenuScene = preload("res://scenes/ui/options_menu.tscn")
+const DEFAULT_BATTLE_FEEL: BattleFeel = preload("res://resources/battle_feel_default.tres")
+
+## Combat feel tuning (impact, death, pacing, speed). Swap for another
+## BattleFeel resource to retune without code changes.
+@export var battle_feel: BattleFeel = DEFAULT_BATTLE_FEEL
 
 # Idle: party and enemies each have per-character sprites (face right / left). Attack: one per side, with per-character overrides.
 var _texture_idle_party: Array[Texture2D] = []
@@ -37,6 +42,8 @@ var _enemy2_attack_frames: Array[Texture2D] = []
 @onready var attack_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AttackBtn
 @onready var abilities_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/Buttons/AbilitiesBtn
 @onready var end_turn_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn
+@onready var speed_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/SpeedBtn
+@onready var arena_margin: MarginContainer = $Margin
 @onready var ability_sub_panel: VBoxContainer = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel
 @onready var ability_buttons_container: HBoxContainer = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityButtonsContainer
 @onready var ability_back_btn: Button = $Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn
@@ -46,6 +53,8 @@ const ATTACK_ANIM_ABILITIES: Array[String] = [
 ]
 
 var battle_manager: BattleManager
+## Presentation of combat feel (lunge, hit-stop, shake, flash, death, waits).
+var battle_fx: BattleFx
 var _selected_target: Dictionary = {}  # { "stats", "index", "is_party" } for current attack target
 var _party_slots: Array[BattlerSlot] = []
 var _enemy_slots: Array[BattlerSlot] = []
@@ -128,6 +137,14 @@ func _ready() -> void:
 	battle_manager.turn_ended.connect(_on_turn_ended)
 	battle_manager.turn_order_updated.connect(_on_turn_order_updated)
 	battle_manager.battle_ended.connect(_on_battle_ended)
+	battle_fx = BattleFx.new()
+	battle_fx.name = "BattleFx"
+	battle_fx.feel = battle_feel
+	add_child(battle_fx)
+	battle_fx.configure([arena_margin] as Array[Control], floating_text_layer)
+	battle_fx.speed_changed.connect(_on_battle_speed_changed)
+	speed_btn.pressed.connect(_on_speed_pressed)
+	_on_battle_speed_changed(battle_fx.get_speed_multiplier())
 	attack_btn.pressed.connect(_on_attack_pressed)
 	abilities_btn.pressed.connect(_on_abilities_pressed)
 	end_turn_btn.pressed.connect(_on_end_turn_pressed)
@@ -177,6 +194,9 @@ func _apply_sci_fi_theme() -> void:
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn.add_theme_font_size_override("font_size", 22)
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/EndTurnRow/EndTurnBtn.add_theme_stylebox_override("hover", _make_btn_style(true))
+	speed_btn.add_theme_color_override("font_color", _COLOR_ACCENT)
+	speed_btn.add_theme_stylebox_override("normal", _make_btn_style(false))
+	speed_btn.add_theme_stylebox_override("hover", _make_btn_style(true))
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityLabel.add_theme_color_override("font_color", _COLOR_TEXT)
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn.add_theme_color_override("font_color", _COLOR_TEXT)
 	$Margin/VBox/BottomRow/ActionsPanel/ActionsVBox/AbilitySubPanel/AbilityBackBtn.add_theme_stylebox_override("normal", _make_btn_style(false))
@@ -585,21 +605,8 @@ func _on_turn_started(_battler_index: int, is_party: bool) -> void:
 			return
 		_ai_turn()
 
-func _play_enemy_turn_intro(_enemy_stats: BattlerStats, token: int) -> void:
-	var attacker_slot: BattlerSlot = _get_attacker_slot()
-	if attacker_slot:
-		attacker_slot.play_enemy_turn_flash()
-	if enemy_turn_flash:
-		enemy_turn_flash.visible = true
-		enemy_turn_flash.modulate = Color(1, 1, 1, 0)
-		var flash_tw := create_tween()
-		flash_tw.tween_property(enemy_turn_flash, "modulate:a", 1.0, 0.12)
-		flash_tw.tween_property(enemy_turn_flash, "modulate:a", 0.0, 0.35)
-		flash_tw.finished.connect(func(): enemy_turn_flash.visible = false)
-	await get_tree().create_timer(0.55).timeout
-	if token != _enemy_turn_token:
-		return
-	await get_tree().create_timer(0.35).timeout
+func _play_enemy_turn_intro(_enemy_stats: BattlerStats, _token: int) -> void:
+	await battle_fx.play_enemy_turn_intro(_get_attacker_slot(), enemy_turn_flash)
 
 
 func _on_turn_ended(_battler_index: int, _is_party: bool) -> void:
@@ -611,6 +618,11 @@ func _get_attacker_slot() -> BattlerSlot:
 	if current.is_empty():
 		return null
 	return _get_target_slot(current.index, current.is_party)
+
+func _get_slot_for(battler: Dictionary) -> BattlerSlot:
+	if battler.is_empty():
+		return null
+	return _get_target_slot(int(battler.index), bool(battler.is_party))
 
 func _get_target_slot(index: int, is_party: bool) -> BattlerSlot:
 	if is_party:
@@ -648,20 +660,23 @@ func _ai_turn() -> void:
 				battle_manager.advance_turn()
 				return
 		var attacker_slot: BattlerSlot = _get_attacker_slot()
-		if ability_id in ATTACK_ANIM_ABILITIES and attacker_slot:
-			await attacker_slot.play_attack_animation()
+		var lunge_slot: BattlerSlot = attacker_slot if ability_id in ATTACK_ANIM_ABILITIES else null
+		await battle_fx.play_lunge(lunge_slot, _get_slot_for(target))
 		if not is_inside_tree() or not _is_current_battler(attacker):
 			_ai_running = false
 			return
 		if not battle_manager.perform_ability(attacker, ability_id, target):
+			await battle_fx.play_impact(lunge_slot, [])
 			_ai_running = false
-			battle_manager.advance_turn()
+			if is_inside_tree():
+				battle_manager.advance_turn()
 			return
 		_log_enemy_ability(attacker, ability_id, ability_name, target)
-		_apply_hit_results(battle_manager.last_hit_results)
 		_refresh_arena_slots()
+		await _apply_hit_results(battle_manager.last_hit_results, lunge_slot)
 		_ai_running = false
-		battle_manager.advance_turn()
+		if is_inside_tree():
+			battle_manager.advance_turn()
 		return
 	var target: Dictionary = _pick_party_target_for_enemy(attacker, "attack")
 	if target.is_empty():
@@ -669,18 +684,18 @@ func _ai_turn() -> void:
 		battle_manager.advance_turn()
 		return
 	var attacker_slot: BattlerSlot = _get_attacker_slot()
-	if attacker_slot:
-		await attacker_slot.play_attack_animation()
+	await battle_fx.play_lunge(attacker_slot, _get_slot_for(target))
 	if not is_inside_tree() or not _is_current_battler(attacker):
 		_ai_running = false
 		return
 	battle_manager.last_hit_results.clear()
 	var dmg = battle_manager.perform_attack(attacker, target)
-	_apply_hit_results(battle_manager.last_hit_results)
 	_log_attack_result(attacker.stats.display_name, target.stats.display_name, dmg, battle_manager.last_hit_kind)
 	_refresh_arena_slots()
+	await _apply_hit_results(battle_manager.last_hit_results, attacker_slot)
 	_ai_running = false
-	battle_manager.advance_turn()
+	if is_inside_tree():
+		battle_manager.advance_turn()
 
 
 func _choose_enemy_action(attacker: Dictionary) -> Dictionary:
@@ -890,8 +905,7 @@ func _on_attack_pressed() -> void:
 	_set_player_actions_enabled(false)
 	var target: Dictionary = _selected_target.duplicate()
 	var attacker_slot: BattlerSlot = _get_attacker_slot()
-	if attacker_slot:
-		await attacker_slot.play_attack_animation()
+	await battle_fx.play_lunge(attacker_slot, _get_slot_for(target))
 	if not is_inside_tree() or not _is_current_party_battler(attacker):
 		_action_busy = false
 		if battle_manager.get_current_battler().get("is_party", false):
@@ -900,12 +914,13 @@ func _on_attack_pressed() -> void:
 	_maybe_hero_bark(attacker.index, "attack")
 	battle_manager.last_hit_results.clear()
 	var dmg = battle_manager.perform_attack(attacker, target)
-	_apply_hit_results(battle_manager.last_hit_results)
 	_log_attack_result(attacker.stats.display_name, target.stats.display_name, dmg, battle_manager.last_hit_kind)
 	_refresh_arena_slots()
 	_selected_target = {}
 	_highlight_selected_enemy()
-	battle_manager.advance_turn()
+	await _apply_hit_results(battle_manager.last_hit_results, attacker_slot)
+	if is_inside_tree():
+		battle_manager.advance_turn()
 
 func _on_end_turn_pressed() -> void:
 	if _action_busy:
@@ -974,25 +989,27 @@ func _on_ability_used(ability_id: String, ability_name: String) -> void:
 	_action_busy = true
 	_set_player_actions_enabled(false)
 	var attacker_slot: BattlerSlot = _get_attacker_slot()
-	if ability_id in ATTACK_ANIM_ABILITIES and attacker_slot:
-		await attacker_slot.play_attack_animation()
+	var lunge_slot: BattlerSlot = attacker_slot if ability_id in ATTACK_ANIM_ABILITIES else null
+	await battle_fx.play_lunge(lunge_slot, _get_slot_for(target))
 	if not is_inside_tree() or not _is_current_party_battler(current):
 		_action_busy = false
 		_set_player_actions_enabled(true)
 		return
 	if not battle_manager.perform_ability(current, ability_id, target):
+		await battle_fx.play_impact(lunge_slot, [])
 		_action_busy = false
 		_set_player_actions_enabled(true)
 		ability_sub_panel.visible = false
 		return
 	_maybe_hero_bark(current.index, ability_id)
 	_log_hero_ability(current, ability_id, ability_name, target)
-	_apply_hit_results(battle_manager.last_hit_results)
 	_refresh_arena_slots()
 	_selected_target = {}
 	_highlight_selected_enemy()
 	ability_sub_panel.visible = false
-	battle_manager.advance_turn()
+	await _apply_hit_results(battle_manager.last_hit_results, lunge_slot)
+	if is_inside_tree():
+		battle_manager.advance_turn()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") and not _options_menu.visible:
@@ -1062,7 +1079,12 @@ func _maybe_hero_bark(hero_index: int, context: String) -> void:
 	BattleSfx.play_bark()
 
 
-func _apply_hit_results(results: Array) -> void:
+## Turns BattleManager hit results into BattleFx hits, plays the SFX, and
+## awaits the impact presentation (hit-stop, shake, flash, numbers, death,
+## lunge return and post-action pause). [param attacker_slot] is the slot that
+## lunged, or null when the action had no lunge.
+func _apply_hit_results(results: Array, attacker_slot: BattlerSlot = null) -> void:
+	var hits: Array[Dictionary] = []
 	for hit in results:
 		var idx: int = int(hit.get("target_index", -1))
 		var is_party: bool = bool(hit.get("is_party", false))
@@ -1071,9 +1093,13 @@ func _apply_hit_results(results: Array) -> void:
 		var slot: BattlerSlot = _get_target_slot(idx, is_party)
 		if slot == null:
 			continue
-		if damage > 0:
-			slot.play_hit_flash()
-		_spawn_floating_text(slot, damage, kind)
+		var stats: BattlerStats = slot.get_stats()
+		hits.append({
+			"slot": slot,
+			"damage": damage,
+			"kind": kind,
+			"downed": stats != null and not stats.is_alive(),
+		})
 		match kind:
 			"crit":
 				BattleSfx.play_crit()
@@ -1084,26 +1110,14 @@ func _apply_hit_results(results: Array) -> void:
 			_:
 				if damage > 0:
 					BattleSfx.play_hit()
+	await battle_fx.play_impact(attacker_slot, hits)
 
 
-func _spawn_floating_text(slot: BattlerSlot, damage: int, kind: String) -> void:
-	if floating_text_layer == null or slot == null:
-		return
-	var text := ""
-	var color := Color.WHITE
-	match kind:
-		"miss":
-			text = "MISS"
-			color = _COLOR_LOG_MISS
-		"absorb":
-			text = "ABSORB"
-			color = _COLOR_LOG_ABSORB
-		"crit":
-			text = "-%d!" % damage
-			color = _COLOR_LOG_CRIT
-		_:
-			if damage <= 0:
-				return
-			text = "-%d" % damage
-			color = Color(1.0, 0.92, 0.55)
-	FloatingCombatText.spawn(floating_text_layer, slot.get_combat_text_position(), text, color)
+# --- Battle speed toggle (1x / 2x); presentation only, rules are unaffected ---
+func _on_speed_pressed() -> void:
+	battle_fx.cycle_speed()
+
+
+func _on_battle_speed_changed(_multiplier: float) -> void:
+	speed_btn.text = battle_fx.get_speed_label()
+	speed_btn.tooltip_text = "Battle speed: %s (click to change)" % battle_fx.get_speed_label()

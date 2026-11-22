@@ -12,6 +12,12 @@ const _IDLE_SIZE := Vector2(200, 260)
 const _ATTACK_SIZE := Vector2(240, 312)   # slightly larger during attack animation
 const _ATTACK_DURATION := 0.75            # attack animation duration (seconds)
 const _FLY_OFFSET_Y: int = -360            # pixels to move up from normal position when flying
+const _HIT_FLASH_COLOR := Color(1.2, 0.6, 0.6, 1.0)  # default flash when no colour is passed
+const _HIT_FLASH_IN := 0.12
+const _HIT_FLASH_OUT := 0.18
+const _TURN_FLASH_COLOR := Color(1.25, 0.45, 0.45, 1.0)
+const _TURN_FLASH_IN := 0.14
+const _TURN_FLASH_OUT := 0.22
 
 @export var slot_index: int = 0
 @export var is_party: bool = true
@@ -36,6 +42,8 @@ var _default_panel_style: StyleBoxFlat  # stored to restore when turning off tur
 var _idle_size: Vector2 = _IDLE_SIZE
 var _attack_size: Vector2 = _ATTACK_SIZE
 var _is_flying: bool = false
+var _downed: bool = false        # set once the death animation has started (BattleFx)
+var _flash_tween: Tween
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -128,17 +136,18 @@ func set_attack_frames(frames: Array[Texture2D]) -> void:
 	if _attack_frames.is_empty():
 		_attack_frames.append(_texture_idle)
 
-# --- Play attack animation: show larger attack sprite, wait, then back to idle. ---
-func play_attack_animation() -> void:
+## Plays the attack frames (larger attack sprite) for [param duration] seconds, then
+## returns to idle. BattleFx passes a duration already scaled for battle speed.
+func play_attack_animation(duration: float = _ATTACK_DURATION) -> void:
 	if not texture_rect or not is_inside_tree():
 		return
 	var frames: Array[Texture2D] = _attack_frames.duplicate()
 	if frames.is_empty():
 		frames.append(_texture_idle)
 	var tween: Tween = create_tween()
-	tween.tween_property(texture_rect, "scale", Vector2(1.08, 1.08), _ATTACK_DURATION * 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween.tween_property(texture_rect, "scale", Vector2.ONE, _ATTACK_DURATION * 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	var frame_time := _ATTACK_DURATION / float(frames.size())
+	tween.tween_property(texture_rect, "scale", Vector2(1.08, 1.08), duration * 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(texture_rect, "scale", Vector2.ONE, duration * 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	var frame_time := duration / float(frames.size())
 	for tex in frames:
 		if not is_inside_tree():
 			return
@@ -150,18 +159,49 @@ func play_attack_animation() -> void:
 	texture_rect.texture = _texture_idle
 	texture_rect.custom_minimum_size = _idle_size
 
-func play_hit_flash() -> void:
+## Tints the sprite to [param color], holds it for [param hold] seconds (the
+## hit-stop), then fades back. Restarts a flash already in progress.
+func play_hit_flash(color: Color = _HIT_FLASH_COLOR, fade_in: float = _HIT_FLASH_IN,
+		hold: float = 0.0, fade_out: float = _HIT_FLASH_OUT) -> void:
 	if not texture_rect:
 		return
-	var tween: Tween = create_tween()
-	tween.tween_property(texture_rect, "modulate", Color(1.2, 0.6, 0.6, 1.0), 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween.tween_property(texture_rect, "modulate", Color.WHITE, 0.18).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	if _flash_tween and _flash_tween.is_valid():
+		_flash_tween.kill()
+	_flash_tween = create_tween()
+	_flash_tween.tween_property(texture_rect, "modulate", color, fade_in).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if hold > 0.0:
+		_flash_tween.tween_interval(hold)
+	_flash_tween.tween_property(texture_rect, "modulate", Color.WHITE, fade_out).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 
 
-func play_enemy_turn_flash() -> void:
+## Red pulse on the whole slot when an enemy's turn starts. [param speed_scale]
+## follows the battle speed toggle.
+func play_enemy_turn_flash(speed_scale: float = 1.0) -> void:
 	var tween: Tween = create_tween()
-	tween.tween_property(self, "modulate", Color(1.25, 0.45, 0.45, 1.0), 0.14).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "modulate", Color.WHITE, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tween.set_speed_scale(maxf(0.01, speed_scale))
+	tween.tween_property(self, "modulate", _TURN_FLASH_COLOR, _TURN_FLASH_IN).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "modulate", Color.WHITE, _TURN_FLASH_OUT).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+
+
+## The sprite node that BattleFx lunges, flashes and slumps.
+func get_sprite() -> Control:
+	return texture_rect
+
+
+## The slot's content root; BattleFx dims it when the battler is downed. (The
+## slot itself is not used because BattleScene sets its modulate for targeting.)
+func get_body() -> Control:
+	return get_node_or_null("VBox") as Control
+
+
+## True once the death animation has started for this slot.
+func is_downed() -> bool:
+	return _downed
+
+
+## Marks the slot as downed so the death animation plays only once.
+func mark_downed() -> void:
+	_downed = true
 
 
 func set_role_display(role: String, color: Color = Color(0.65, 0.72, 0.8)) -> void:
@@ -241,18 +281,21 @@ func _make_fallback_texture() -> Texture2D:
 				img.fill_rect(Rect2i(x * 8, y * 8, 8, 8), Color(0.0, 0.85, 1.0, 0.5))
 	return ImageTexture.create_from_image(img)
 
-# --- Update name, flying, shielded, HP/shield bars, and bubble from _stats; hide slot when dead ---
+# --- Update name, flying, shielded, HP/shield bars, and bubble from _stats. ---
+# A dead battler stays in its slot (BattleFx dims and slumps it) but loses its
+# bars and status labels, so it is clear the slot is down.
 func refresh() -> void:
 	if _stats == null:
 		return
+	var alive := _stats.is_alive()
 	if name_label:
 		name_label.text = _stats.display_name
-	set_flying(_stats.is_flying)
-	var has_shield := _stats.shield_amount > 0 or _stats.shield_rounds_left > 0
+	set_flying(_stats.is_flying and alive)
+	var has_shield := alive and (_stats.shield_amount > 0 or _stats.shield_rounds_left > 0)
 	if shielded_label:
 		shielded_label.visible = has_shield
 	if guarded_label:
-		guarded_label.visible = _stats.guard_active
+		guarded_label.visible = alive and _stats.guard_active
 	if shield_bubble:
 		shield_bubble.visible = has_shield
 		if shield_bubble.visible:
@@ -272,7 +315,6 @@ func refresh() -> void:
 		energy_bar.max_value = float(_stats.max_energy)
 		energy_bar.value = float(_stats.current_energy)
 		energy_bar.visible = _stats.is_alive()
-	visible = _stats.is_alive()
 
 func set_flying(flying: bool) -> void:
 	_is_flying = flying
