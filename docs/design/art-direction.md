@@ -54,6 +54,7 @@ side identity is carried by rim light and the turn chip, not the bar.
 | Heading | 32 | SemiBold | end screen 36, zone title |
 | Subheading / buttons | 22 | SemiBold | buttons 18-22 |
 | Body | 18 | Regular | log, briefing (mono 27) |
+| Dialogue | 20 | Regular | story dialogue body (briefing, epilogue, debrief); box is a centred lower panel ~56% wide x ~22% tall (`DialogueBoxStyle.BOX_ANCHORS`) |
 | Caption | 14 (minimum) | Regular | role 12, turn order 13 (too small) |
 
 Labels over the battle background get a 2 px outline `#000000` @ 85% (already used on bars).

@@ -91,7 +91,9 @@ func _build_hero_row() -> void:
 		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		var path := HeroRoster.get_portrait_path(i)
 		if not path.is_empty() and ResourceLoader.exists(path):
-			portrait.texture = load(path) as Texture2D
+			# Same outline / rim / grade as the battle sprite (art direction §4).
+			PortraitMaterial.apply(portrait, load(path) as Texture2D,
+				HeroRoster.get_shader_grade(i), true)
 		plate.add_child(portrait)
 		card.add_child(plate)
 		var name_l := Label.new()

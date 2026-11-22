@@ -466,13 +466,15 @@ func _build_turn_order_entries() -> Array:
 		var ps: BattlerStats = party[i]
 		if ps.is_alive():
 			var tex: Texture2D = _texture_idle_party[i] if i < _texture_idle_party.size() else _placeholder_texture
-			order.append({ "stats": ps, "key": _turn_key(true, i), "name": ps.display_name, "is_party": true, "texture": tex })
+			order.append({ "stats": ps, "key": _turn_key(true, i), "name": ps.display_name, "is_party": true, "texture": tex,
+				"grade": HeroRoster.get_shader_grade(i) })
 	for i in enemies.size():
 		var es: BattlerStats = enemies[i]
 		if es.is_alive():
 			var etex: Texture2D = _get_enemy_texture(EnemyRoster.get_idle_sprite_path(es.enemy_type))
 			order.append({ "stats": es, "key": _turn_key(false, i), "name": es.display_name, "is_party": false,
-				"texture": etex if etex != null else _placeholder_texture })
+				"texture": etex if etex != null else _placeholder_texture,
+				"grade": EnemyRoster.get_shader_grade(es.enemy_type) })
 	order.sort_custom(func(a, b): return a.stats.speed > b.stats.speed)
 	return order
 

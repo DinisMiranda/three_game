@@ -168,6 +168,14 @@ static func get_portrait_path(index: int) -> String:
 	return str(get_hero(index).get("portrait", ""))
 
 
+## Roster index of the hero named [param display_name], or -1.
+static func find_index_by_name(display_name: String) -> int:
+	for i in _ROSTER.size():
+		if str(_ROSTER[i].get("display_name", "")) == display_name:
+			return i
+	return -1
+
+
 static func get_portrait_path_for_name(display_name: String) -> String:
 	match display_name:
 		"Handler":

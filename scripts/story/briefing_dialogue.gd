@@ -177,15 +177,19 @@ func _load_portraits_for_phase() -> void:
 		var left_tex: Texture2D = load(_PORTRAIT_OFFICE_LEFT) as Texture2D
 		var right_tex: Texture2D = load(_PORTRAIT_OFFICE_RIGHT) as Texture2D
 		if left_tex:
+			PortraitMaterial.clear(_merc_portrait)
 			_merc_portrait.texture = left_tex
 		if right_tex:
+			PortraitMaterial.clear(_boss_portrait)
 			_boss_portrait.texture = right_tex
 	else:
 		var l: Texture2D = load(_PORTRAIT_ALLEY_LEFT) as Texture2D
 		var r: Texture2D = load(_PORTRAIT_ALLEY_RIGHT) as Texture2D
 		if l:
+			PortraitMaterial.clear(_merc_portrait)
 			_merc_portrait.texture = l
 		if r:
+			PortraitMaterial.clear(_boss_portrait)
 			_boss_portrait.texture = r
 
 
@@ -337,10 +341,14 @@ func _apply_speaker_portrait(speaker: Speaker, speaker_name: String) -> void:
 	var tex: Texture2D = HeroRoster.get_story_portrait(speaker_name)
 	if tex == null:
 		return
-	if speaker == Speaker.MERC:
-		_merc_portrait.texture = tex
+	var rect: TextureRect = _merc_portrait if speaker == Speaker.MERC else _boss_portrait
+	var hero_index: int = HeroRoster.find_index_by_name(speaker_name)
+	if hero_index >= 0:
+		# Squad members get their battle look (outline, rim, roster grade).
+		PortraitMaterial.apply(rect, tex, HeroRoster.get_shader_grade(hero_index), true)
 	else:
-		_boss_portrait.texture = tex
+		PortraitMaterial.clear(rect)
+		rect.texture = tex
 	var bright := Color.WHITE
 	var dim := Color(0.45, 0.48, 0.55, 1.0)
 	if speaker == Speaker.MERC:

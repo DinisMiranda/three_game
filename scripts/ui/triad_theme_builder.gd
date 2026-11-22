@@ -28,6 +28,8 @@ const SIZE_TITLE := 64
 const SIZE_HEADING := 32
 const SIZE_SUBHEADING := 22
 const SIZE_BODY := 18
+## Story dialogue body (art-direction §2 "Dialogue" row): one step above body.
+const SIZE_DIALOGUE := 20
 const SIZE_CAPTION := 14
 
 const WEIGHT_REGULAR := 400
@@ -107,7 +109,7 @@ static func _build_labels(t: Theme, semibold: Font, bold: Font, mono: Font) -> v
 	_label_variation(t, "KickerLabel", mono, SIZE_CAPTION, Palette.ACCENT_CYAN)
 	_label_variation(t, "MonoLabel", mono, SIZE_CAPTION, Palette.TEXT_PRIMARY)
 	_label_variation(t, "SpeakerTag", mono, SIZE_BODY, Palette.ACCENT_CYAN)
-	_label_variation(t, "DialogueBody", null, SIZE_SUBHEADING, Palette.TEXT_PRIMARY)
+	_label_variation(t, "DialogueBody", null, SIZE_DIALOGUE, Palette.TEXT_PRIMARY)
 	_label_variation(t, "HudLabel", null, SIZE_BODY, Palette.TEXT_PRIMARY)
 	t.set_constant("outline_size", "HudLabel", 2)
 	_label_variation(t, "HudHeading", semibold, SIZE_SUBHEADING, Palette.TEXT_PRIMARY)

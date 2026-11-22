@@ -176,10 +176,14 @@ func _apply_speaker_portrait(side: SpeakerSide, speaker_name: String) -> void:
 	var tex: Texture2D = HeroRoster.get_story_portrait(speaker_name)
 	if tex == null:
 		return
-	if side == SpeakerSide.SQUAD:
-		_merc_portrait.texture = tex
+	var rect: TextureRect = _merc_portrait if side == SpeakerSide.SQUAD else _boss_portrait
+	var hero_index: int = HeroRoster.find_index_by_name(speaker_name)
+	if hero_index >= 0:
+		# Squad members get their battle look (outline, rim, roster grade).
+		PortraitMaterial.apply(rect, tex, HeroRoster.get_shader_grade(hero_index), true)
 	else:
-		_boss_portrait.texture = tex
+		PortraitMaterial.clear(rect)
+		rect.texture = tex
 	_update_portrait_focus(side)
 
 
