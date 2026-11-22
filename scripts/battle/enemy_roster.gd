@@ -42,6 +42,10 @@ static var ARCHETYPES: Dictionary = {
 		"speed": 5,
 		"sprite_scale": 1.0,
 		"tint": Color.WHITE,
+		"figure_height": 240.0,
+		"shader_saturation": 1.0,
+		"shader_contrast": 1.0,
+		"shader_brightness": 0.0,
 		"is_boss": false,
 	},
 	"hound": {
@@ -60,6 +64,10 @@ static var ARCHETYPES: Dictionary = {
 		"speed": 8,
 		"sprite_scale": 1.0,
 		"tint": Color.WHITE,
+		"figure_height": 240.0,
+		"shader_saturation": 1.0,
+		"shader_contrast": 1.0,
+		"shader_brightness": 0.0,
 		"is_boss": false,
 	},
 	"custodian": {
@@ -81,6 +89,10 @@ static var ARCHETYPES: Dictionary = {
 		"sprite_scale": 1.2,  # was 1.3; the head no longer reaches the name plate
 		"tint": Color(1.0, 0.72, 0.6),
 		"aura_color": Color(1.0, 0.3, 0.08),
+		"figure_height": 320.0,
+		"shader_saturation": 1.0,
+		"shader_contrast": 1.0,
+		"shader_brightness": 0.0,
 		"is_boss": true,
 	},
 	# Not placed on a floor yet. Stats chosen close to the warden.
@@ -100,6 +112,10 @@ static var ARCHETYPES: Dictionary = {
 		"speed": 6,
 		"sprite_scale": 1.0,
 		"tint": Color.WHITE,
+		"figure_height": 240.0,
+		"shader_saturation": 1.0,
+		"shader_contrast": 1.0,
+		"shader_brightness": 0.0,
 		"is_boss": false,
 	},
 }
@@ -140,7 +156,8 @@ static func get_ai_profile(type_id: String) -> int:
 	return int(get_archetype(type_id).get("ai_profile", AI_SOLDIER))
 
 
-## Sprite size multiplier for [param type_id] (1.0 = default size).
+## Sprite box WIDTH multiplier for [param type_id] (1.0 = default). BattleScene
+## widens the slot box with it; figure height comes from get_figure_height().
 static func get_sprite_scale(type_id: String) -> float:
 	return float(get_archetype(type_id).get("sprite_scale", 1.0))
 
@@ -156,6 +173,24 @@ static func get_aura_color(type_id: String) -> Color:
 	var a: Dictionary = get_archetype(type_id)
 	var c: Variant = a.get("aura_color", a.get("tint", Color.WHITE))
 	return c if c is Color else Color.WHITE
+
+
+## Per-sprite grade for the character shader: Vector3(saturation, contrast,
+## brightness). Defaults 1 / 1 / 0. (Bosses use boss_aura, which has its own grade.)
+static func get_shader_grade(type_id: String) -> Vector3:
+	var a: Dictionary = get_archetype(type_id)
+	return Vector3(
+		float(a.get("shader_saturation", 1.0)),
+		float(a.get("shader_contrast", 1.0)),
+		float(a.get("shader_brightness", 0.0)))
+
+
+## Visible (trimmed) figure height in px at 1920x1080: 240 for regular enemies,
+## 320 for bosses, unless the archetype sets "figure_height".
+static func get_figure_height(type_id: String) -> float:
+	var a: Dictionary = get_archetype(type_id)
+	var fallback: float = 320.0 if bool(a.get("is_boss", false)) else 240.0
+	return float(a.get("figure_height", fallback))
 
 
 ## True if [param type_id] is a boss (BattlerSlot.set_boss_visual hook).
