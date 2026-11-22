@@ -8,7 +8,6 @@ COVERED_FILES = [
     "resources/battler_stats.gd",
     "scripts/battle/battle_manager.gd",
     "scripts/battle/shield_bubble.gd",
-    "scripts/battle/sci_fi_background.gd",
     "scripts/battle/battler_slot.gd",
     "scripts/battle/battle_scene.gd",
     "scripts/audio/music_player.gd",

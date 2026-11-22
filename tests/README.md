@@ -46,7 +46,8 @@ The **Unit tests** job in `.github/workflows/ci-cd.yml` runs on every push/PR to
 | `test_battler_stats.gd` | `BattlerStats`: take_damage, heal, shield, energy, duplicate_stats |
 | `test_battle_manager.gd` | `BattleManager`: get_ability_cost, can_use_ability, can_attack_target, setup_battle, perform_attack, perform_ability, advance_turn, battle_ended |
 | `test_shield_bubble.gd` | `ShieldBubble`: instantiate and draw |
-| `test_sci_fi_background.gd` | `SciFiBackground`: instantiate and draw |
+| `test_enemy_ai.gd` | `EnemyAI`: per-profile action choice and target choice |
+| `test_action_panel.gd` | `ActionPanel`: signals and ability list |
 | `test_music_player.gd` | `MusicPlayer`: play_menu, play_battle, stop, set_volume_db |
 | `test_main.gd` | Main entry script: _ready |
 | `test_battler_slot.gd` | `BattlerSlot` (scene): setup, refresh, set_turn_highlight |
@@ -56,7 +57,7 @@ The **Unit tests** job in `.github/workflows/ci-cd.yml` runs on every push/PR to
 
 **Coverage:** When you run `./run_tests.sh` or `run_tests.cmd`, a **coverage summary** is printed at the end (estimated % of game script lines that have unit tests). **Target: 80%+** (currently ~85%).
 
-**Covered scripts:** BattlerStats, BattleManager, ShieldBubble, SciFiBackground, BattlerSlot, BattleScene, MusicPlayer, main.
+**Covered scripts:** BattlerStats, BattleManager, ShieldBubble, BattlerSlot, BattleScene, MusicPlayer, main.
 
 **Not covered:** main_menu, options_menu (UI-heavy; suited for integration or manual testing).
 

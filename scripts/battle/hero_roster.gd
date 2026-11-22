@@ -226,3 +226,23 @@ static func get_bark(index: int, context: String) -> String:
 	if lines.is_empty():
 		return ""
 	return str(lines[randi() % lines.size()])
+
+
+## Builds the active party's [BattlerStats] (ACTIVE_PARTY_SIZE heroes); a
+## generic hero stands in for any roster entry that cannot be applied.
+static func build_party() -> Array:
+	var party: Array = []
+	for i in ACTIVE_PARTY_SIZE:
+		var s := BattlerStats.new()
+		if not apply_to_stats(i, s):
+			s.display_name = "Hero %d" % (i + 1)
+			s.max_hp = 80 + i * 10
+			s.current_hp = s.max_hp
+			s.max_energy = 100
+			s.current_energy = 100
+			s.attack = 12 + i
+			s.defense = 4
+			s.speed = 8 + i * 2
+			s.is_party = true
+		party.append(s)
+	return party
