@@ -13,15 +13,13 @@ const DEFAULT_BATTLE_FEEL: BattleFeel = preload("res://resources/battle_feel_def
 
 # Idle: party and enemies each have per-character sprites (face right / left). Attack: one per side, with per-character overrides.
 var _texture_idle_party: Array[Texture2D] = []
-var _texture_idle_enemy: Array[Texture2D] = []   # one texture per enemy (face left)
+## Enemy textures by res:// path (EnemyRoster sprites), loaded on first use.
+var _enemy_texture_cache: Dictionary = {}
 var _texture_attack_party: Texture2D
 var _texture_attack_enemy: Texture2D
 var _placeholder_texture: Texture2D
 var _hero2_attack_frames: Array[Texture2D] = []
 var _hero3_attack_frames: Array[Texture2D] = []
-var _enemy0_attack_frames: Array[Texture2D] = []
-var _enemy1_attack_frames: Array[Texture2D] = []
-var _enemy2_attack_frames: Array[Texture2D] = []
 
 # --- Node references (must match battle_scene.tscn tree) ---
 @onready var battle_background: TextureRect = $Background
@@ -89,18 +87,8 @@ func _ready() -> void:
 		var path: String = HeroRoster.get_portrait_path(i)
 		var tex: Texture2D = load(path) as Texture2D if not path.is_empty() else null
 		_texture_idle_party.append(tex if tex != null else _placeholder_texture)
-	_texture_idle_enemy.clear()
-	var enemy_paths := [
-		"res://assets/enemy_1-removebg-preview.png",
-		"res://assets/enemy_2-removebg-preview.png",
-		"res://assets/enemy_2-removebg-preview copy.png",
-		"res://assets/inimigo_soldado.png"
-	]
-	for path in enemy_paths:
-		var tex = load(path) as Texture2D
-		_texture_idle_enemy.append(tex if tex != null else _placeholder_texture)
-	if _texture_idle_enemy.is_empty():
-		_texture_idle_enemy.append(_placeholder_texture)
+	# Enemy sprites come from EnemyRoster per type (see _get_enemy_texture).
+	_enemy_texture_cache.clear()
 	_texture_attack_party = load("res://assets/sevro_atack_no_bg_1-removebg-preview.png") as Texture2D
 	_texture_attack_enemy = load("res://assets/sevro_atack_no_bg.png") as Texture2D
 	var hero2_attack_tex = load("res://assets/hero2_attack_animation.png") as Texture2D
@@ -111,21 +99,6 @@ func _ready() -> void:
 	_hero3_attack_frames.clear()
 	if hero3_attack_tex != null:
 		_hero3_attack_frames.append(hero3_attack_tex)
-	var enemy_attack_1 = load("res://assets/enemy_1_attack_animantion_part1-removebg-preview.png") as Texture2D
-	var enemy_attack_2 = load("res://assets/enemy1_attack_animation_part2-removebg-preview.png") as Texture2D
-	var enemy2_attack = load("res://assets/enemy_2_attack_animation.png") as Texture2D
-	var soldier_attack = load("res://assets/inimigo_soldado_ataque.png") as Texture2D
-	_enemy0_attack_frames.clear()
-	if enemy_attack_1 != null:
-		_enemy0_attack_frames.append(enemy_attack_1)
-	if enemy_attack_2 != null:
-		_enemy0_attack_frames.append(enemy_attack_2)
-	_enemy1_attack_frames.clear()
-	if enemy2_attack != null:
-		_enemy1_attack_frames.append(enemy2_attack)
-	_enemy2_attack_frames.clear()
-	if soldier_attack != null:
-		_enemy2_attack_frames.append(soldier_attack)
 	if _texture_attack_party == null:
 		_texture_attack_party = _placeholder_texture
 	if _texture_attack_enemy == null:
@@ -298,41 +271,50 @@ func _build_sample_party() -> Array:
 	return party
 
 
+## Builds this fight's enemies from the floor lineup (MissionProgress.MERIDIAN_FLOORS
+## "enemies"). Each BattlerStats carries its archetype id in enemy_type. Without
+## an active mission this falls back to floor 1.
 func _build_sample_enemies() -> Array:
-	var enemies: Array = []
-	var hp_bonus: int = 0
-	var floor_idx: int = 1
-	if MissionProgress.is_meridian_spire_active():
-		floor_idx = MissionProgress.meridian_floor
-		hp_bonus = (MissionProgress.meridian_floor - 1) * 10
-	var enemy_count: int = 1
-	match floor_idx:
-		1:
-			enemy_count = 1
-		2:
-			enemy_count = 2
-		_:
-			enemy_count = 1
-	for i in enemy_count:
-		var s = BattlerStats.new()
-		if floor_idx >= 3 and i == 0:
-			s.display_name = "Custodian Unit"
-			s.max_hp = 55 + hp_bonus
-			s.attack = 20 + (MissionProgress.meridian_floor - 1) * 2
-			s.speed = 7
-		else:
-			s.display_name = "Enemy %d" % (i + 1)
-			s.max_hp = 40 + i * 10 + hp_bonus
-			s.attack = 16 + i * 2 + (MissionProgress.meridian_floor - 1) * 2
-			s.speed = 5 + i * 3
-		s.current_hp = s.max_hp
-		s.max_energy = 100
-		s.current_energy = 100
-		s.defense = 3
-		s.is_party = false
-		s.is_ranged = floor_idx < 3 and (i % 3) == 0
-		enemies.append(s)
-	return enemies
+	var floor_idx: int = MissionProgress.get_current_combat_floor()
+	var types: Array = MissionProgress.get_current_floor_enemy_types()
+	return EnemyRoster.build_enemies(types, floor_idx)
+
+
+## Loads (and caches) a Texture2D for [param path]; null if missing.
+func _get_enemy_texture(path: String) -> Texture2D:
+	if path.is_empty():
+		return null
+	if _enemy_texture_cache.has(path):
+		return _enemy_texture_cache[path]
+	var tex: Texture2D = null
+	if ResourceLoader.exists(path):
+		tex = load(path) as Texture2D
+	_enemy_texture_cache[path] = tex
+	return tex
+
+
+## Idle + attack frames, scale and tint for one enemy slot, all read from the
+## battler's archetype (stats.enemy_type), never from the slot index.
+func _setup_enemy_slot(slot: BattlerSlot, stats: BattlerStats, attack_fallback: Texture2D) -> void:
+	var type_id: String = stats.enemy_type
+	var idle: Texture2D = _get_enemy_texture(EnemyRoster.get_idle_sprite_path(type_id))
+	if idle == null:
+		idle = _placeholder_texture
+	# sprite_scale widens the 380x494 box only. Enemy art is width-limited in it
+	# (KEEP_ASPECT_CENTERED), so the sprite grows by sprite_scale while the box
+	# height, and therefore the arena row height, stays put (scaling the height
+	# too pushed the floor banner off-screen on the boss floor).
+	var size: Vector2 = Vector2(380.0 * EnemyRoster.get_sprite_scale(type_id), 494.0)
+	slot.setup(stats, idle, attack_fallback, size)
+	var frames: Array[Texture2D] = []
+	for p in EnemyRoster.get_attack_frame_paths(type_id):
+		var t: Texture2D = _get_enemy_texture(str(p))
+		if t != null:
+			frames.append(t)
+	if not frames.is_empty():
+		slot.set_attack_frames(frames)
+	slot.set_sprite_tint(EnemyRoster.get_tint(type_id))
+	slot.set_boss_visual(EnemyRoster.is_boss(type_id))
 
 
 # --- Create 3 heroes and 1 enemy, give to BattleManager, then build arena and UI ---
@@ -415,10 +397,6 @@ func _build_arena() -> void:
 	var n = enemies.size()
 	var enemy_back_row = _make_row(enemy_slots_container, true, true)
 	var enemy_front_row = _make_row(enemy_slots_container, false, true)
-	var get_enemy_idle = func(idx: int) -> Texture2D:
-		if idx < _texture_idle_enemy.size() and _texture_idle_enemy[idx] != null:
-			return _texture_idle_enemy[idx]
-		return _placeholder_texture
 	if n >= 3:
 		for i in [2, 3]:
 			if i < n:
@@ -427,7 +405,7 @@ func _build_arena() -> void:
 				slot.is_party = false
 				slot.slot_clicked.connect(_on_enemy_slot_clicked)
 				enemy_back_row.add_child(slot)
-				slot.setup(enemies[i], get_enemy_idle.call(i), attack_enemy, Vector2(380, 494))
+				_setup_enemy_slot(slot, enemies[i], attack_enemy)
 				_enemy_slots.append(slot)
 	for i in [0, 1]:
 		if i < n:
@@ -436,13 +414,7 @@ func _build_arena() -> void:
 			slot.is_party = false
 			slot.slot_clicked.connect(_on_enemy_slot_clicked)
 			enemy_front_row.add_child(slot)
-			slot.setup(enemies[i], get_enemy_idle.call(i), attack_enemy, Vector2(380, 494))
-			if i == 0 and not _enemy0_attack_frames.is_empty():
-				slot.set_attack_frames(_enemy0_attack_frames)
-			elif i == 1 and not _enemy1_attack_frames.is_empty():
-				slot.set_attack_frames(_enemy1_attack_frames)
-			elif i == 2 and not _enemy2_attack_frames.is_empty():
-				slot.set_attack_frames(_enemy2_attack_frames)
+			_setup_enemy_slot(slot, enemies[i], attack_enemy)
 			_enemy_slots.append(slot)
 	enemy_slots_container.alignment = BoxContainer.ALIGNMENT_END
 	_on_turn_order_updated(battle_manager.get_current_battler())
@@ -699,20 +671,19 @@ func _ai_turn() -> void:
 
 
 func _choose_enemy_action(attacker: Dictionary) -> Dictionary:
-	var idx: int = attacker.index
 	var hp_pct: float = float(attacker.stats.current_hp) / float(maxi(1, attacker.stats.max_hp))
-	var profile: int = idx % 3
-	if profile == 0:
+	var profile: int = EnemyRoster.get_ai_profile(attacker.stats.enemy_type)
+	if profile == EnemyRoster.AI_TACTICIAN:
 		if hp_pct > 0.5 and battle_manager.can_use_ability(attacker, "focus"):
 			return { "kind": "ability", "id": "focus", "name": "Focus" }
 		if battle_manager.can_use_ability(attacker, "barrage"):
 			return { "kind": "ability", "id": "barrage", "name": "Barrage", "needs_target": true }
 		if battle_manager.can_use_ability(attacker, "ranged_shot"):
 			return { "kind": "ability", "id": "ranged_shot", "name": "Ranged Shot", "needs_target": true }
-	elif profile == 1:
+	elif profile == EnemyRoster.AI_BERSERKER:
 		if hp_pct < 0.5 and battle_manager.can_use_ability(attacker, "frenzy"):
 			return { "kind": "ability", "id": "frenzy", "name": "Frenzy", "needs_target": true }
-	elif profile == 2:
+	elif profile == EnemyRoster.AI_SOLDIER:
 		if hp_pct < 0.4 and battle_manager.can_use_ability(attacker, "guard"):
 			return { "kind": "ability", "id": "guard", "name": "Guard" }
 	return { "kind": "attack", "needs_target": true }

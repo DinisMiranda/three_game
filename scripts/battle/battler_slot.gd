@@ -22,6 +22,8 @@ const _TURN_FLASH_OUT := 0.22
 @export var slot_index: int = 0
 @export var is_party: bool = true
 
+var _boss_visual: bool = false
+
 @onready var texture_rect: TextureRect = $VBox/SpriteContainer/TextureRect
 @onready var name_label: Label = $VBox/NameLabel
 @onready var role_label: Label = $VBox/RoleLabel
@@ -127,6 +129,32 @@ func setup(stats: BattlerStats, texture_idle: Texture2D, texture_attack: Texture
 	if energy_bar:
 		energy_bar.custom_minimum_size.x = _idle_size.x
 	refresh()
+
+## Tints the sprite (archetype colour, e.g. the boss's red/amber). Uses
+## self_modulate so hit flashes, which tween modulate back to white, keep the tint.
+func set_sprite_tint(color: Color) -> void:
+	if texture_rect:
+		texture_rect.self_modulate = color
+
+
+## Current archetype tint (white = none).
+func get_sprite_tint() -> Color:
+	return texture_rect.self_modulate if texture_rect else Color.WHITE
+
+
+## Boss presentation hook (Phase 1B). Today the boss look is only the archetype's
+## sprite_scale (passed to setup() as the size) and tint (set_sprite_tint()); this
+## records the flag. The boss aura shader will attach here: when [param enabled],
+## assign its ShaderMaterial to texture_rect (or an aura node behind it); when
+## false, clear it.
+func set_boss_visual(enabled: bool) -> void:
+	_boss_visual = enabled
+
+
+## True if this slot shows a boss (see set_boss_visual).
+func is_boss_visual() -> bool:
+	return _boss_visual
+
 
 func set_attack_frames(frames: Array[Texture2D]) -> void:
 	_attack_frames.clear()
