@@ -38,3 +38,17 @@ func test_battle_scene_manager_is_setup() -> void:
 	# Scene sets up sample battle in _ready
 	assert_int(party.size()).is_greater_equal(1)
 	assert_int(enemies.size()).is_greater_equal(1)
+
+func test_battle_scene_direct_launch_uses_floor1_roster() -> void:
+	# No mission active: the standalone battle falls back to floor 1 (one Spire Warden).
+	await get_tree().process_frame
+	if MissionProgress.is_meridian_spire_active():
+		return
+	var enemies: Array = _scene.battle_manager.get_enemies()
+	assert_int(enemies.size()).is_equal(1)
+	var s: BattlerStats = enemies[0]
+	assert_str(s.enemy_type).is_equal("warden")
+	assert_str(s.display_name).is_equal("Spire Warden")
+	var slot: BattlerSlot = _scene._enemy_slots[0]
+	assert_bool(slot.is_boss_visual()).is_false()
+	assert_object(slot.get_sprite_tint()).is_equal(Color.WHITE)
