@@ -68,6 +68,10 @@ Full index: [docs/README.md](docs/README.md).
 
 See [docs/design/portfolio-plan.md](docs/design/portfolio-plan.md) for the portfolio plan (combat polish, telemetry, data pipeline and data-driven rebalance).
 
+## Credits
+
+Art was generated with ChatGPT and edited by the author; fonts are Exo 2 (OFL) and Roboto Mono (Apache 2.0). Full list with licences: [CREDITS.md](CREDITS.md).
+
 ## More information
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to contribute (issues, PRs, Conventional Commits).
