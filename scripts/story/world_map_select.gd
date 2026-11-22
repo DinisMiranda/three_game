@@ -215,11 +215,7 @@ func _on_deploy_pressed() -> void:
 		return
 	_stop_idle_motion()
 	MissionProgress.start_meridian_spire()
-	_fade.mouse_filter = Control.MOUSE_FILTER_STOP
-	var tw := create_tween()
-	tw.tween_property(_fade, "modulate:a", 1.0, 0.38).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	await tw.finished
-	get_tree().change_scene_to_file(BATTLE_SCENE)
+	SceneFader.change_scene(BATTLE_SCENE)
 
 
 func _stop_idle_motion() -> void:

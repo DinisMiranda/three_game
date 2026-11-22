@@ -16,9 +16,12 @@ The game starts at **MainMenu** (`scenes/main_menu/main_menu.tscn`, `run/main_sc
 | `story/hideout_select.tscn` | `scripts/story/hideout_select.gd` | Pick one of three hideouts. |
 | `story/hideout_debrief.tscn` | `scripts/story/hideout_debrief.gd` | Squad debrief with Brick and Sage. |
 | `ui/options_menu.tscn` | `scripts/ui/options_menu.gd` | Options overlay, instanced by the main menu and the battle. |
+| `ui/scene_fader.tscn` | `scripts/autoload/scene_fader.gd` | `SceneFader` autoload: fade-through-black used for every scene change. |
 | `main/main.tscn` | `scripts/main/main.gd` | Legacy: Main Control with the battle instanced as a child; not used by the game flow. |
 
 Flow: Main menu → briefing → world map → battle (3 floors) → epilogue → hideout select → debrief → main menu. See [ARCHITECTURE.md](ARCHITECTURE.md).
+
+Every step goes through **SceneFader** (`SceneFader.change_scene(path)`): fade to black, `change_scene_to_file`, wait one frame, fade back in. The battle's “next floor” uses `SceneFader.fade_through(callable)` to rebuild the same scene while the screen is black. Timings are exported on `scenes/ui/scene_fader.tscn` (`fade_out_duration` 0.4 s, `fade_in_duration` 0.45 s). While a fade runs the overlay blocks the mouse and further requests are refused.
 
 ## Main menu tree
 
@@ -32,7 +35,7 @@ MainMenu (Control, main_menu.gd)
               └── ConceptPanel (PanelContainer: ConceptTitle, ConceptText)
 ```
 
-**Start Battle** fades to black and loads `briefing_dialogue.tscn`. ESC (or **Options**) shows the options overlay, instanced in code.
+**Start Battle** loads `briefing_dialogue.tscn` through SceneFader. ESC (or **Options**) shows the options overlay, instanced in code.
 
 ## Battle scene tree
 
@@ -44,27 +47,32 @@ BattleScene (Control, battle_scene.gd)
   ├── Margin (MarginContainer)
   │     └── VBox (VBoxContainer)
   │           ├── FloorBanner (Label; "MERIDIAN SPIRE · Floor N — ...", hidden outside the mission)
-  │           ├── TurnOrderBar (PanelContainer)
-  │           │     └── TurnOrderHBox: TurnOrderLabel "Turn order:", TurnOrderList (battle_scene adds chips)
+  │           ├── TopBar (PanelContainer)
+  │           │     └── TopHBox: TurnOrderLabel "TURN ORDER", TurnOrderBar (turn_order_bar.gd; portrait chips), SpeedBtn ("1x" / "2x")
   │           ├── ArenaRow (HBoxContainer)
   │           │     ├── PartyArena: PartyLabel "Party (3)", PartySlots (VBoxContainer)
-  │           │     ├── EnemyArena: EnemyLabel "Enemy", EnemySlots (VBoxContainer)
-  │           │     └── PartyStatsPanel (PanelContainer): StatsTitle "Party status", StatsList (name + HP bar + HP/energy text per hero)
+  │           │     └── EnemyArena: EnemyLabel "Enemy", EnemySlots (VBoxContainer)
   │           └── BottomRow (HBoxContainer)
   │                 ├── ActionsPanel (PanelContainer)
   │                 │     └── ActionsVBox
   │                 │           ├── Buttons (HBoxContainer: AttackBtn, AbilitiesBtn)
   │                 │           ├── EndTurnRow (HBoxContainer: EndTurnBtn)
   │                 │           └── AbilitySubPanel (VBoxContainer: AbilityLabel, AbilityButtonsContainer, AbilityBackBtn)
-  │                 └── LogPanel (PanelContainer; min height 220px)
-  │                       └── LogScroll (ScrollContainer) → Log (RichTextLabel; newest line on top, 50 lines max)
+  │                 ├── PartyStatsPanel (PanelContainer) → StatsVBox: StatsTitle "Party status", StatsList (per hero: name, HP bar + "92/92", EN bar + "100/100")
+  │                 └── LogPanel (PanelContainer, battle_log.gd; compact log, newest 3 lines, "History" toggle opens the full history above it)
   └── EndScreen (CanvasLayer; visible when battle ends)
         ├── Overlay (ColorRect; sized to the viewport in code)
         └── Center (CenterContainer)
               └── Panel (PanelContainer) → VBox: EndTitle, NextFloorBtn ("Ascend — next floor"), BackToMenuBtn
 ```
 
-BattleManager and the options menu are **not** in the scene file; both are created in code in `battle_scene.gd` and added as children.
+BattleManager, BattleFx and the options menu are **not** in the scene file; they are created in code in `battle_scene.gd` and added as children.
+
+- **TurnOrderBar** (`turn_order_bar.gd`): BattleScene feeds it entries with `set_order(entries, active_key)`; it owns the chips, fades out a downed battler's chip and pops the active one.
+- **SpeedBtn**: cycles `BattleFeel.speed_multipliers` (1x / 2x) through BattleFx.
+- **BattleLog** (`battle_log.gd`): compact view plus a `top_level` history overlay, so opening it never reflows the layout.
+- **PartyStatsPanel**: rebuilt by `_refresh_party_stats_panel()`. HP and energy use the same BattleFeel colours as the arena slots.
+- **BattleFx** (`battle_fx.gd`) plays lunge, hit-stop, shake, hit flash, floating text and the death slump. Its timings, and the status bar colours, come from the **BattleFeel** resource (`resources/battle_feel_default.tres`, exported as `battle_feel` on BattleScene).
 
 End screen titles: “Victory!”, “Floor clear!” (with NextFloorBtn, back button reads “Abort to menu”), “Rooftop secured!” (back button reads “Continue” and goes to the epilogue), “Meridian Spire secured!”, “Defeat!”.
 
@@ -75,26 +83,24 @@ End screen titles: “Victory!”, “Floor clear!” (with NextFloorBtn, back b
 
 Rows are built in `_build_arena()` with `_make_row(container, behind, add_leading_spacer, top_margin)`. When `behind == true`, the row is wrapped in a MarginContainer with `margin_left = 28`. Enemy slots are set up with a larger sprite size (380×494).
 
+Enemies come from **EnemyRoster** (`enemy_roster.gd`): each floor lists archetype ids and the roster gives name, sprites, stats, `sprite_scale`, tint and boss flag. The boss (Custodian Unit, floor 3) gets `set_boss_visual(true)`: the `boss_aura.gdshader` glow, a 1.2× sprite scaled up from its feet, and a dark info plate behind its name and bars.
+
 ## BattlerSlot layout
 
 ```
 BattlerSlot (PanelContainer, battler_slot.gd)
   └── VBox (VBoxContainer)
-        ├── NameLabel
-        ├── RoleLabel       (hero role, e.g. "Grenadier"; hidden when empty)
-        ├── FlyingLabel     (visible when flying; "↑ Flying")
-        ├── ShieldedLabel   (visible when shield active; "◇ Shielded")
-        ├── GuardedLabel    (visible when guard is active)
-        ├── HPBarContainer  (Control; two overlapping ProgressBars)
-        │     ├── HPBar     (cyan, shows current HP)
-        │     └── ShieldBar (darker blue, shows the shield amount)
-        ├── EnergyBar
+        ├── InfoPlate (PanelContainer; empty style, dark plate with aura-coloured border for the boss)
+        │     └── Info (VBoxContainer)
+        │           ├── NameLabel, RoleLabel, FlyingLabel, ShieldedLabel, GuardedLabel
+        │           ├── HPRow: HPTag "HP", HPBarContainer (HPBar + ShieldBar overlapping), HPValue "80/100"
+        │           └── EnergyRow: EnergyTag "EN", EnergyBar, EnergyValue "60/100"
         └── SpriteContainer (Control; sprite area, moved up when flying)
               ├── ShieldBubble (Control + shield_bubble.gd; blue semi-transparent circle when shielded)
               └── TextureRect (sprite; 200×260 idle by default, 1.2× during attack; keep aspect centered)
 ```
 
-Slots are instanced from `scenes/battle/battler_slot.tscn`. BattleScene adds each slot to the tree first, then calls `setup(stats, texture_idle, texture_attack, size_override)`. `play_attack_animation()` cycles the attack frames over 0.75s with a small scale pulse. `play_hit_flash()` tints the sprite red; `play_enemy_turn_flash()` tints the whole slot. Dead battlers’ slots are hidden by `refresh()`.
+Slots are instanced from `scenes/battle/battler_slot.tscn`. BattleScene adds each slot to the tree first, then calls `setup(stats, texture_idle, texture_attack, size_override)`. `play_attack_animation()` cycles the attack frames over `BattleFeel.attack_anim_duration` (scaled by battle speed) with a small scale pulse. `play_hit_flash()` tints the sprite red; `play_enemy_turn_flash()` tints the whole slot. HP is cyan, then orange at or below 50% and red at or below 25%; energy is yellow (BattleFeel “Status Bars”). A dead battler's slot stays in place, dimmed by BattleFx, and `refresh()` hides its bars and numbers.
 
 ## Story scenes
 
@@ -117,8 +123,8 @@ Applied in `battle_scene.gd` (`_apply_sci_fi_theme()` and related):
 - **Panels**: Dark background (`_COLOR_PANEL`), thin cyan border (`_COLOR_BORDER`), 12px content margin.
 - **Labels**: Light gray text (`_COLOR_TEXT`); turn bar and stats title use accent (`_COLOR_ACCENT`); the **current turn** in the turn bar is shown in a small panel with amber border and “► TURN: P Name” / “► TURN: E Name” in amber (`_COLOR_NEXT`), larger font. The log is a RichTextLabel colored per line kind (normal, enemy, crit, absorb, miss, victory, defeat, bark).
 - **Buttons**: Dark background, cyan border; slightly lighter on hover (`_make_btn_style`).
-- **Progress bars**: Dark background style, cyan fill style (battle stats panel, and in battler_slot.gd for slot HP bars).
-- **BattlerSlot**: Its own panel style (transparent by default), HP, shield and energy bars. When it’s that character’s turn, BattleScene calls `set_turn_highlight(true)` and the slot gets an amber border; otherwise the default style is restored. The selected enemy is tinted, and enemies the current attacker cannot reach are dimmed.
+- **Progress bars**: Dark background style. HP fill is cyan, orange when low, red when critical; energy fill is yellow. Colours, tags and thresholds live in BattleFeel and are shared by the slots and the Party status panel.
+- **BattlerSlot**: Its own panel style (transparent by default), HP, shield and energy bars with “HP” / “EN” tags and current/max numbers. When it’s that character’s turn, BattleScene calls `set_turn_highlight(true)` and the slot gets an amber border; otherwise the default style is restored. The selected enemy is tinted, and enemies the current attacker cannot reach are dimmed.
 - **Story and menu scenes** use their own constants (`_BOX_BG`, `_BOX_BORDER`, `_NEON_CYAN`) in each script; the main menu uses green accents.
 
 ## Window and stretch

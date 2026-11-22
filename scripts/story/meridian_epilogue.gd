@@ -142,7 +142,7 @@ var _typing_label: Label = null
 
 func _ready() -> void:
 	if not MissionProgress.meridian_epilogue_pending:
-		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+		SceneFader.change_scene.call_deferred(MAIN_MENU_SCENE)
 		return
 	MusicPlayer.play_menu()
 	_background.color = _BG_OVERLAY_ROOFTOP
@@ -429,7 +429,4 @@ func _go_to_hideout_select() -> void:
 	_is_exiting = true
 	_hint.visible = false
 	MissionProgress.mark_hideout_select_ready()
-	var tw := create_tween()
-	tw.tween_property(_fade, "modulate:a", 1.0, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	await tw.finished
-	get_tree().change_scene_to_file(HIDEOUT_SELECT_SCENE)
+	SceneFader.change_scene(HIDEOUT_SELECT_SCENE)

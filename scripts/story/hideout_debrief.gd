@@ -81,7 +81,7 @@ var _typing_label: Label = null
 
 func _ready() -> void:
 	if MissionProgress.selected_hideout_id.is_empty():
-		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+		SceneFader.change_scene.call_deferred(MAIN_MENU_SCENE)
 		return
 	var hideout: Dictionary = MissionProgress.get_selected_hideout()
 	var bg_path: String = str(hideout.get("bg", ""))
@@ -263,7 +263,4 @@ func _go_to_main_menu() -> void:
 	_is_exiting = true
 	_hint.visible = false
 	MissionProgress.complete_meridian_story()
-	var tw := create_tween()
-	tw.tween_property(_fade, "modulate:a", 1.0, 0.5)
-	await tw.finished
-	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+	SceneFader.change_scene(MAIN_MENU_SCENE)
