@@ -1,10 +1,18 @@
 shader_type canvas_item;
 render_mode blend_mix, unshaded;
+// Map-select backdrop: neon grid, scanlines, vignette, rare flicker.
+// Targets Forward+ and Compatibility (WebGL 2); no texture reads.
+// TIME precision: Godot wraps TIME at rendering/limits/time/time_rollover_secs
+// (default 3600 s), so sin(TIME * 37.0) keeps ~0.01 rad precision; no fix needed.
 
 uniform vec4 neon_cyan : source_color = vec4(0.0, 0.92, 1.0, 1.0);
 uniform vec4 neon_magenta : source_color = vec4(1.0, 0.15, 0.72, 1.0);
 uniform float grid_scale : hint_range(20.0, 200.0) = 72.0;
 uniform float scan_speed : hint_range(0.0, 40.0) = 14.0;
+/** Scanline period in screen pixels. Screen-space (FRAGCOORD) so the lines stay
+ * crisp at any canvas size; the old sin(uv.y * 900) aliased into moire when the
+ * rect was not ~1080 px tall. */
+uniform float scan_period_px : hint_range(2.0, 16.0) = 4.0;
 
 void fragment() {
 	vec2 uv = UV;
@@ -16,7 +24,7 @@ void fragment() {
 	float pulse = sin(TIME * 1.8 + uv.x * 9.0 + uv.y * 3.0) * 0.18 + 0.82;
 	vec3 gcol = mix(neon_cyan.rgb, neon_magenta.rgb, sin(TIME * 0.7 + uv.y * 4.0) * 0.5 + 0.5);
 	vec3 neon = gcol * grid * 0.35 * pulse;
-	float scan = sin(uv.y * 900.0 + TIME * scan_speed) * 0.04 + 0.96;
+	float scan = sin(FRAGCOORD.y * (TAU / scan_period_px) + TIME * scan_speed) * 0.04 + 0.96;
 	float horiz = sin(uv.y * 3.14159 * 12.0 + TIME * 2.5) * 0.015;
 	vec3 col = base * scan * (1.0 + horiz) + neon;
 	float vig = smoothstep(1.35, 0.28, distance(uv, vec2(0.5, 0.48)));

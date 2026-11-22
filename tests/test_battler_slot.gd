@@ -64,7 +64,10 @@ func test_boss_visual_applies_and_removes_aura_material() -> void:
 	assert_object(mat).is_not_null()
 	assert_str(mat.shader.resource_path).is_equal("res://assets/shaders/boss_aura.gdshader")
 	_slot.set_boss_visual(false)
-	assert_object(_slot.texture_rect.material).is_null()
+	# Off: back to the shared character shader (outline + rim + grade).
+	var off := _slot.texture_rect.material as ShaderMaterial
+	assert_object(off).is_not_null()
+	assert_str(off.shader.resource_path).is_equal("res://assets/shaders/character_unify.gdshader")
 	assert_bool(_slot.is_boss_visual()).is_false()
 
 
