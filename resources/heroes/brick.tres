@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="HeroData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/hero_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "brick"
+display_name = "Brick"
+role_label = "Frontliner"
+role_color = Color(0.788235294117647, 0.6274509803921569, 1.0, 1)
+enabled = false
+max_hp = 120
+attack = 11
+defense = 9
+speed = 7
+max_energy = 100
+abilities = Array[Dictionary]([{"id": "guard", "name": "Guard"}, {"id": "strike", "name": "Strike"}])
+barks = {}
+portrait = "res://assets/character_placeholder.png"
+figure_height = 240.0
+shader_saturation = 1.0
+shader_contrast = 1.0
+shader_brightness = 0.0

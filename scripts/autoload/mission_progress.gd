@@ -5,13 +5,26 @@ enum MissionId { NONE, MERIDIAN_SPIRE }
 
 const MERIDIAN_MAX_FLOOR := 3
 
-## One entry per floor (background + banner + enemy lineup). Floor 3 = rooftop / skyline.
-## "enemies" lists EnemyRoster.ARCHETYPES type ids, in arena slot order.
-const MERIDIAN_FLOORS: Array[Dictionary] = [
-	{"bg": "res://assets/andar.jpg", "title": "Floor 1 — Corridor breach", "enemies": ["warden"]},
-	{"bg": "res://assets/andar.jpg", "title": "Floor 2 — Security landing", "enemies": ["warden", "hound"]},
-	{"bg": "res://assets/e32ee0a6-a11a-4f0a-b8be-ec9723487b2b.png", "title": "Floor 3 — Rooftop extraction", "enemies": ["custodian"]},
-]
+## Meridian Spire data (Phase 3B): floor titles, backgrounds and enemy lineups
+## live in this [MissionData] resource. Floor 3 = rooftop / skyline.
+const MERIDIAN_MISSION_PATH := "res://resources/missions/meridian_spire.tres"
+
+## Legacy view, one Dictionary per floor: {"bg", "title", "enemies"} (FloorData.to_dict()).
+## "enemies" lists EnemyArchetype type ids, in arena slot order.
+static var MERIDIAN_FLOORS: Array[Dictionary] = _load_floors(MERIDIAN_MISSION_PATH)
+
+
+## Builds the floor dictionaries from the MissionData at [param path] ([] + error if missing).
+static func _load_floors(path: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var mission := load(path) as MissionData
+	if mission == null:
+		push_error("MissionProgress: cannot load MissionData at %s" % path)
+		return out
+	for f in mission.floors:
+		if f != null:
+			out.append(f.to_dict())
+	return out
 
 var active_mission: MissionId = MissionId.NONE
 ## Current combat floor (1..3) while Meridian Spire run is active.
