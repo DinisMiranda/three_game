@@ -8,6 +8,24 @@ extends RefCounted
 ## (art-direction §2: mono is accent only).
 
 
+## Dialogue box anchors inside its side Control (left, top, right, bottom):
+## a centred lower box sized for 20 px text (~95 chars x 4 lines at 1080p),
+## instead of the old 76% x 48% slab.
+const BOX_ANCHORS := Vector4(0.22, 0.56, 0.78, 0.9)
+
+
+## Anchors [param panel] to [constant BOX_ANCHORS] with zero offsets.
+static func fit_box(panel: Control) -> void:
+	panel.anchor_left = BOX_ANCHORS.x
+	panel.anchor_top = BOX_ANCHORS.y
+	panel.anchor_right = BOX_ANCHORS.z
+	panel.anchor_bottom = BOX_ANCHORS.w
+	panel.offset_left = 0.0
+	panel.offset_top = 0.0
+	panel.offset_right = 0.0
+	panel.offset_bottom = 0.0
+
+
 ## Gives [param panel] its own copy of the themed panel style and returns it.
 ## Call after the panel is in the tree so the Theme resolves.
 static func style_panel(panel: PanelContainer) -> StyleBoxFlat:
@@ -18,6 +36,7 @@ static func style_panel(panel: PanelContainer) -> StyleBoxFlat:
 	s.content_margin_top = 20
 	s.content_margin_bottom = 20
 	panel.add_theme_stylebox_override("panel", s)
+	fit_box(panel)
 	return s
 
 

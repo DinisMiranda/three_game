@@ -78,6 +78,13 @@ func _ready() -> void:
 	_deploy_btn.grab_focus()
 
 
+## Height left for the map between the top and bottom HUD bars (VBox with
+## [param separation] between its three rows). Never below 1. Pure function.
+static func map_view_height(viewport_h: float, top_h: float, bottom_h: float,
+		separation: float = 0.0) -> float:
+	return maxf(1.0, floorf(viewport_h - top_h - bottom_h - 2.0 * separation))
+
+
 func _build_map() -> void:
 	var tex: Texture2D = load(MAP_TEXTURE_PATH) as Texture2D
 	if tex == null:
@@ -85,7 +92,15 @@ func _build_map() -> void:
 		return
 	_map_bg.texture = tex
 	var tex_size := tex.get_size()
-	var view_h: float = maxf(640.0, get_viewport_rect().size.y - 200.0)
+	# Panning is drag / keys only: no scrollbar (it showed as a strip over the HUD).
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var layout := _scroll.get_parent() as VBoxContainer
+	var top_bar := layout.get_node("HudTop") as Control
+	var bottom_bar := layout.get_node("Hud") as Control
+	var view_h: float = map_view_height(get_viewport_rect().size.y,
+		top_bar.get_combined_minimum_size().y, bottom_bar.get_combined_minimum_size().y,
+		float(layout.get_theme_constant("separation")))
 	var scale: float = view_h / tex_size.y
 	# Wider than the viewport so the player can pan left/right across the city.
 	_map_display_size = Vector2(tex_size.x * scale * 1.45, view_h)

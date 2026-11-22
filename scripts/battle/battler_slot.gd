@@ -63,6 +63,16 @@ const _DEFAULT_FEEL: BattleFeel = preload("res://resources/battle_feel_default.t
 ## sprite (and its aura) cannot wash them out.
 const _BOSS_PLATE_BG := Color(0.02, 0.03, 0.06, 0.82)
 const _BOSS_PLATE_BORDER_ALPHA: float = 0.7
+## Caption size (spec minimum) for the role line under the name.
+const ROLE_FONT_SIZE: int = 14
+## Outline (px) on name / role labels over the battle background.
+const LABEL_OUTLINE_PX: int = 2
+## Soft shadow halo (px) behind name / role labels (busy backgrounds).
+const LABEL_SHADOW_PX: int = 6
+## Active-turn border: the focus style (2 px select_amber, radius 4, expand 2).
+const TURN_BORDER_PX: int = 2
+const TURN_BORDER_RADIUS: int = 4
+const TURN_BORDER_EXPAND: float = 2.0
 
 ## Bar colours, tags and font size. BattleScene assigns its BattleFeel before
 ## adding the slot to the tree; standalone slots use the default resource.
@@ -118,11 +128,19 @@ func _ready() -> void:
 	panel_style.set_border_width_all(0)
 	_default_panel_style = panel_style.duplicate()
 	add_theme_stylebox_override("panel", panel_style)
+	# Labels over the battle background: 2 px outline #000 @ 85% (spec §2);
+	# role is caption size, 14 px minimum.
 	if name_label:
-		name_label.add_theme_color_override("font_color", Color(0.9, 0.92, 0.95, 1))
+		name_label.add_theme_color_override("font_color", Palette.TEXT_PRIMARY)
+		name_label.add_theme_color_override("font_outline_color", Palette.OUTLINE)
+		name_label.add_theme_constant_override("outline_size", LABEL_OUTLINE_PX)
+		_add_label_shadow(name_label)
 	if role_label:
-		role_label.add_theme_color_override("font_color", Color(0.65, 0.72, 0.8, 1))
-		role_label.add_theme_font_size_override("font_size", 12)
+		role_label.add_theme_color_override("font_color", Palette.TEXT_SECONDARY)
+		role_label.add_theme_color_override("font_outline_color", Palette.OUTLINE)
+		role_label.add_theme_constant_override("outline_size", LABEL_OUTLINE_PX)
+		_add_label_shadow(role_label)
+		role_label.add_theme_font_size_override("font_size", ROLE_FONT_SIZE)
 		role_label.visible = false
 	if flying_label:
 		flying_label.add_theme_color_override("font_color", Color(0.6, 0.85, 1.0, 1))
@@ -577,17 +595,28 @@ func get_combat_text_position() -> Vector2:
 		return sprite_container.global_position + Vector2(_idle_size.x * 0.5, -8.0)
 	return global_position + Vector2(100, 0)
 
-# --- Highlight this slot when it's this character's turn (amber outline only, no box). ---
+## Active / selected slot: the spec focus style (2 px select_amber, radius 4).
 func set_turn_highlight(active: bool) -> void:
 	if active:
-		var hi = StyleBoxFlat.new()
+		var hi := StyleBoxFlat.new()
 		hi.bg_color = Color(0, 0, 0, 0)
-		hi.border_color = Color(1.0, 0.75, 0.2, 1.0)
-		hi.set_border_width_all(2)
+		hi.border_color = Palette.SELECT_AMBER
+		hi.set_border_width_all(TURN_BORDER_PX)
+		hi.set_corner_radius_all(TURN_BORDER_RADIUS)
+		hi.set_expand_margin_all(TURN_BORDER_EXPAND)
 		add_theme_stylebox_override("panel", hi)
 	else:
 		if _default_panel_style != null:
 			add_theme_stylebox_override("panel", _default_panel_style)
+
+## Soft dark halo (shadow token) behind a label, on top of its outline, so
+## name / role stay legible over bright set pieces (Rin over the hologram).
+func _add_label_shadow(label: Label) -> void:
+	label.add_theme_color_override("font_shadow_color", Palette.SHADOW)
+	label.add_theme_constant_override("shadow_outline_size", LABEL_SHADOW_PX)
+	label.add_theme_constant_override("shadow_offset_x", 0)
+	label.add_theme_constant_override("shadow_offset_y", 1)
+
 
 func _make_bar_style(fill: bool) -> StyleBoxFlat:
 	var s = StyleBoxFlat.new()

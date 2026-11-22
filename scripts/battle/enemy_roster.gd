@@ -89,7 +89,8 @@ static var ARCHETYPES: Dictionary = {
 		"sprite_scale": 1.2,  # was 1.3; the head no longer reaches the name plate
 		"tint": Color(1.0, 0.72, 0.6),
 		"aura_color": Color(1.0, 0.3, 0.08),
-		"figure_height": 320.0,
+		# 1.5x the 240 px heroes so the boss reads as a boss; fits 1280x720.
+		"figure_height": 360.0,
 		"shader_saturation": 1.0,
 		"shader_contrast": 1.0,
 		"shader_brightness": 0.0,

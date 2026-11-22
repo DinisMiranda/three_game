@@ -57,7 +57,7 @@ func test_boss_slot_gets_aura_and_boss_height() -> void:
 	var slot := _slot(false, 0, stats)
 	slot.set_boss_visual(true)
 	assert_str(_shader_path(slot)).is_equal(AURA_SHADER)
-	assert_float(slot.get_figure_height()).is_equal(320.0)
+	assert_float(slot.get_figure_height()).is_equal(EnemyRoster.get_figure_height("custodian"))
 
 
 func test_roster_grade_defaults_and_kael_fix() -> void:
@@ -71,7 +71,7 @@ func test_roster_grade_defaults_and_kael_fix() -> void:
 func test_figure_heights_from_data() -> void:
 	assert_float(HeroRoster.get_figure_height(0)).is_equal(240.0)
 	assert_float(EnemyRoster.get_figure_height("hound")).is_equal(240.0)
-	assert_float(EnemyRoster.get_figure_height("custodian")).is_equal(320.0)
+	assert_float(EnemyRoster.get_figure_height("custodian")).is_equal(360.0)
 
 
 func test_fit_figure_scales_to_target_height() -> void:

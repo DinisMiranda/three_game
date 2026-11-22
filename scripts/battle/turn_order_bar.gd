@@ -49,7 +49,7 @@ const _FALLBACK_REMOVE_DURATION := 0.3
 @export_range(0, 12, 1) var underline_px: int = 3
 ## Normalised region of the battler sprite used as the portrait (head and
 ## shoulders of a full-body sprite). Rect2(0, 0, 1, 1) uses the whole sprite.
-@export var portrait_crop: Rect2 = Rect2(0.2, 0.02, 0.6, 0.42)
+@export var portrait_crop: Rect2 = PortraitMaterial.HEAD_REGION
 
 ## Presentation speed (BattleFx speed multiplier); animation lengths are divided by it.
 var speed_multiplier: float = 1.0
@@ -57,7 +57,6 @@ var speed_multiplier: float = 1.0
 var _chips: Dictionary = {}  # key -> _Chip (live chips only)
 var _dying: Array[Control] = []
 var _active_key: String = ""
-var _portrait_cache: Dictionary = {}  # Texture2D -> AtlasTexture
 
 
 ## One turn-order chip. Built in code so the component has no scene dependency.
@@ -133,6 +132,7 @@ func build_chip_specs(entries: Array, active_key: String) -> Array[Dictionary]:
 			"is_active": key == active_key and not active_key.is_empty(),
 			"side_color": get_side_color(is_party),
 			"texture": e.get("texture", null),
+			"grade": e.get("grade", Vector3(1.0, 1.0, 0.0)),
 		})
 	return specs
 
@@ -224,9 +224,11 @@ func _apply_spec(chip: _Chip, spec: Dictionary) -> void:
 	chip.side_color = spec.side_color
 	var edge: float = active_portrait_size if chip.is_active else portrait_size
 	var tex: Texture2D = spec.texture as Texture2D
-	chip.portrait.texture = _get_portrait(tex)
-	chip.portrait.visible = tex != null
 	chip.portrait.custom_minimum_size = Vector2(edge, edge)
+	# Character shader + roster grade, head crop of the trimmed figure.
+	PortraitMaterial.apply(chip.portrait, tex, spec.get("grade", Vector3(1.0, 1.0, 0.0)),
+		chip.is_party, _portrait_region(), true)
+	chip.portrait.visible = tex != null
 	chip.name_label.text = spec.name
 	chip.name_label.add_theme_font_size_override("font_size", active_font_size if chip.is_active else font_size)
 	chip.name_label.add_theme_color_override("font_color", active_color if chip.is_active else text_color)
@@ -251,25 +253,9 @@ func _apply_spec(chip: _Chip, spec: Dictionary) -> void:
 	chip.tooltip_text = str(spec.name)
 
 
-## Crops [param tex] to [member portrait_crop]; cached per texture.
-func _get_portrait(tex: Texture2D) -> Texture2D:
-	if tex == null:
-		return null
-	if _portrait_cache.has(tex):
-		return _portrait_cache[tex]
-	var tex_size := tex.get_size()
-	var region := Rect2(
-		portrait_crop.position * tex_size,
-		portrait_crop.size * tex_size
-	).intersection(Rect2(Vector2.ZERO, tex_size))
-	var result: Texture2D = tex
-	if region.has_area():
-		var atlas := AtlasTexture.new()
-		atlas.atlas = tex
-		atlas.region = region
-		result = atlas
-	_portrait_cache[tex] = result
-	return result
+## Head region used for chip portraits (normalised, of the trimmed figure).
+func _portrait_region() -> Rect2:
+	return portrait_crop
 
 
 func _remove_chip(key: String) -> void:
