@@ -37,6 +37,9 @@ What each file does. Godot sidecar files (`*.import`, `*.uid`) sit next to their
 | File | Purpose |
 |------|--------|
 | `resources/battler_stats.gd` | **BattlerStats** (Resource). One character’s stats: name, HP, attack, defense, speed, is_party, is_ranged, energy, plus runtime state (flying, shield, guard, attack buff). Methods: `take_damage` (guard halves, shield absorbs, then defense), `heal`, `is_alive`, `get_attack_power`, energy helpers, `apply_shield`, `apply_guard`, `apply_attack_buff`, `tick_shield_round`, `tick_buff_rounds`, `duplicate_stats`. |
+| `resources/heroes/*.tres` | One **HeroData** per hero (kael, nova, rin; reserved brick, sage): stats, abilities, barks, portrait, shader grade. Balance edits go here. |
+| `resources/enemies/*.tres` | One **EnemyArchetype** per enemy type (warden, hound, custodian, enforcer): base stats, per-floor scaling, AI profile, sprites, tint / aura, boss flag. |
+| `resources/missions/meridian_spire.tres` | **MissionData** for Meridian Spire: three **FloorData** sub-resources (title, background, enemy type ids). |
 
 ## Scripts
 
@@ -51,7 +54,7 @@ What each file does. Godot sidecar files (`*.import`, `*.uid`) sit next to their
 
 | File | Purpose |
 |------|--------|
-| `scripts/autoload/mission_progress.gd` | **MissionProgress** (autoload). Meridian Spire run state (active mission, floor 1–3, floor backgrounds/titles), epilogue and hideout flags, `HIDEOUTS` data, and helpers such as `start_meridian_spire`, `meridian_advance_floor`, `mark_rooftop_cleared`, `mark_hideout_select_ready`, `select_hideout`, `complete_meridian_story`. |
+| `scripts/autoload/mission_progress.gd` | **MissionProgress** (autoload). Meridian Spire run state (active mission, floor 1–3; floor titles, backgrounds and lineups loaded from `resources/missions/meridian_spire.tres`), epilogue and hideout flags, `HIDEOUTS` data, and helpers such as `start_meridian_spire`, `meridian_advance_floor`, `mark_rooftop_cleared`, `mark_hideout_select_ready`, `select_hideout`, `complete_meridian_story`. |
 
 ### Main menu and options
 
@@ -91,7 +94,11 @@ What each file does. Godot sidecar files (`*.import`, `*.uid`) sit next to their
 | `scripts/battle/enemy_ai.gd` | EnemyAI (RefCounted): AI profile action choice (pure, unit tested) and party target choice. |
 | `scripts/battle/battle_end_screen.gd` | BattleEndScreen: victory / defeat overlay and its buttons. |
 | `scripts/battle/battler_slot.gd` | **BattlerSlot** (PanelContainer). One character slot: name, role, status labels, HP/shield/energy bars, sprite with attack frames. `setup`, `set_attack_frames`, `play_attack_animation`, `play_hit_flash`, `play_enemy_turn_flash`, `set_role_display`, `set_turn_highlight`, `refresh`. Emits `slot_clicked(slot_index, is_party)`. |
-| `scripts/battle/hero_roster.gd` | **HeroRoster** (static data). Five heroes (Kael, Nova, Rin active; Brick, Sage reserved) with stats, abilities, role labels, portraits and barks; `apply_to_stats`, portrait lookups for story scenes. |
+| `scripts/battle/hero_roster.gd` | **HeroRoster** (static loader). Loads the five HeroData files in `HERO_PATHS` (Kael, Nova, Rin active; Brick, Sage reserved); `get_hero`, `get_data`, `apply_to_stats`, `build_party`, `find_index_by_name`, portrait lookups for story scenes. |
+| `scripts/battle/hero_data.gd` | **HeroData** (Resource). Typed, grouped, documented fields for one hero; `to_dict()`, `get_shader_grade()`. |
+| `scripts/battle/enemy_roster.gd` | **EnemyRoster** (static loader). Loads the EnemyArchetype files in `ARCHETYPE_PATHS`; `get_archetype`, `get_data`, stat / visual getters, `build_display_names`, `build_enemies`. |
+| `scripts/battle/enemy_archetype.gd` | **EnemyArchetype** (Resource). Typed fields for one enemy type; `get_max_hp(floor)`, `get_attack(floor)`, `get_aura_color()`, `to_dict()`. |
+| `scripts/missions/mission_data.gd`, `scripts/missions/floor_data.gd` | **MissionData** (id, name, floors) and **FloorData** (title, background, enemies; `to_dict()`). |
 | `scripts/battle/floating_combat_text.gd` | **FloatingCombatText** (Label). Static `spawn()` creates a rising, fading damage/status number. |
 | `scripts/battle/shield_bubble.gd` | **ShieldBubble** (Control). Draws a blue semi-transparent circle when visible. |
 
@@ -167,6 +174,7 @@ Music:
 | `tests/test_battle_manager.gd` | BattleManager (21 tests). |
 | `tests/test_battler_slot.gd` | BattlerSlot (3 tests). |
 | `tests/test_battle_scene.gd` | BattleScene (wiring). |
+| `tests/test_roster_resources.gd` | Phase 3B data resources: every .tres loads, roster getters return the pinned pre-3B values, floor lineups (11 tests). |
 | `tests/test_enemy_ai.gd` | EnemyAI profiles and target choice (11 tests). |
 | `tests/test_action_panel.gd` | ActionPanel signals and ability list (6 tests). |
 | `tests/test_music_player.gd` | MusicPlayer (4 tests). |

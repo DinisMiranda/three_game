@@ -1,9 +1,9 @@
 class_name EnemyRoster
 extends RefCounted
-## Enemy archetype table (Phase 1B). Every enemy property — name, sprite, attack
+## Enemy archetype table (Phase 1B; data in [EnemyArchetype] .tres files since 3B). Every enemy property — name, sprite, attack
 ## frames, AI profile, ranged flag, stats, scale, tint, boss flag — is keyed by a
 ## type id, never by arena slot. Floors list type ids in
-## MissionProgress.MERIDIAN_FLOORS[i].enemies; BattleScene builds from that list.
+## FloorData.enemies (resources/missions/*.tres); BattleScene builds from that list.
 ##
 ## Stat scaling per floor (unchanged from the pre-roster slot logic):
 ##   max_hp = base_hp + hp_per_floor * (floor - 1)
@@ -24,116 +24,56 @@ const REQUIRED_FIELDS: Array[String] = [
 	"speed", "sprite_scale", "tint", "is_boss",
 ]
 
-static var ARCHETYPES: Dictionary = {
-	"warden": {
-		"display_name": "Spire Warden",
-		"idle_sprite": "res://assets/enemy_1-removebg-preview.png",
-		"attack_frames": [
-			"res://assets/enemy_1_attack_animantion_part1-removebg-preview.png",
-			"res://assets/enemy1_attack_animation_part2-removebg-preview.png",
-		],
-		"ai_profile": AI_TACTICIAN,
-		"is_ranged": true,
-		"base_hp": 40,
-		"hp_per_floor": 10,
-		"base_attack": 16,
-		"attack_per_floor": 2,
-		"defense": 3,
-		"speed": 5,
-		"sprite_scale": 1.0,
-		"tint": Color.WHITE,
-		"figure_height": 240.0,
-		"shader_saturation": 1.0,
-		"shader_contrast": 1.0,
-		"shader_brightness": 0.0,
-		"is_boss": false,
-	},
-	"hound": {
-		"display_name": "Sentry Hound",
-		"idle_sprite": "res://assets/enemy_2-removebg-preview.png",
-		"attack_frames": [
-			"res://assets/enemy_2_attack_animation.png",
-		],
-		"ai_profile": AI_BERSERKER,
-		"is_ranged": false,
-		"base_hp": 50,
-		"hp_per_floor": 10,
-		"base_attack": 18,
-		"attack_per_floor": 2,
-		"defense": 3,
-		"speed": 8,
-		"sprite_scale": 1.0,
-		"tint": Color.WHITE,
-		"figure_height": 240.0,
-		"shader_saturation": 1.0,
-		"shader_contrast": 1.0,
-		"shader_brightness": 0.0,
-		"is_boss": false,
-	},
-	"custodian": {
-		"display_name": "Custodian Unit",
-		"idle_sprite": "res://assets/enemy_1-removebg-preview.png",
-		"attack_frames": [
-			"res://assets/enemy_1_attack_animantion_part1-removebg-preview.png",
-			"res://assets/enemy1_attack_animation_part2-removebg-preview.png",
-		],
-		"ai_profile": AI_TACTICIAN,
-		# Not ranged today (pre-roster logic was `floor < 3`); kept as-is, no rebalance.
-		"is_ranged": false,
-		"base_hp": 55,
-		"hp_per_floor": 10,
-		"base_attack": 20,
-		"attack_per_floor": 2,
-		"defense": 3,
-		"speed": 7,
-		"sprite_scale": 1.2,  # was 1.3; the head no longer reaches the name plate
-		"tint": Color(1.0, 0.72, 0.6),
-		"aura_color": Color(1.0, 0.3, 0.08),
-		# 1.5x the 240 px heroes so the boss reads as a boss; fits 1280x720.
-		"figure_height": 360.0,
-		"shader_saturation": 1.0,
-		"shader_contrast": 1.0,
-		"shader_brightness": 0.0,
-		"is_boss": true,
-	},
+## Archetype files, in type-id order. An explicit list, not a directory scan:
+## DirAccess listing is unreliable in exported / web builds. Each file's
+## EnemyArchetype.id is its type id.
+const ARCHETYPE_PATHS: Array[String] = [
+	"res://resources/enemies/warden.tres",
+	"res://resources/enemies/hound.tres",
+	"res://resources/enemies/custodian.tres",
 	# Not placed on a floor yet. Stats chosen close to the warden.
-	"enforcer": {
-		"display_name": "Meridian Enforcer",
-		"idle_sprite": "res://assets/inimigo_soldado.png",
-		"attack_frames": [
-			"res://assets/inimigo_soldado_ataque.png",
-		],
-		"ai_profile": AI_SOLDIER,
-		"is_ranged": false,
-		"base_hp": 45,
-		"hp_per_floor": 10,
-		"base_attack": 16,
-		"attack_per_floor": 2,
-		"defense": 4,
-		"speed": 6,
-		"sprite_scale": 1.0,
-		"tint": Color.WHITE,
-		"figure_height": 240.0,
-		"shader_saturation": 1.0,
-		"shader_contrast": 1.0,
-		"shader_brightness": 0.0,
-		"is_boss": false,
-	},
-}
+	"res://resources/enemies/enforcer.tres",
+]
+
+static var _archetypes: Dictionary = {}  ## type id -> EnemyArchetype
+## Legacy dictionary view: type id -> EnemyArchetype.to_dict(). Filled on first use.
+static var ARCHETYPES: Dictionary = {}
+
+
+## Loads ARCHETYPE_PATHS once. Missing, wrong-typed or id-less files are skipped with an error.
+static func _ensure_loaded() -> void:
+	if not _archetypes.is_empty():
+		return
+	for path in ARCHETYPE_PATHS:
+		var a := load(path) as EnemyArchetype
+		if a == null or a.id.is_empty():
+			push_error("EnemyRoster: cannot load EnemyArchetype (with an id) at %s" % path)
+			continue
+		_archetypes[a.id] = a
+		ARCHETYPES[a.id] = a.to_dict()
+
+
+## The [EnemyArchetype] for [param type_id], or null if unknown.
+static func get_data(type_id: String) -> EnemyArchetype:
+	_ensure_loaded()
+	return _archetypes.get(type_id, null)
 
 
 ## True if [param type_id] is a known archetype.
 static func has_type(type_id: String) -> bool:
+	_ensure_loaded()
 	return ARCHETYPES.has(type_id)
 
 
 ## Returns all archetype ids.
 static func get_type_ids() -> Array:
+	_ensure_loaded()
 	return ARCHETYPES.keys()
 
 
 ## Returns the archetype dictionary for [param type_id], or {} if unknown.
 static func get_archetype(type_id: String) -> Dictionary:
+	_ensure_loaded()
 	return ARCHETYPES.get(type_id, {})
 
 
@@ -231,8 +171,8 @@ static func apply_to_stats(type_id: String, floor_idx: int, stats: BattlerStats,
 	stats.attack = get_attack(tid, floor_idx)
 	stats.defense = int(a.get("defense", 3))
 	stats.speed = int(a.get("speed", 5))
-	stats.max_energy = 100
-	stats.current_energy = 100
+	stats.max_energy = int(a.get("max_energy", 100))
+	stats.current_energy = stats.max_energy
 	stats.is_party = false
 	stats.is_ranged = bool(a.get("is_ranged", false))
 	return true

@@ -4,7 +4,7 @@ How the project is structured and how the main pieces connect.
 
 ## Overview
 
-- **Data**: `BattlerStats` (Resource) holds one character’s stats (HP, attack, defense, speed, energy, plus runtime state such as shield, guard and attack buff). `HeroRoster` (RefCounted, static data) holds the hero roster: stats, abilities, role labels, portraits and barks.
+- **Data**: `BattlerStats` (Resource) holds one character’s stats (HP, attack, defense, speed, energy, plus runtime state such as shield, guard and attack buff). Hero, enemy and floor data are Resources edited as `.tres` files: `HeroData` (`resources/heroes/`), `EnemyArchetype` (`resources/enemies/`) and `MissionData` / `FloorData` (`resources/missions/meridian_spire.tres`). `HeroRoster` and `EnemyRoster` (RefCounted, static) are thin loaders over explicit path lists (`HERO_PATHS`, `ARCHETYPE_PATHS`) and keep the dictionary-based getters.
 - **Logic**: `BattleManager` (Node) owns party and enemies, builds turn order by speed, resolves attacks and abilities, and emits signals.
 - **UI**: `BattleScene` (Control) is a thin controller. It creates the BattleManager and the battle components listed below, and connects their signals. Slots, panels, log lines, AI and the end screen each live in their own component.
 - **Story**: one Control scene per story step (`briefing_dialogue`, `world_map_select`, `meridian_epilogue`, `hideout_select`, `hideout_debrief`), each a script that changes scene when it finishes.
@@ -19,7 +19,7 @@ Registered in `project.godot`:
 | Autoload | Script | Role |
 |----------|--------|------|
 | `MusicPlayer` | `scripts/audio/music_player.gd` | Background music. `play_menu()` / `play_battle()` are called from each scene’s `_ready()`. |
-| `MissionProgress` | `scripts/autoload/mission_progress.gd` | Meridian Spire run state: active mission, current floor (1–3), floor backgrounds and titles, epilogue/hideout flags, `HIDEOUTS` data. Scenes read it to decide where to go next. |
+| `MissionProgress` | `scripts/autoload/mission_progress.gd` | Meridian Spire run state: active mission, current floor (1–3), floor backgrounds, titles and enemy lineups (loaded from `resources/missions/meridian_spire.tres` into `MERIDIAN_FLOORS`), epilogue/hideout flags, `HIDEOUTS` data. Scenes read it to decide where to go next. |
 | `BattleSfx` | `scripts/audio/battle_sfx.gd` | Procedurally generated tone SFX (`play_hit`, `play_crit`, `play_miss`, `play_absorb`, `play_bark`); no audio files. |
 | `SceneFader` | `scenes/ui/scene_fader.tscn` (`scripts/autoload/scene_fader.gd`) | Fade-through-black: `change_scene(path)` and `fade_through(callable)`. Fade timings are exported on the scene. |
 
@@ -69,7 +69,7 @@ Rule of thumb: signals go up (component to controller), calls go down (controlle
 
 - **BattleScene** creates the **BattleManager** in `_ready()` and adds it as a child (for lifecycle only; it’s not a visible node).
 - **BattleScene** (via **ArenaView.build()**) creates all **BattlerSlot** instances. Slots are **added to the tree first** (`add_child(slot)`), then `setup(stats, texture_idle, texture_attack)` is called so that `@onready` nodes (e.g. `TextureRect`) are ready and the correct idle texture applies immediately (party faces right, enemies face left). Per-hero and per-enemy attack frames are set with `set_attack_frames()`.
-- **BattlerStats** for the party come from `HeroRoster.apply_to_stats()` in `_build_sample_party()`; enemies are built per floor in `_build_sample_enemies()` from the archetype ids in `MissionProgress.MERIDIAN_FLOORS` via **EnemyRoster** (boss archetypes get the aura shader and info plate through `BattlerSlot.set_boss_visual()`). Both are given to `battle_manager.setup_battle(party, enemies)` from `_start_sample_battle()`.
+- **BattlerStats** for the party come from `HeroRoster.apply_to_stats()` in `_build_sample_party()`; enemies are built per floor in `_build_sample_enemies()` from the archetype ids in `MissionProgress.MERIDIAN_FLOORS` (built from the MissionData resource) via **EnemyRoster** (EnemyArchetype resources) (boss archetypes get the aura shader and info plate through `BattlerSlot.set_boss_visual()`). Both are given to `battle_manager.setup_battle(party, enemies)` from `_start_sample_battle()`.
 - When the battle ends, **BattleScene** shows the **EndScreen** (`BattleEndScreen`). Depending on `MissionProgress` it offers **Ascend — next floor** (re-runs `setup_battle` with a restored party and new enemies inside `SceneFader.fade_through()`), **Continue** (rooftop cleared, goes to the epilogue) or **Back to Main Menu**.
 
 ## Signal flow
@@ -106,6 +106,7 @@ When the user clicks an enemy **BattlerSlot**, it emits `slot_clicked(slot_index
 - **Current battler**: BattleManager’s `_current_turn_index` into `_turn_order`. Exposed as `get_current_battler()` returning a dict `{ "stats", "index", "is_party" }`.
 - **Target**: BattleScene’s `_selected_target` dict, set when the user clicks an enemy slot. Cleared after an action or when a new turn starts.
 - **Hit results**: `BattleManager.last_hit_results` (list of `{ target_index, is_party, damage, kind }`) and `last_hit_kind` are filled by `perform_attack`; BattleScene reads them in `_apply_hit_results()` to drive floating text, hit flashes and SFX.
+- **Static data**: `.tres` -> `HeroData` / `EnemyArchetype` / `MissionData` -> loaded once by `HeroRoster` / `EnemyRoster` / `MissionProgress` -> `BattlerStats` (via `apply_to_stats`) and visual getters. No code holds balance numbers.
 - **Mission state**: `MissionProgress` is read by BattleScene (floor, banner, background, end-screen routing) and by the story scenes (guards and hideout data).
 
 ## Where styling lives

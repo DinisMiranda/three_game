@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="HeroData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/hero_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "sage"
+display_name = "Sage"
+role_label = "Medic"
+role_color = Color(0.49019607843137253, 1.0, 0.7215686274509804, 1)
+enabled = false
+max_hp = 72
+attack = 8
+defense = 4
+speed = 11
+max_energy = 100
+abilities = Array[Dictionary]([{"id": "shield", "name": "Shield"}, {"id": "strike", "name": "Strike"}])
+barks = {}
+portrait = "res://assets/character_placeholder.png"
+figure_height = 240.0
+shader_saturation = 1.0
+shader_contrast = 1.0
+shader_brightness = 0.0
