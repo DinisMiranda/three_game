@@ -1,0 +1,181 @@
+sources:
+  - name: telemetry
+    description: Telemetry JSONL loaded by `triad-ingest` (analytics/src/triad_analytics/ingest.py).
+    schema: raw
+    config:
+      freshness: null  # batch files from the game and simulator, no load SLA
+    tables:
+      - name: events
+        description: Append-only raw events, one row per JSONL line, idempotent by event_id.
+        columns:
+          - name: schema_version
+            description: Contract version (docs/analytics/event-schema.md).
+          - name: event_id
+            description: UUID v4, unique per event.
+          - name: event_name
+            description: Event type; selects the payload shape.
+          - name: event_seq
+            description: Monotonic counter within the session.
+          - name: ts_utc
+            description: ISO-8601 UTC string with ms, as written by the game.
+          - name: session_id
+            description: Random per-launch UUID; no player identity.
+          - name: run_id
+            description: Mission attempt; null outside a mission.
+          - name: battle_id
+            description: Battle; null outside a battle.
+          - name: source
+            description: "'player' or 'sim'."
+          - name: game_version
+            description: project.godot version.
+          - name: platform
+            description: OS name, coarse by design.
+          - name: payload
+            description: Event-specific fields as JSON.
+          - name: _source_file
+            description: File the row was loaded from (lineage).
+          - name: _loaded_at
+            description: Load batch timestamp.
+
+models:
+  - name: stg_events
+    description: One row per event. Typed envelope, payload kept as JSON, de-duplicated on event_id.
+    columns:
+      - name: event_id
+        description: Primary key.
+        data_tests: [unique, not_null]
+      - name: schema_version
+        description: Only version 1 is supported by these models.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: [1], quote: false}
+      - name: event_name
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [session_start, session_end, mission_start, floor_reached, mission_end,
+                         battle_start, turn_start, action, battler_down, ability_unaffordable,
+                         battle_end]
+      - name: event_seq
+        data_tests: [not_null]
+      - name: event_ts_utc
+        description: ts_utc cast to timestamptz.
+        data_tests: [not_null]
+      - name: session_id
+        data_tests: [not_null]
+      - name: source
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: [player, sim]}
+      - name: game_version
+        data_tests: [not_null]
+      - name: platform
+        data_tests: [not_null]
+
+  - name: stg_mission_start
+    description: One row per mission_start; opens a run.
+    columns:
+      - name: run_id
+        data_tests: [unique, not_null]
+      - name: max_floor
+        description: Floors in the mission.
+        data_tests: [{in_range: {arguments: {min_value: 1}}}]
+      - name: policy
+        description: Simulator party policy; null in player data.
+
+  - name: stg_mission_end
+    description: One row per mission_end; closes a run.
+    columns:
+      - name: run_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments: {to: ref('stg_mission_start'), field: run_id}
+      - name: result
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: [completed, failed, abandoned]}
+
+  - name: stg_floor_reached
+    description: One row per floor_reached event.
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: floor
+        data_tests: [not_null, {in_range: {arguments: {min_value: 1}}}]
+
+  - name: stg_battle_start
+    description: One row per battle_start; lineups as lists, HP totals at start.
+    columns:
+      - name: battle_id
+        data_tests: [unique, not_null]
+      - name: floor
+        data_tests: [not_null, {in_range: {arguments: {min_value: 1}}}]
+      - name: party_hp_total
+        data_tests: [{in_range: {arguments: {min_value: 1}}}]
+      - name: enemy_hp_total
+        data_tests: [{in_range: {arguments: {min_value: 1}}}]
+      - name: rng_seed
+        description: Crit RNG seed (simulator only).
+
+  - name: stg_battle_end
+    description: One row per battle_end.
+    columns:
+      - name: battle_id
+        data_tests: [unique, not_null]
+      - name: result
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: [win, loss, quit]}
+      - name: turns
+        description: Total turns; a finished battle has at least one.
+        data_tests: [not_null, {in_range: {arguments: {min_value: 1}}}]
+      - name: rounds
+        data_tests: [not_null, {in_range: {arguments: {min_value: 1}}}]
+      - name: party_hp_remaining
+        data_tests: [not_negative]
+      - name: enemies_remaining
+        data_tests: [not_negative]
+
+  - name: stg_turn_start
+    description: One row per turn of a living battler.
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: turn_number
+        data_tests: [{in_range: {arguments: {min_value: 1}}}]
+      - name: actor_side
+        data_tests:
+          - accepted_values:
+              arguments: {values: [party, enemy]}
+      - name: actor_hp
+        data_tests: [not_negative]
+      - name: actor_energy
+        data_tests: [not_negative]
+
+  - name: stg_actions
+    description: One row per resolved hit (contract grain).
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: battle_id
+        data_tests: [not_null]
+
+  - name: stg_battler_down
+    description: One row per battler falling.
+    data_tests:
+      - unique_combination:
+          arguments: {combination_of_columns: [battle_id, battler_id]}
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: side
+        data_tests:
+          - accepted_values:
+              arguments: {values: [party, enemy]}

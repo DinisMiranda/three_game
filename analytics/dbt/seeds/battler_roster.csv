@@ -1,0 +1,10 @@
+battler_key,side,display_name,role_label
+kael,party,Kael,Grenadier
+brick,party,Brick,Frontliner
+nova,party,Nova,Skirmisher
+rin,party,Rin,Field Support
+sage,party,Sage,Medic
+warden,enemy,Spire Warden,Enemy
+hound,enemy,Sentry Hound,Enemy
+enforcer,enemy,Meridian Enforcer,Enemy
+custodian,enemy,Custodian Unit,Enemy
