@@ -37,3 +37,6 @@ crash*.txt
 .env
 .env.*
 !.env.example
+
+# Analytics: raw simulator / telemetry dumps are regenerated, not versioned
+analytics/data/raw/
