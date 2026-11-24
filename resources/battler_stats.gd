@@ -15,6 +15,8 @@ class_name BattlerStats
 ## Enemy archetype id (EnemyRoster.ARCHETYPES key). Empty for party members.
 ## Sprite, attack frames, AI profile, scale and tint read this, never the slot index.
 @export var enemy_type: String = ""
+## Stable telemetry id: HeroData.id for heroes, "<enemy_type>_<slot>" for enemies.
+@export var battler_id: String = ""
 
 ## Energy for abilities. Restored at start of each turn (see BattleManager). Abilities cost energy.
 @export var max_energy: int = 100
@@ -106,6 +108,7 @@ func tick_shield_round() -> void:
 func duplicate_stats() -> BattlerStats:
 	var s = BattlerStats.new()
 	s.display_name = display_name
+	s.battler_id = battler_id
 	s.max_hp = max_hp
 	s.current_hp = current_hp
 	s.attack = attack

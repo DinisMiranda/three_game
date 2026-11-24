@@ -104,7 +104,7 @@ func _apply_theme_colors() -> void:
 # --- Battle setup -------------------------------------------------------------
 
 func _start_battle() -> void:
-	battle_manager.setup_battle(HeroRoster.build_party(), _build_enemies())
+	battle_manager.setup_battle(HeroRoster.build_party(), _build_enemies(), _battle_context())
 	_rebuild_arena()
 	narrator.say("Battle start! Turn order is based on speed. Click an enemy to target.", "system")
 
@@ -119,6 +119,12 @@ func _rebuild_arena() -> void:
 ## "enemies"); floor 1 when no mission is active.
 func _build_enemies() -> Array:
 	return EnemyRoster.build_enemies(MissionProgress.get_current_floor_enemy_types(), MissionProgress.get_current_combat_floor())
+
+
+## Telemetry context for battle_start: combat floor and mission id ("" if none).
+func _battle_context() -> Dictionary:
+	var mission_id: String = MissionProgress.MERIDIAN_MISSION_ID if MissionProgress.is_meridian_spire_active() else ""
+	return { "floor": MissionProgress.get_current_combat_floor(), "mission_id": mission_id }
 
 
 func _apply_mission_floor_visuals() -> void:
@@ -454,7 +460,7 @@ func _advance_to_next_floor() -> void:
 	var party: Array = battle_manager.get_party()
 	for s in party:
 		(s as BattlerStats).restore_for_new_floor()
-	battle_manager.setup_battle(party, _build_enemies())
+	battle_manager.setup_battle(party, _build_enemies(), _battle_context())
 	_rebuild_arena()
 	_apply_mission_floor_visuals()
 	narrator.say("=== %s ===" % MissionProgress.get_meridian_floor_info().title, "system")
