@@ -125,16 +125,18 @@ func test_floor2_lineup_stats_unchanged() -> void:
 	assert_bool(h.is_ranged).is_false()
 
 
-func test_floor3_custodian_stats_unchanged() -> void:
+## Pins the rebalance v1 boss (docs/design/rebalance-v1.md, C1): HP 55->75 base
+## (95 on floor 3), DEF 3->5, Tactician -> Berserker.
+func test_floor3_custodian_stats_match_rebalance_v1() -> void:
 	var e: Array = EnemyRoster.build_enemies(["custodian"], 3)
 	var c: BattlerStats = e[0]
 	assert_str(c.display_name).is_equal("Custodian Unit")
-	assert_int(c.max_hp).is_equal(75)
+	assert_int(c.max_hp).is_equal(95)
 	assert_int(c.attack).is_equal(24)
-	assert_int(c.defense).is_equal(3)
+	assert_int(c.defense).is_equal(5)
 	assert_int(c.speed).is_equal(7)
 	assert_bool(c.is_ranged).is_false()
-	assert_int(EnemyRoster.get_ai_profile("custodian")).is_equal(EnemyRoster.AI_TACTICIAN)
+	assert_int(EnemyRoster.get_ai_profile("custodian")).is_equal(EnemyRoster.AI_BERSERKER)
 
 
 func test_empty_lineup_falls_back() -> void:

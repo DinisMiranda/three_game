@@ -11,7 +11,7 @@ signal turn_order_updated(order: Array)                  # full order for this r
 
 const PARTY_SIZE := 3
 const MAX_ENEMIES := 4
-const ENERGY_RESTORE_PER_TURN := 20
+const ENERGY_RESTORE_PER_TURN := 10  # Rebalance v1 (C3): was 20; see docs/design/rebalance-v1.md
 
 # Ability id -> energy cost. Used by both party and enemies.
 const ABILITY_COSTS: Dictionary = {

@@ -8,21 +8,22 @@ extends GdUnitTestSuite
 const MissionProgressScript = preload("res://scripts/autoload/mission_progress.gd")
 
 ## id -> [display_name, role_label, role_color, enabled, max_hp, attack, defense, speed, portrait]
+## Values after rebalance v1 (docs/design/rebalance-v1.md): Nova HP 78->84, DEF 3->4, Snipe->Slash.
 const HERO_EXPECTED: Dictionary = {
 	"kael": ["Kael", "Grenadier", "#ff8c3a", true, 92, 14, 5, 9, "res://assets/sevro_pixel_no_bg-removebg-preview.png"],
-	"nova": ["Nova", "Skirmisher", "#5ce1ff", true, 78, 11, 3, 13, "res://assets/hero 2 no bg.png"],
+	"nova": ["Nova", "Skirmisher", "#5ce1ff", true, 84, 11, 4, 13, "res://assets/hero 2 no bg.png"],
 	"rin": ["Rin", "Field Support", "#9dff7a", true, 86, 10, 5, 10, "res://assets/hero 3 no bg copy.png"],
 	"brick": ["Brick", "Frontliner", "#c9a0ff", false, 120, 11, 9, 7, "res://assets/character_placeholder.png"],
 	"sage": ["Sage", "Medic", "#7dffb8", false, 72, 8, 4, 11, "res://assets/character_placeholder.png"],
 }
 const HERO_ABILITIES: Array = [
-	["grenade", "guard"], ["fly", "snipe"], ["strike", "shield"], ["guard", "strike"], ["shield", "strike"],
+	["grenade", "guard"], ["fly", "slash"], ["strike", "shield"], ["guard", "strike"], ["shield", "strike"],
 ]
 ## id -> [display_name, ai_profile, is_ranged, base_hp, base_attack, defense, speed, sprite_scale, figure_height, is_boss]
 const ENEMY_EXPECTED: Dictionary = {
 	"warden": ["Spire Warden", 0, true, 40, 16, 3, 5, 1.0, 240.0, false],
 	"hound": ["Sentry Hound", 1, false, 50, 18, 3, 8, 1.0, 240.0, false],
-	"custodian": ["Custodian Unit", 0, false, 55, 20, 3, 7, 1.2, 360.0, true],
+	"custodian": ["Custodian Unit", 1, false, 75, 20, 5, 7, 1.2, 360.0, true],  # rebalance v1 (C1)
 	"enforcer": ["Meridian Enforcer", 2, false, 45, 16, 4, 6, 1.0, 240.0, false],
 }
 
@@ -76,8 +77,9 @@ func test_build_party_uses_resource_stats() -> void:
 	var s: BattlerStats = party[0]
 	assert_str(s.display_name).is_equal("Kael")
 	assert_int(s.max_hp).is_equal(92)
-	assert_int(s.max_energy).is_equal(100)
-	assert_int(s.current_energy).is_equal(100)
+	# Rebalance v1 (C3): hero max energy 100 -> 60.
+	assert_int(s.max_energy).is_equal(60)
+	assert_int(s.current_energy).is_equal(60)
 	assert_bool(s.is_party).is_true()
 
 
