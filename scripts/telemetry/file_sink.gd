@@ -12,6 +12,8 @@ var prefix: String
 var max_bytes: int
 ## Auto-flush threshold; [TelemetryService] also flushes on battle end, scene change and quit.
 var buffer_lines: int
+## False = no date in the file name ([code]<dir>/<prefix>.jsonl[/code]); the simulator names its own files.
+var dated: bool = true
 var _buffer: PackedStringArray = PackedStringArray()
 
 
@@ -55,11 +57,13 @@ func flush() -> void:
 ## File the next flush appends to: today's base file, or the first rotation
 ## suffix whose file is still under [member max_bytes].
 func current_path() -> String:
-	var date := Time.get_date_string_from_system(true)
-	var base := "%s/%s_%s" % [directory, prefix, date]
+	var base := "%s/%s" % [directory, prefix]
+	if dated:
+		base += "_" + Time.get_date_string_from_system(true)
 	var path := base + ".jsonl"
 	var n := 0
-	while FileAccess.file_exists(path) and _file_size(path) >= max_bytes:
+	# max_bytes <= 0 disables rotation.
+	while max_bytes > 0 and FileAccess.file_exists(path) and _file_size(path) >= max_bytes:
 		n += 1
 		path = "%s_%d.jsonl" % [base, n]
 	return path

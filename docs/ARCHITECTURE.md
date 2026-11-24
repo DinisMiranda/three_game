@@ -140,6 +140,12 @@ Telemetry (session_start / session_end) ─────────────�
   attempt, `battle_id` for one floor fight.
 - **Determinism.** `BattleManager.rng` (optional) seeds crit rolls; its seed is
   logged in `battle_start.seed`.
+- **Simulator.** `tools/sim/run_sim.gd` (CLI) -> `BattleSimulator` builds, per run,
+  its own `BattleManager` and `MissionProgress` instance (both with `telemetry`
+  injected), lets a `PartyPolicy` play the party and `EnemyAI` the enemies, and
+  writes `source = "sim"` JSONL. `TelemetryService.use_virtual_clock()` makes
+  durations (and, with `--deterministic-ids`, UUIDs and timestamps) seed-derived.
+  See `docs/analytics/simulator.md`.
 - **Opt-in** persists in `user://settings.cfg` `[telemetry] opt_in`, toggled
   from the Options menu.
 

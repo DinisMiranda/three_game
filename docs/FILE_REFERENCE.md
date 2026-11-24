@@ -65,6 +65,18 @@ What each file does. Godot sidecar files (`*.import`, `*.uid`) sit next to their
 | `scripts/telemetry/file_sink.gd` | `TelemetryFileSink`: buffered JSONL to `<dir>/<prefix>_YYYY-MM-DD.jsonl`, rotates over 5 MB. |
 | `scripts/telemetry/memory_sink.gd` | `TelemetryMemorySink`: keeps events in memory (tests, simulator); `names()`, `of(name)`. |
 
+### Simulator
+
+| File | Purpose |
+|------|--------|
+| `tools/sim/run_sim.gd` | Headless CLI (`-s res://tools/sim/run_sim.gd -- --runs --seed --policy --out [--deterministic-ids]`); writes `<policy>_seed<seed>.jsonl` and prints a summary. |
+| `scripts/sim/battle_simulator.gd` | `BattleSimulator`: full Meridian Spire runs through BattleManager + MissionProgress + EnemyAI, per-run seeded RNG, summary aggregates. |
+| `scripts/sim/party_policy.gd` | `PartyPolicy` base: `create(name)`, `legal_actions`, `is_legal`. |
+| `scripts/sim/random_policy.gd` | `RandomPolicy`: uniform over legal actions. |
+| `scripts/sim/greedy_policy.gd` | `GreedyPolicy`: self-protect when low, else max expected damage, lowest-HP target. |
+| `scripts/sim/attack_only_policy.gd` | `AttackOnlyPolicy`: baseline, basic attacks only. |
+| `analytics/data/sample/greedy_seed1.jsonl` | 20-run deterministic sample for CI/tests (`analytics/data/raw/` is git-ignored). |
+
 ### Main menu and options
 
 | File | Purpose |
@@ -181,6 +193,7 @@ Music:
 | `tests/README.md` | How to run the tests, CI notes, test file table. |
 | `tests/test_battler_stats.gd` | BattlerStats (12 tests). |
 | `tests/test_battle_manager.gd` | BattleManager (21 tests). |
+| `tests/test_sim.gd` | Simulator: policy legality, seed determinism, event counts and schema validity, mission_end tally, committed sample (8 tests). |
 | `tests/test_telemetry.gd` | Telemetry envelope, schema validation, opt-out, JSONL file sink and rotation, BattleManager event sequence (17 tests). |
 | `tests/test_battler_slot.gd` | BattlerSlot (3 tests). |
 | `tests/test_battle_scene.gd` | BattleScene (wiring). |
@@ -202,5 +215,6 @@ Music:
 | `docs/SCENES_AND_UI.md` | Scene trees, UI layout, formation, story scenes, theme. |
 | `docs/PLACEHOLDER_IMAGE.md` | Why the placeholder image might not show; the load strategies and fallback texture. |
 | `docs/BETA_PLAY.md` | Beta build download links and install steps. |
+| `docs/analytics/simulator.md` | Headless simulator: how to run, policies, determinism, output, baseline numbers. |
 | `docs/analytics/event-schema.md` | Telemetry event schema v1: envelope, per-event payloads, ids, mart mapping, privacy. |
 | `docs/design/portfolio-plan.md` | Portfolio plan: combat polish, telemetry, data pipeline, rebalance. |

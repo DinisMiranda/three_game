@@ -42,6 +42,10 @@ var story_debrief_complete: bool = false
 ## Highest floor reached this run and whether the rooftop fell (mission_end telemetry).
 var _max_floor_reached: int = 0
 var _rooftop_cleared: bool = false
+## Injected telemetry receiver (simulator). Null = the Telemetry autoload.
+var telemetry: TelemetryService = null
+## Simulator party policy, logged on mission_start; "" for human play.
+var telemetry_policy: String = ""
 
 const HIDEOUTS: Array[Dictionary] = [
 	{
@@ -82,7 +86,10 @@ func start_meridian_spire() -> void:
 	var t := _telemetry()
 	if t != null:
 		t.begin_run()
-		t.track("mission_start", { "mission_id": MERIDIAN_MISSION_ID, "max_floor": MERIDIAN_MAX_FLOOR })
+		var start := { "mission_id": MERIDIAN_MISSION_ID, "max_floor": MERIDIAN_MAX_FLOOR }
+		if not telemetry_policy.is_empty():
+			start["policy"] = telemetry_policy
+		t.track("mission_start", start)
 		t.track("floor_reached", { "mission_id": MERIDIAN_MISSION_ID, "floor": 1 })
 
 
@@ -169,8 +176,10 @@ func meridian_advance_floor() -> void:
 			t.track("floor_reached", { "mission_id": MERIDIAN_MISSION_ID, "floor": meridian_floor })
 
 
-## The Telemetry autoload, or null (tests, or the autoload not registered).
+## The injected receiver, else the Telemetry autoload, else null.
 func _telemetry() -> TelemetryService:
+	if telemetry != null:
+		return telemetry
 	if not is_inside_tree():
 		return null
 	return get_node_or_null("/root/Telemetry") as TelemetryService

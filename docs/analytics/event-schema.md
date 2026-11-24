@@ -30,7 +30,8 @@ needs it. If a field has no consumer, it does not belong here.
 - **JSON Lines** (one UTF-8 JSON object per line, `\n` terminated).
 - Player data: `user://telemetry/events_YYYY-MM-DD.jsonl` (UTC date).
 - Simulator data: its own sink and directory, `source = "sim"` on every row,
-  so synthetic and human data can never be mixed by accident.
+  so synthetic and human data can never be mixed by accident. File name
+  `<policy>_seed<seed>.jsonl`, no rotation; see `docs/analytics/simulator.md`.
 - A file that would grow past ~5 MB rotates to `events_YYYY-MM-DD_1.jsonl`,
   `_2`, and so on.
 - Lines are buffered in memory and flushed on `battle_end`, on scene change,
@@ -101,6 +102,7 @@ Emitted on quit (window close or the Quit button). This is the plan's `quit` eve
 |---|---|---|---|
 | `mission_id` | string | R | `"meridian_spire"`. |
 | `max_floor` | int | R | Floors in the mission (3). |
+| `policy` | string | O | Simulator party policy (`random`, `greedy`, `attack_only`). Absent in player data. |
 
 ### `floor_reached`
 On mission start (floor 1) and on every `meridian_advance_floor()`.
@@ -134,6 +136,7 @@ the original brief*: the funnel needs an explicit terminal step, otherwise
 | `party_hp_total` | int | R | Sum of party HP at start (floors fully restore the party). |
 | `enemy_hp_total` | int | R | Sum of enemy HP at start. |
 | `seed` | int | O | Crit RNG seed when the battle uses a seeded RNG (simulator); absent for live play. |
+| `policy` | string | O | Simulator party policy. Absent in player data. |
 
 ### `turn_start`
 `BattleManager._emit_turn_started()`, after the per-turn energy restore. Skipped for a battler downed earlier in the same round (its slot in the round order is not a real turn).
@@ -200,7 +203,7 @@ tree / being re-set-up mid-fight (quit). Triggers a flush. Closes `battle_id`.
 | `result` | string | R | `"win"`, `"loss"`, `"quit"`. |
 | `turns` | int | R | Total turns taken. |
 | `rounds` | int | R | Rounds started. |
-| `duration_ms` | int | R | Wall clock from `battle_start`. Meaningless for `sim`; use `turns`. |
+| `duration_ms` | int | R | Wall clock from `battle_start`. For `sim` a virtual clock (1 ms per event); use `turns`. |
 | `surviving_party` | string[] | R | Hero ids still alive. |
 | `party_hp_remaining` | int | R | |
 | `enemies_remaining` | int | R | |

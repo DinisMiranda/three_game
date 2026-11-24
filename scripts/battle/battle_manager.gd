@@ -56,7 +56,7 @@ var _turn_order: Array = []
 var _current_turn_index: int = 0
 
 # --- Start a battle: copy in party and enemies, build first turn order, emit first turn ---
-## [param context] feeds telemetry only: { "floor": int, "mission_id": String }.
+## [param context] feeds telemetry only: { "floor": int, "mission_id": String, "policy": String (simulator) }.
 func setup_battle(party: Array, enemies: Array, context: Dictionary = {}) -> void:
 	if _battle_active:
 		_track_battle_end("quit")
@@ -393,6 +393,18 @@ func _check_battle_end() -> void:
 		battle_ended.emit(true)
 
 
+## Turns taken so far in the current battle (downed battlers' slots excluded).
+func get_turn_number() -> int:
+	return _turn_number
+
+
+## Records an in-progress battle as result "quit" (simulator turn cap, callers
+## tearing a battle down without freeing the manager). No-op once it ended.
+func abandon_battle() -> void:
+	if _battle_active:
+		_track_battle_end("quit")
+
+
 ## A battle still in progress when the manager leaves the tree (scene change,
 ## quit) is recorded as result "quit".
 func _exit_tree() -> void:
@@ -438,11 +450,11 @@ static func _hp_sum(list: Array) -> int:
 
 func _track_battle_start(context: Dictionary) -> void:
 	_battle_active = true
-	_battle_start_ms = Time.get_ticks_msec()
 	_turn_number = 0
 	_round_number = 1
 	_action_seq = 0
 	var t := _tm()
+	_battle_start_ms = t.now_ms() if t != null else Time.get_ticks_msec()
 	if t == null:
 		return
 	t.begin_battle()
@@ -459,6 +471,9 @@ func _track_battle_start(context: Dictionary) -> void:
 		payload["mission_id"] = mission_id
 	if rng != null:
 		payload["seed"] = int(rng.seed)
+	var policy := str(context.get("policy", ""))
+	if not policy.is_empty():
+		payload["policy"] = policy
 	t.track("battle_start", payload)
 
 
@@ -477,7 +492,7 @@ func _track_battle_end(result: String) -> void:
 			enemies_left += 1
 	t.track("battle_end", {
 		"result": result, "turns": _turn_number, "rounds": _round_number,
-		"duration_ms": Time.get_ticks_msec() - _battle_start_ms,
+		"duration_ms": t.now_ms() - _battle_start_ms,
 		"surviving_party": survivors, "party_hp_remaining": _hp_sum(_party),
 		"enemies_remaining": enemies_left,
 	})
