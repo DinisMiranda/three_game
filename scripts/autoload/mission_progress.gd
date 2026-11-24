@@ -4,6 +4,8 @@ extends Node
 enum MissionId { NONE, MERIDIAN_SPIRE }
 
 const MERIDIAN_MAX_FLOOR := 3
+## Telemetry mission id (mission_start / floor_reached / mission_end).
+const MERIDIAN_MISSION_ID := "meridian_spire"
 
 ## Meridian Spire data (Phase 3B): floor titles, backgrounds and enemy lineups
 ## live in this [MissionData] resource. Floor 3 = rooftop / skyline.
@@ -37,6 +39,9 @@ var handler_dead: bool = false
 var hideout_select_ready: bool = false
 var selected_hideout_id: String = ""
 var story_debrief_complete: bool = false
+## Highest floor reached this run and whether the rooftop fell (mission_end telemetry).
+var _max_floor_reached: int = 0
+var _rooftop_cleared: bool = false
 
 const HIDEOUTS: Array[Dictionary] = [
 	{
@@ -72,9 +77,25 @@ func start_meridian_spire() -> void:
 	hideout_select_ready = false
 	selected_hideout_id = ""
 	story_debrief_complete = false
+	_max_floor_reached = 1
+	_rooftop_cleared = false
+	var t := _telemetry()
+	if t != null:
+		t.begin_run()
+		t.track("mission_start", { "mission_id": MERIDIAN_MISSION_ID, "max_floor": MERIDIAN_MAX_FLOOR })
+		t.track("floor_reached", { "mission_id": MERIDIAN_MISSION_ID, "floor": 1 })
 
 
-func finish_meridian_spire() -> void:
+## Ends the run. [param result] is "completed", "failed" or "abandoned"; empty
+## derives it ("completed" once the rooftop is cleared, else "abandoned").
+func finish_meridian_spire(result: String = "") -> void:
+	if active_mission != MissionId.NONE:
+		var t := _telemetry()
+		if t != null:
+			if result.is_empty():
+				result = "completed" if _rooftop_cleared else "abandoned"
+			t.track("mission_end", { "mission_id": MERIDIAN_MISSION_ID, "result": result, "max_floor_reached": _max_floor_reached })
+			t.end_run()
 	active_mission = MissionId.NONE
 	meridian_floor = 1
 	meridian_epilogue_pending = false
@@ -82,6 +103,7 @@ func finish_meridian_spire() -> void:
 
 func mark_rooftop_cleared() -> void:
 	meridian_epilogue_pending = true
+	_rooftop_cleared = true
 
 
 func mark_hideout_select_ready() -> void:
@@ -141,3 +163,14 @@ func meridian_has_next_floor_after_clear() -> bool:
 func meridian_advance_floor() -> void:
 	if meridian_floor < MERIDIAN_MAX_FLOOR:
 		meridian_floor += 1
+		_max_floor_reached = maxi(_max_floor_reached, meridian_floor)
+		var t := _telemetry()
+		if t != null and is_meridian_spire_active():
+			t.track("floor_reached", { "mission_id": MERIDIAN_MISSION_ID, "floor": meridian_floor })
+
+
+## The Telemetry autoload, or null (tests, or the autoload not registered).
+func _telemetry() -> TelemetryService:
+	if not is_inside_tree():
+		return null
+	return get_node_or_null("/root/Telemetry") as TelemetryService

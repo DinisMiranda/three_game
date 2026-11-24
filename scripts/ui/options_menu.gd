@@ -1,5 +1,5 @@
 extends CanvasLayer
-## Pause/options overlay: volume slider, Back to Main Menu, Quit. Toggle with ESC; ESC or Close hides.
+## Pause/options overlay: volume slider, telemetry opt-in, Back to Main Menu, Quit. Toggle with ESC; ESC or Close hides.
 
 const MASTER_BUS_IDX := 0
 const VOLUME_MIN_DB := -40.0  # 0% slider
@@ -13,6 +13,8 @@ const VOLUME_MAX_DB := 0.0    # 100% slider
 @onready var quit_btn: Button = $Center/Panel/VBox/QuitBtn
 @onready var close_btn: Button = $Center/Panel/VBox/CloseBtn
 @onready var title_label: Label = $Center/Panel/VBox/Title
+@onready var telemetry_toggle: CheckButton = $Center/Panel/VBox/TelemetryToggle
+@onready var telemetry_hint: Label = $Center/Panel/VBox/TelemetryHint
 
 func _ready() -> void:
 	visible = false
@@ -23,6 +25,10 @@ func _ready() -> void:
 	back_btn.pressed.connect(_on_back_pressed)
 	quit_btn.pressed.connect(_on_quit_pressed)
 	close_btn.pressed.connect(_on_close_pressed)
+	var t := _telemetry()
+	telemetry_toggle.button_pressed = t != null and t.is_opted_in()
+	telemetry_toggle.disabled = t == null
+	telemetry_toggle.toggled.connect(_on_telemetry_toggled)
 	_apply_theme()
 
 func _process_viewport_size() -> void:
@@ -38,6 +44,8 @@ func _apply_theme() -> void:
 	title_label.add_theme_color_override("font_color", Palette.ACCENT_CYAN)
 	volume_label.theme_type_variation = &"MonoLabel"
 	volume_label.add_theme_font_size_override("font_size", TriadThemeBuilder.SIZE_BODY)
+	telemetry_hint.add_theme_color_override("font_color", Palette.TEXT_SECONDARY)
+	telemetry_hint.add_theme_font_size_override("font_size", TriadThemeBuilder.SIZE_CAPTION)
 
 func _db_to_percent(db: float) -> float:
 	if db <= VOLUME_MIN_DB:
@@ -58,6 +66,17 @@ func _on_volume_changed(value: float) -> void:
 	var db = _percent_to_db(value)
 	AudioServer.set_bus_volume_db(MASTER_BUS_IDX, db)
 	_update_volume_label(int(value))
+
+## Opt-in is persisted by Telemetry itself (user://settings.cfg).
+func _on_telemetry_toggled(on: bool) -> void:
+	var t := _telemetry()
+	if t != null:
+		t.set_opted_in(on)
+
+
+func _telemetry() -> TelemetryService:
+	return get_node_or_null("/root/Telemetry") as TelemetryService
+
 
 func _on_back_pressed() -> void:
 	hide()
