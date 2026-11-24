@@ -12,7 +12,7 @@ flowchart LR
     jsonl -->|"triad-ingest<br/>idempotent by event_id"| raw[("DuckDB<br/>raw.events")]
     raw -->|dbt| stg["staging<br/>stg_events + one model per event"]
     stg -->|dbt| marts["marts<br/>facts, dims, analysis marts"]
-    marts --> dash["Dashboard<br/>(Phase 5B)"]
+    marts --> dash["Streamlit dashboard<br/>dashboard/app.py"]
 ```
 
 ## Run it
@@ -25,6 +25,7 @@ make sample      # ingest data/sample/*.jsonl, then dbt build (seeds, models, al
 make test        # pytest: ingest idempotency and marts vs. counts taken from the raw JSONL
 make full        # same as sample, on the 500-run baselines in data/raw/sim (git-ignored)
 make lint        # ruff check + format check
+make dashboard   # Streamlit on http://localhost:8501 (full warehouse if built, else the sample)
 make docs        # dbt docs generate (then: uv run dbt docs serve --project-dir dbt --profiles-dir dbt)
 ```
 
@@ -91,9 +92,41 @@ follow the data-quality rules in the event schema:
   - sim and player rows never share a session
   - damage shares add up to 1
   - the funnel's highest floor matches `mission_end`
+- **Dashboard** (`tests/`, pytest): every query matches the marts it reads, and the app
+  renders without an exception.
 - **Pipeline correctness** (`tests/`, pytest): re-running ingest adds no rows. The marts
   also match counts computed in plain Python straight from the JSONL: battles, wins per
   floor, damage and deaths per hero, mission results.
+
+## Dashboard
+
+`make dashboard` starts the dashboard. The sidebar picks the warehouse:
+`TRIAD_DUCKDB_PATH` if set, else `warehouse/triad.duckdb`, else `warehouse/sample.duckdb`.
+It also picks which policies to show. The data is read on a short-lived read-only
+connection, so `make full` can rebuild the warehouse while the dashboard is open; the
+next page load picks up the new numbers.
+
+The plan's anti-goal is a dashboard of vanity charts, so each section answers one balance
+question and says what it shows:
+
+| Section | Question | Data |
+|---|---|---|
+| Header | How does each policy do overall? | missions completed %, battles, mean turns, party crit rate against the designed 15% (`BattleManager.CRIT_CHANCE`) |
+| Where do runs fail? | At which step of the mission do runs end? | `fct_mission_funnel`: started, floor 1/2/3, completed |
+| Which floor is hard? | Is any floor a wall? | `mart_floor_difficulty`: win rate and party HP lost % per floor |
+| Who carries and who dies? | Is one hero carrying, is one fragile? | `mart_hero_performance`: damage share against death rate |
+| Do abilities matter? | What do the kits add over basic attacks? | `fct_actions`: usage mix, damage per use, energy per use |
+| Findings | What should the designer look at? | sentences computed from the queries, not written by hand |
+
+Colours are fixed across charts: one colour per policy (greedy is the game's cyan
+`#00D9E6`), red-amber `#FF6B52` for losses and deaths, yellow `#FFD23F` for energy. The
+theme is in `.streamlit/config.toml`, which also turns off Streamlit's usage statistics.
+
+All SQL lives in `src/triad_analytics/queries.py` as functions that take a DuckDB
+connection and return a pandas DataFrame. `findings_from` is a pure function of those
+frames, so a Phase 6 rebalance shows up as changed Findings with no code change.
+`tests/test_queries.py` checks the queries against the marts, and `tests/test_dashboard.py`
+runs the whole app headless with Streamlit's `AppTest`.
 
 ## Layout
 
@@ -101,6 +134,8 @@ follow the data-quality rules in the event schema:
 analytics/
 ├── pyproject.toml, uv.lock, Makefile
 ├── src/triad_analytics/ingest.py   # triad-ingest CLI
+├── src/triad_analytics/queries.py  # dashboard queries + computed findings
+├── dashboard/app.py                # Streamlit dashboard (theme in .streamlit/config.toml)
 ├── dbt/                            # dbt project (profiles.yml included, DuckDB path from env)
 │   ├── models/staging/             # stg_* + _staging.yml (source, tests, docs)
 │   ├── models/marts/               # fct_*, dim_*, mart_* + _marts.yml
