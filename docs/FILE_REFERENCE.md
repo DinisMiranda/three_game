@@ -54,14 +54,35 @@ What each file does. Godot sidecar files (`*.import`, `*.uid`) sit next to their
 
 | File | Purpose |
 |------|--------|
-| `scripts/autoload/mission_progress.gd` | **MissionProgress** (autoload). Meridian Spire run state (active mission, floor 1–3; floor titles, backgrounds and lineups loaded from `resources/missions/meridian_spire.tres`), epilogue and hideout flags, `HIDEOUTS` data, and helpers such as `start_meridian_spire`, `meridian_advance_floor`, `mark_rooftop_cleared`, `mark_hideout_select_ready`, `select_hideout`, `complete_meridian_story`. |
+| `scripts/autoload/telemetry.gd` | **Telemetry** (autoload, `class_name TelemetryService`). Opt-in anonymous event tracking: envelope, `EVENT_SCHEMAS` validation, opt-in persistence (`user://settings.cfg`), `begin_run`/`begin_battle` ids, `configure(sink, source, opted_in)` for tests and the simulator. |
+| `scripts/autoload/mission_progress.gd` | **MissionProgress** (autoload). Emits `mission_start`, `floor_reached`, `mission_end` telemetry. Meridian Spire run state (active mission, floor 1–3; floor titles, backgrounds and lineups loaded from `resources/missions/meridian_spire.tres`), epilogue and hideout flags, `HIDEOUTS` data, and helpers such as `start_meridian_spire`, `meridian_advance_floor`, `mark_rooftop_cleared`, `mark_hideout_select_ready`, `select_hideout`, `complete_meridian_story`. |
+
+### Telemetry
+
+| File | Purpose |
+|------|--------|
+| `scripts/telemetry/telemetry_sink.gd` | `TelemetrySink` base: `write_event(event, line)`, `flush()`, `close()`. |
+| `scripts/telemetry/file_sink.gd` | `TelemetryFileSink`: buffered JSONL to `<dir>/<prefix>_YYYY-MM-DD.jsonl`, rotates over 5 MB. |
+| `scripts/telemetry/memory_sink.gd` | `TelemetryMemorySink`: keeps events in memory (tests, simulator); `names()`, `of(name)`. |
+
+### Simulator
+
+| File | Purpose |
+|------|--------|
+| `tools/sim/run_sim.gd` | Headless CLI (`-s res://tools/sim/run_sim.gd -- --runs --seed --policy --out [--deterministic-ids]`); writes `<policy>_seed<seed>.jsonl` and prints a summary. |
+| `scripts/sim/battle_simulator.gd` | `BattleSimulator`: full Meridian Spire runs through BattleManager + MissionProgress + EnemyAI, per-run seeded RNG, summary aggregates. |
+| `scripts/sim/party_policy.gd` | `PartyPolicy` base: `create(name)`, `legal_actions`, `is_legal`. |
+| `scripts/sim/random_policy.gd` | `RandomPolicy`: uniform over legal actions. |
+| `scripts/sim/greedy_policy.gd` | `GreedyPolicy`: self-protect when low, else max expected damage, lowest-HP target. |
+| `scripts/sim/attack_only_policy.gd` | `AttackOnlyPolicy`: baseline, basic attacks only. |
+| `analytics/data/sample/greedy_seed1.jsonl` | 20-run deterministic sample for CI/tests (`analytics/data/raw/` is git-ignored). |
 
 ### Main menu and options
 
 | File | Purpose |
 |------|--------|
 | `scripts/main_menu/main_menu.gd` | MainMenu root. Title, **Start Battle** (fade, then `briefing_dialogue.tscn`), **Options**, concept panel, intro animation, repeating background shader. Calls `MusicPlayer.play_menu()`. |
-| `scripts/ui/options_menu.gd` | Options overlay (CanvasLayer): Master volume slider, Back to Main Menu, Quit, Close. ESC toggles; used in the main menu and battle. |
+| `scripts/ui/options_menu.gd` | Options overlay (CanvasLayer): Master volume slider, telemetry opt-in toggle (Telemetry.set_opted_in), Back to Main Menu, Quit, Close. ESC toggles; used in the main menu and battle. |
 
 ### Main (legacy)
 
@@ -122,7 +143,7 @@ What each file does. Godot sidecar files (`*.import`, `*.uid`) sit next to their
 | `scenes/story/meridian_epilogue.tscn` | Epilogue dialogue UI (same layout as the briefing, plus BagProp). |
 | `scenes/story/hideout_select.tscn` | Hideout selection: header, cards row, footer with RallyBtn, hint, fade overlay. |
 | `scenes/story/hideout_debrief.tscn` | Debrief dialogue UI with a LocationBanner. |
-| `scenes/ui/options_menu.tscn` | Options overlay: panel with volume slider and Back/Quit/Close buttons. |
+| `scenes/ui/options_menu.tscn` | Options overlay: panel with volume slider, TelemetryToggle (CheckButton) + TelemetryHint, and Back/Quit/Close buttons. |
 | `scenes/main/main.tscn` | Legacy: Main (Control + `main.gd`) with the battle scene as child. Not part of the game flow. |
 
 ## Assets
@@ -172,6 +193,8 @@ Music:
 | `tests/README.md` | How to run the tests, CI notes, test file table. |
 | `tests/test_battler_stats.gd` | BattlerStats (12 tests). |
 | `tests/test_battle_manager.gd` | BattleManager (21 tests). |
+| `tests/test_sim.gd` | Simulator: policy legality, seed determinism, event counts and schema validity, mission_end tally, committed sample (8 tests). |
+| `tests/test_telemetry.gd` | Telemetry envelope, schema validation, opt-out, JSONL file sink and rotation, BattleManager event sequence (17 tests). |
 | `tests/test_battler_slot.gd` | BattlerSlot (3 tests). |
 | `tests/test_battle_scene.gd` | BattleScene (wiring). |
 | `tests/test_roster_resources.gd` | Phase 3B data resources: every .tres loads, roster getters return the pinned pre-3B values, floor lineups (11 tests). |
@@ -192,4 +215,6 @@ Music:
 | `docs/SCENES_AND_UI.md` | Scene trees, UI layout, formation, story scenes, theme. |
 | `docs/PLACEHOLDER_IMAGE.md` | Why the placeholder image might not show; the load strategies and fallback texture. |
 | `docs/BETA_PLAY.md` | Beta build download links and install steps. |
+| `docs/analytics/simulator.md` | Headless simulator: how to run, policies, determinism, output, baseline numbers. |
+| `docs/analytics/event-schema.md` | Telemetry event schema v1: envelope, per-event payloads, ids, mart mapping, privacy. |
 | `docs/design/portfolio-plan.md` | Portfolio plan: combat polish, telemetry, data pipeline, rebalance. |

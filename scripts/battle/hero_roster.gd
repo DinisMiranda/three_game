@@ -64,6 +64,8 @@ static func apply_to_stats(index: int, stats: BattlerStats) -> bool:
 	if hero.is_empty() or not bool(hero.get("enabled", true)):
 		return false
 	stats.display_name = str(hero.display_name)
+	var hero_id := str(hero.get("id", ""))
+	stats.battler_id = hero_id if not hero_id.is_empty() else "hero_%d" % index
 	stats.max_hp = int(hero.max_hp)
 	stats.current_hp = stats.max_hp
 	stats.attack = int(hero.attack)
@@ -163,6 +165,7 @@ static func build_party() -> Array:
 		var s := BattlerStats.new()
 		if not apply_to_stats(i, s):
 			s.display_name = "Hero %d" % (i + 1)
+			s.battler_id = "hero_%d" % i
 			s.max_hp = 80 + i * 10
 			s.current_hp = s.max_hp
 			s.max_energy = 100

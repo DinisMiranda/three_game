@@ -32,7 +32,7 @@ func show_outcome(party_wins: bool, viewport_size: Vector2) -> void:
 	else:
 		_title.text = "Defeat!"
 		_back_btn.text = "Back to Main Menu"
-		MissionProgress.finish_meridian_spire()
+		MissionProgress.finish_meridian_spire("failed")
 	for node_name in ["Overlay", "Center"]:
 		var c: Control = get_node(node_name)
 		c.set_position(Vector2.ZERO)
@@ -59,7 +59,7 @@ func _show_victory() -> void:
 		_back_btn.text = "Continue"
 	elif MissionProgress.is_meridian_spire_active():
 		_title.text = "Meridian Spire secured!"
-		MissionProgress.finish_meridian_spire()
+		MissionProgress.finish_meridian_spire("completed")
 	else:
 		_title.text = "Victory!"
 

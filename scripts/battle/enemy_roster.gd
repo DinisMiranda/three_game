@@ -210,5 +210,6 @@ static func build_enemies(type_ids: Array, floor_idx: int) -> Array:
 	for i in ids.size():
 		var s := BattlerStats.new()
 		apply_to_stats(str(ids[i]), floor_idx, s, names[i])
+		s.battler_id = "%s_%d" % [str(ids[i]), i]
 		out.append(s)
 	return out

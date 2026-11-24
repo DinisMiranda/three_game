@@ -22,6 +22,7 @@ Registered in `project.godot`:
 | `MissionProgress` | `scripts/autoload/mission_progress.gd` | Meridian Spire run state: active mission, current floor (1–3), floor backgrounds, titles and enemy lineups (loaded from `resources/missions/meridian_spire.tres` into `MERIDIAN_FLOORS`), epilogue/hideout flags, `HIDEOUTS` data. Scenes read it to decide where to go next. |
 | `BattleSfx` | `scripts/audio/battle_sfx.gd` | Procedurally generated tone SFX (`play_hit`, `play_crit`, `play_miss`, `play_absorb`, `play_bark`); no audio files. |
 | `SceneFader` | `scenes/ui/scene_fader.tscn` (`scripts/autoload/scene_fader.gd`) | Fade-through-black: `change_scene(path)` and `fade_through(callable)`. Fade timings are exported on the scene. |
+| `Telemetry` | `scripts/autoload/telemetry.gd` (`TelemetryService`) | Opt-in (default off), anonymous gameplay events. `track(name, payload)` builds the versioned envelope, validates against `EVENT_SCHEMAS`, and writes to a pluggable `TelemetrySink`. Registered first so other autoloads can use it. Contract: `docs/analytics/event-schema.md`. |
 
 ## Game flow (scene graph)
 
@@ -108,6 +109,45 @@ When the user clicks an enemy **BattlerSlot**, it emits `slot_clicked(slot_index
 - **Hit results**: `BattleManager.last_hit_results` (list of `{ target_index, is_party, damage, kind }`) and `last_hit_kind` are filled by `perform_attack`; BattleScene reads them in `_apply_hit_results()` to drive floating text, hit flashes and SFX.
 - **Static data**: `.tres` -> `HeroData` / `EnemyArchetype` / `MissionData` -> loaded once by `HeroRoster` / `EnemyRoster` / `MissionProgress` -> `BattlerStats` (via `apply_to_stats`) and visual getters. No code holds balance numbers.
 - **Mission state**: `MissionProgress` is read by BattleScene (floor, banner, background, end-screen routing) and by the story scenes (guards and hideout data).
+
+## Telemetry data flow
+
+```
+MissionProgress ──mission_start / floor_reached / mission_end──┐
+BattleManager ──battle_start / turn_start / action / battler_down /
+                ability_unaffordable / battle_end────────────────┤
+Telemetry (session_start / session_end) ─────────────────────────┤
+                                                                  v
+             TelemetryService.track()  -- opted out? no-op
+                 | validate(EVENT_SCHEMAS) -- invalid? push_warning + drop
+                 | build_envelope(): schema_version, event_id, event_seq, ts_utc,
+                 |                   session_id, run_id, battle_id, source, ...
+                 v
+             TelemetrySink.write_event(event, json_line)
+                 |-- TelemetryFileSink: buffered, user://telemetry/events_YYYY-MM-DD.jsonl,
+                 |                      rotates at 5 MB; flushed on battle_end,
+                 |                      scene change, 64 lines, quit
+                 '-- TelemetryMemorySink: tests / in-process simulator
+```
+
+- **Seams, not UI.** Events come from BattleManager and MissionProgress, so the
+  headless simulator produces identical rows by giving its own BattleManager a
+  `TelemetryService` configured with `configure(sink, "sim", true)`.
+- **Receiver resolution.** `BattleManager.telemetry` is injected (tests, sim) or
+  resolved lazily from `/root/Telemetry`; with neither, instrumentation is silent.
+- **Ids.** `BattlerStats.battler_id` = `HeroData.id` for heroes, `<enemy_type>_<slot>`
+  for enemies (set by HeroRoster / EnemyRoster). `run_id` lives for one mission
+  attempt, `battle_id` for one floor fight.
+- **Determinism.** `BattleManager.rng` (optional) seeds crit rolls; its seed is
+  logged in `battle_start.seed`.
+- **Simulator.** `tools/sim/run_sim.gd` (CLI) -> `BattleSimulator` builds, per run,
+  its own `BattleManager` and `MissionProgress` instance (both with `telemetry`
+  injected), lets a `PartyPolicy` play the party and `EnemyAI` the enemies, and
+  writes `source = "sim"` JSONL. `TelemetryService.use_virtual_clock()` makes
+  durations (and, with `--deterministic-ids`, UUIDs and timestamps) seed-derived.
+  See `docs/analytics/simulator.md`.
+- **Opt-in** persists in `user://settings.cfg` `[telemetry] opt_in`, toggled
+  from the Options menu.
 
 ## Where styling lives
 
