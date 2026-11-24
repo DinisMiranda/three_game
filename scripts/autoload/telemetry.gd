@@ -38,7 +38,7 @@ const EVENT_SCHEMAS: Dictionary = {
 	},
 	"mission_start": {
 		"required": { "mission_id": T_STRING, "max_floor": T_INT },
-		"optional": {},
+		"optional": { "policy": T_STRING },
 	},
 	"floor_reached": {
 		"required": { "mission_id": T_STRING, "floor": T_INT },
@@ -53,7 +53,7 @@ const EVENT_SCHEMAS: Dictionary = {
 			"floor": T_INT, "party_ids": T_STRINGS, "enemy_ids": T_STRINGS,
 			"enemy_type_ids": T_STRINGS, "party_hp_total": T_INT, "enemy_hp_total": T_INT,
 		},
-		"optional": { "mission_id": T_STRING, "seed": T_INT },
+		"optional": { "mission_id": T_STRING, "seed": T_INT, "policy": T_STRING },
 	},
 	"turn_start": {
 		"required": {
@@ -118,6 +118,14 @@ var _event_seq: int = 0
 var _accepted: int = 0
 var _session_start_ms: int = 0
 var _session_closed: bool = false
+## Deterministic mode (simulator --deterministic-ids): UUIDs come from this RNG
+## and time from a virtual clock, so identical runs produce identical bytes.
+var _id_rng: RandomNumberGenerator = null
+## Virtual clock (ms) used instead of wall time when >= 0. Advances 1 ms per event.
+var _virtual_ms: int = -1
+
+## Fixed origin of the virtual clock: 2026-01-01T00:00:00Z.
+const VIRTUAL_EPOCH_UNIX := 1767225600
 
 
 func _init() -> void:
@@ -188,9 +196,36 @@ static func save_opt_in(path: String, value: bool) -> void:
 		push_warning("Telemetry: cannot save settings to %s (%s)" % [path, error_string(err)])
 
 
+## Switches durations (duration_ms) to a virtual clock that advances 1 ms per
+## event, so simulator output does not depend on machine speed. With
+## [param id_seed] >= 0, UUIDs and ts_utc are also derived from the seed
+## (ts_utc = 2026-01-01T00:00:00Z + virtual ms). Simulator only.
+func use_virtual_clock(id_seed: int = -1) -> void:
+	_virtual_ms = 0
+	if id_seed >= 0:
+		_id_rng = RandomNumberGenerator.new()
+		_id_rng.seed = id_seed
+		session_id = _uuid()
+
+
+## Milliseconds for durations: virtual clock when enabled, else engine ticks.
+func now_ms() -> int:
+	return _virtual_ms if _virtual_ms >= 0 else Time.get_ticks_msec()
+
+
+func _uuid() -> String:
+	if _id_rng == null:
+		return new_uuid_v4()
+	var b := PackedByteArray()
+	b.resize(16)
+	for i in 16:
+		b[i] = _id_rng.randi() & 0xff
+	return uuid_from_bytes(b)
+
+
 ## Opens a mission attempt; subsequent events carry the new run_id.
 func begin_run() -> String:
-	run_id = new_uuid_v4()
+	run_id = _uuid()
 	return run_id
 
 
@@ -200,7 +235,7 @@ func end_run() -> void:
 
 ## Opens a battle; subsequent events carry the new battle_id.
 func begin_battle() -> String:
-	battle_id = new_uuid_v4()
+	battle_id = _uuid()
 	return battle_id
 
 
@@ -220,6 +255,8 @@ func track(event_name: String, payload: Dictionary = {}) -> bool:
 		push_warning("Telemetry: dropped '%s': %s" % [event_name, problem])
 		return false
 	_event_seq += 1
+	if _virtual_ms >= 0:
+		_virtual_ms += 1
 	var event := build_envelope(event_name, payload)
 	_sink.write_event(event, JSON.stringify(event, "", false))
 	_accepted += 1
@@ -230,10 +267,10 @@ func track(event_name: String, payload: Dictionary = {}) -> bool:
 func build_envelope(event_name: String, payload: Dictionary) -> Dictionary:
 	return {
 		"schema_version": SCHEMA_VERSION,
-		"event_id": new_uuid_v4(),
+		"event_id": _uuid(),
 		"event_name": event_name,
 		"event_seq": _event_seq,
-		"ts_utc": utc_timestamp_ms(),
+		"ts_utc": utc_timestamp_ms() if _id_rng == null else format_utc_ms(VIRTUAL_EPOCH_UNIX * 1000 + _virtual_ms),
 		"session_id": session_id,
 		"run_id": null if run_id == "" else run_id,
 		"battle_id": null if battle_id == "" else battle_id,
@@ -299,11 +336,20 @@ func flush() -> void:
 
 ## Random RFC 4122 version-4 UUID from the OS CSPRNG.
 static func new_uuid_v4() -> String:
-	var b := Crypto.new().generate_random_bytes(16)
+	return uuid_from_bytes(Crypto.new().generate_random_bytes(16))
+
+
+## Formats 16 bytes as a version-4 UUID (sets the version and variant bits).
+static func uuid_from_bytes(b: PackedByteArray) -> String:
 	b[6] = (b[6] & 0x0f) | 0x40
 	b[8] = (b[8] & 0x3f) | 0x80
 	var h := b.hex_encode()
 	return "%s-%s-%s-%s-%s" % [h.substr(0, 8), h.substr(8, 4), h.substr(12, 4), h.substr(16, 4), h.substr(20, 12)]
+
+
+## [param unix_ms] (milliseconds since the Unix epoch) as ISO-8601 UTC with ms.
+static func format_utc_ms(unix_ms: int) -> String:
+	return "%s.%03dZ" % [Time.get_datetime_string_from_unix_time(unix_ms / 1000, false), unix_ms % 1000]
 
 
 ## Current UTC time as ISO-8601 with milliseconds, e.g. 2026-11-24T14:03:07.512Z.
@@ -312,6 +358,11 @@ static func utc_timestamp_ms() -> String:
 	var secs := int(floor(unix))
 	var ms := clampi(int((unix - secs) * 1000.0), 0, 999)
 	return "%s.%03dZ" % [Time.get_datetime_string_from_unix_time(secs, false), ms]
+
+
+## Records session_start (the simulator calls this; the game does it on opt-in).
+func start_session() -> void:
+	_emit_session_start()
 
 
 func _emit_session_start() -> void:
@@ -328,7 +379,7 @@ func close_session(reason: String = "quit") -> void:
 	_session_closed = true
 	track("session_end", {
 		"reason": reason,
-		"duration_ms": Time.get_ticks_msec() - _session_start_ms,
+		"duration_ms": now_ms() - (_session_start_ms if _virtual_ms < 0 else 0),
 		"events_emitted": _accepted,
 	})
 	flush()

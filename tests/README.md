@@ -52,6 +52,7 @@ The **Unit tests** job in `.github/workflows/ci-cd.yml` runs on every push/PR to
 | `test_main.gd` | Main entry script: _ready |
 | `test_battler_slot.gd` | `BattlerSlot` (scene): setup, refresh, set_turn_highlight |
 | `test_battle_scene.gd` | `BattleScene` (scene): battle_manager present and sample battle setup |
+| `test_sim.gd` | Simulator: every policy picks only legal actions, same seed gives byte-identical output, 5-run event counts and schema validity, mission_end results add up, committed sample validates |
 | `test_telemetry.gd` | `Telemetry`: event envelope, schema validation, opt-out, JSONL file sink and rotation, event sequence from a scripted `BattleManager` battle |
 
 ## Coverage summary
