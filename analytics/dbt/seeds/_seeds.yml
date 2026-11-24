@@ -1,0 +1,17 @@
+seeds:
+  - name: battler_roster
+    description: >
+      Hand-maintained copy of the hero and enemy resources (resources/heroes/*.tres,
+      resources/enemies/*.tres): id, side, display name, role label. Telemetry carries ids
+      only, so labels come from here. A battler seen in telemetry but missing here fails
+      the dim_battlers.is_in_roster test.
+    config:
+      column_types: {battler_key: varchar, side: varchar, display_name: varchar, role_label: varchar}
+    columns:
+      - name: battler_key
+        description: HeroData.id or EnemyArchetype.id.
+        data_tests: [unique, not_null]
+      - name: side
+        data_tests:
+          - accepted_values:
+              arguments: {values: [party, enemy]}

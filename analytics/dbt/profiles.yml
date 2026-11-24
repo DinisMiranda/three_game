@@ -1,0 +1,9 @@
+# Kept in the project dir so the project runs anywhere (`--profiles-dir dbt`).
+# TRIAD_DUCKDB_PATH picks the warehouse file; the Makefile sets it per target.
+triad:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('TRIAD_DUCKDB_PATH', 'warehouse/triad.duckdb') }}"
+      threads: 4

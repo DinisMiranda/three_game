@@ -1,0 +1,14 @@
+# Dark theme close to the game's UI. Cyan = party / primary, red-amber = enemy / loss,
+# yellow = energy (see POLICY_COLORS and friends in dashboard/app.py).
+[theme]
+base = "dark"
+primaryColor = "#00D9E6"
+backgroundColor = "#0B0F17"
+secondaryBackgroundColor = "#151C28"
+textColor = "#E6EDF3"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+runOnSave = false

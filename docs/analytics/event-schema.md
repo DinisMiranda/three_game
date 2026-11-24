@@ -230,6 +230,10 @@ report); the values above are illustrative.
 | `fct_mission_funnel` | one run (`run_id`) | `mission_start` -> `floor_reached` (1..3) -> `battle_end` per floor -> `mission_end.result` |
 | session health | one session | `session_start`, `session_end`; `events_emitted` vs counted rows = loss rate |
 
+Implemented in [`analytics/`](../../analytics/README.md) (dbt on DuckDB). One refinement:
+the battler-in-battle grain above is the model `fct_battle_participants`, and
+`dim_battlers` is one row per battler type (hero id or enemy archetype) with role labels.
+
 ### Postgres readiness
 
 Every field maps to a native column: UUIDs -> `uuid`, `ts_utc` -> `timestamptz`,

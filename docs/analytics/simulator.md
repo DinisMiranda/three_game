@@ -94,3 +94,5 @@ absent in player data).
 | `attack_only` | 495 | 5 | 100.0% | 99.0% | 100.0% | 13.82 |
 
 Wall time: about 2 s per 500 runs on the dev Mac. Treat this as the "before" for Phase 6.
+
+To load and model this data, see the [analytics pipeline](../../analytics/README.md).

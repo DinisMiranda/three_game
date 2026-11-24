@@ -1,0 +1,278 @@
+models:
+  - name: fct_battles
+    description: >
+      One row per battle (battle_id). Lineup and HP totals from battle_start, outcome and
+      pacing from battle_end. Answers "win rate by floor; is any floor a wall?".
+    columns:
+      - name: battle_id
+        description: Primary key.
+        data_tests: [unique, not_null]
+      - name: run_id
+        description: Mission attempt; null for a battle outside a mission.
+      - name: source
+        data_tests:
+          - accepted_values:
+              arguments: {values: [player, sim]}
+      - name: policy
+        description: Simulator policy, or 'player' for human data.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: [greedy, random, attack_only, player]}
+      - name: floor
+        data_tests: [not_null, {in_range: {arguments: {min_value: 1}}}]
+      - name: result
+        description: win / loss / quit. Null = battle_start without battle_end (lost data).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: [win, loss, quit]}
+      - name: is_win
+        description: result = 'win'.
+      - name: turns
+        description: Total turns (the pacing measure; sim duration_ms is a virtual clock).
+        data_tests: [{in_range: {arguments: {min_value: 1}}}]
+      - name: rounds
+        data_tests: [{in_range: {arguments: {min_value: 1}}}]
+      - name: duration_ms
+        description: Wall clock for players, 1 ms per event for sim.
+      - name: party_size
+        description: Heroes in the lineup.
+      - name: enemy_count
+        description: Enemies in the lineup.
+      - name: party_hp_total
+        description: Party HP at start (floors fully restore the party).
+      - name: enemy_hp_total
+        description: Enemy HP at start.
+      - name: party_hp_remaining
+        description: Party HP left at the end.
+        data_tests: [not_negative, {lte_column: {arguments: {other_column: party_hp_total}}}]
+      - name: party_hp_lost
+        description: party_hp_total - party_hp_remaining.
+      - name: party_hp_lost_pct
+        description: Share of starting party HP lost in the battle.
+        data_tests: [{in_range: {arguments: {min_value: 0, max_value: 1}}}]
+      - name: party_survivors
+        description: Heroes alive at the end.
+      - name: enemies_remaining
+        data_tests: [not_negative]
+
+  - name: fct_battle_participants
+    description: >
+      One row per battler in a battle (battle_id, battler_id), the battler-in-battle grain
+      the event schema calls dim_battlers. Lineup from battle_start, death from battler_down.
+    data_tests:
+      - unique_combination:
+          arguments: {combination_of_columns: [battle_id, battler_id]}
+    columns:
+      - name: battle_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('fct_battles'), field: battle_id}
+      - name: battler_id
+        description: Hero id, or <enemy_type>_<slot> for enemies.
+        data_tests: [not_null]
+      - name: battler_key
+        description: Hero id or enemy archetype id; joins to dim_battlers.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_battlers'), field: battler_key}
+      - name: side
+        data_tests:
+          - accepted_values:
+              arguments: {values: [party, enemy]}
+      - name: slot_index
+        description: 0-based slot in the lineup.
+      - name: is_down
+        description: The battler fell in this battle.
+      - name: turn_of_death
+        description: turn_number of the battler_down event.
+      - name: killer_id
+        description: battler_id of the killer.
+      - name: killed_by_ability_id
+        description: Ability that landed the kill.
+
+  - name: dim_battlers
+    description: One row per battler type (hero id or enemy archetype) with side, role and appearances.
+    columns:
+      - name: battler_key
+        description: Primary key.
+        data_tests: [unique, not_null]
+      - name: side
+        data_tests:
+          - accepted_values:
+              arguments: {values: [party, enemy]}
+      - name: display_name
+        description: From the battler_roster seed.
+      - name: role_label
+        description: Hero role (Grenadier, Frontliner...); 'Enemy' for archetypes.
+      - name: battle_appearances
+        description: Battles the battler took part in.
+      - name: times_downed
+        description: Battles in which it fell.
+      - name: is_in_roster
+        description: False = an id in telemetry the roster seed does not know (e.g. hero_<slot> fallback).
+        data_tests:
+          - accepted_values:
+              arguments: {values: [true], quote: false}
+
+  - name: fct_actions
+    description: >
+      One row per resolved hit (battle_id, action_seq, hit_index), the contract grain:
+      damage share per hero is a plain sum(damage).
+    data_tests:
+      - unique_combination:
+          arguments: {combination_of_columns: [battle_id, action_seq, hit_index]}
+    columns:
+      - name: action_hit_id
+        description: Primary key (the action event_id).
+        data_tests: [unique, not_null]
+      - name: battle_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('fct_battles'), field: battle_id}
+      - name: policy
+        description: Copied from fct_battles.
+      - name: floor
+        description: Copied from fct_battles.
+      - name: battle_result
+        description: Result of the battle this hit belongs to.
+      - name: action_seq
+        description: 1-based decision counter per battle.
+        data_tests: [{in_range: {arguments: {min_value: 1}}}]
+      - name: hit_index
+        description: 0-based hit within the decision.
+        data_tests: [not_negative]
+      - name: actor_key
+        description: battler_key of the actor.
+        data_tests: [not_null]
+      - name: actor_side
+        data_tests:
+          - accepted_values:
+              arguments: {values: [party, enemy]}
+      - name: target_key
+        description: battler_key of the target (actor itself for self-buffs).
+        data_tests: [not_null]
+      - name: target_side
+        data_tests:
+          - accepted_values:
+              arguments: {values: [party, enemy]}
+      - name: ability_id
+        description: "'attack' for the basic attack."
+        data_tests: [not_null]
+      - name: hit_kind
+        data_tests:
+          - accepted_values:
+              arguments: {values: [hit, crit, absorb, miss, effect]}
+      - name: is_damage_attempt
+        description: hit_kind <> 'effect'; the denominator of crit rate.
+      - name: damage
+        description: HP actually removed after defense, guard and shield.
+        data_tests: [not_null, not_negative]
+      - name: is_crit
+        description: Crit rolled (true even if a shield then soaked it).
+      - name: shield_absorbed
+        data_tests: [not_negative]
+      - name: energy_cost
+        description: Charged on hit_index 0 only.
+        data_tests: [not_negative]
+      - name: target_hp_before
+        data_tests: [not_negative]
+      - name: target_hp_after
+        data_tests: [not_negative, {lte_column: {arguments: {other_column: target_hp_before}}}]
+      - name: is_kill
+        description: target_hp_before > 0 and target_hp_after = 0.
+
+  - name: fct_mission_funnel
+    description: >
+      One row per run (run_id): mission started, floors 1/2/3 reached, terminal result.
+      Answers "where do players drop out of the mission?".
+    columns:
+      - name: run_id
+        description: Primary key.
+        data_tests: [unique, not_null]
+      - name: policy
+        data_tests: [not_null]
+      - name: reached_floor_1
+        description: A floor_reached(1) event exists for the run.
+      - name: reached_floor_2
+        description: Floor 1 was cleared.
+      - name: reached_floor_3
+        description: Floor 2 was cleared.
+      - name: max_floor_reached
+        data_tests: [{in_range: {arguments: {min_value: 0, max_value: 3}}}]
+      - name: mission_result
+        description: completed / failed / abandoned, or in_progress when no mission_end exists.
+        data_tests:
+          - accepted_values:
+              arguments: {values: [completed, failed, abandoned, in_progress]}
+      - name: battles_played
+        data_tests: [not_negative]
+      - name: battles_won
+        data_tests: [not_negative, {lte_column: {arguments: {other_column: battles_played}}}]
+
+  - name: mart_hero_performance
+    description: One row per policy x hero. "Is one hero carrying?" and "who dies most?".
+    data_tests:
+      - unique_combination:
+          arguments: {combination_of_columns: [policy, hero_id]}
+    columns:
+      - name: policy
+        data_tests: [not_null]
+      - name: hero_id
+        data_tests: [not_null]
+      - name: battles_played
+        data_tests: [{in_range: {arguments: {min_value: 1}}}]
+      - name: actions
+        description: Decisions taken (hit_index = 0 rows).
+      - name: hits
+        description: Resolved hit rows, incl. self-buff effect rows.
+      - name: total_damage
+        data_tests: [not_negative]
+      - name: damage_share
+        description: total_damage / party damage within the policy.
+        data_tests: [{in_range: {arguments: {min_value: 0, max_value: 1}}}]
+      - name: damage_per_action
+        description: total_damage / actions (self-buffs count as 0-damage actions).
+        data_tests: [not_negative]
+      - name: crit_rate
+        description: Crits / damage attempts (hit_kind <> 'effect').
+        data_tests: [{in_range: {arguments: {min_value: 0, max_value: 1}}}]
+      - name: energy_spent
+        data_tests: [not_negative]
+      - name: deaths
+        description: Battles in which the hero fell.
+        data_tests: [not_negative]
+      - name: death_rate_per_battle
+        description: deaths / battles_played.
+        data_tests: [{in_range: {arguments: {min_value: 0, max_value: 1}}}]
+
+  - name: mart_floor_difficulty
+    description: One row per policy x floor. "Is any floor a wall?".
+    data_tests:
+      - unique_combination:
+          arguments: {combination_of_columns: [policy, floor]}
+    columns:
+      - name: policy
+        data_tests: [not_null]
+      - name: floor
+        data_tests: [not_null]
+      - name: battles
+        data_tests: [{in_range: {arguments: {min_value: 1}}}]
+      - name: wins
+        data_tests: [{lte_column: {arguments: {other_column: battles}}}]
+      - name: win_rate
+        description: wins / battles.
+        data_tests: [not_null, {in_range: {arguments: {min_value: 0, max_value: 1}}}]
+      - name: mean_turns
+        data_tests: [{in_range: {arguments: {min_value: 1}}}]
+      - name: median_turns
+        description: Median turns per battle.
+      - name: mean_rounds
+        description: Mean rounds per battle.
+      - name: mean_party_hp_lost_pct
+        description: Mean share of party HP lost per battle.
+        data_tests: [{in_range: {arguments: {min_value: 0, max_value: 1}}}]

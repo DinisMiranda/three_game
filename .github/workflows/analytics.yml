@@ -1,0 +1,42 @@
+# Analytics pipeline: lint, ingest the committed sample, dbt build (models + data tests), pytest.
+# Path-filtered so game-only changes do not pay for it.
+name: Analytics
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [develop, staging, main]
+    paths: ["analytics/**", "docs/analytics/**", ".github/workflows/analytics.yml"]
+  pull_request:
+    branches: [develop, staging, main]
+    paths: ["analytics/**", "docs/analytics/**", ".github/workflows/analytics.yml"]
+
+jobs:
+  pipeline:
+    name: Ingest, dbt build, pytest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: analytics
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: analytics/uv.lock
+
+      - name: Sync environment (locked)
+        run: uv sync --locked
+
+      - name: Ruff
+        run: make lint
+
+      - name: Ingest sample + dbt build (models and data-quality tests)
+        run: make sample
+
+      - name: Pytest (idempotency, marts vs. raw JSONL)
+        run: make test
