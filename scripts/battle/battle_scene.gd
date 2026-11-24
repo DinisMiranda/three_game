@@ -459,7 +459,7 @@ func _advance_to_next_floor() -> void:
 	MissionProgress.meridian_advance_floor()
 	var party: Array = battle_manager.get_party()
 	for s in party:
-		(s as BattlerStats).restore_for_new_floor()
+		(s as BattlerStats).restore_for_new_floor(MissionProgress.MERIDIAN_BETWEEN_FLOOR_HP_RESTORE)
 	battle_manager.setup_battle(party, _build_enemies(), _battle_context())
 	_rebuild_arena()
 	_apply_mission_floor_visuals()

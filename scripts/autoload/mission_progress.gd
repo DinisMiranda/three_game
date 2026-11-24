@@ -14,6 +14,14 @@ const MERIDIAN_MISSION_PATH := "res://resources/missions/meridian_spire.tres"
 ## Legacy view, one Dictionary per floor: {"bg", "title", "enemies"} (FloorData.to_dict()).
 ## "enemies" lists EnemyArchetype type ids, in arena slot order.
 static var MERIDIAN_FLOORS: Array[Dictionary] = _load_floors(MERIDIAN_MISSION_PATH)
+## Share of max HP heroes recover between Meridian Spire floors (MissionData).
+static var MERIDIAN_BETWEEN_FLOOR_HP_RESTORE: float = _load_hp_restore(MERIDIAN_MISSION_PATH)
+
+
+## Reads MissionData.between_floor_hp_restore at [param path] (1.0 = full heal if missing).
+static func _load_hp_restore(path: String) -> float:
+	var mission := load(path) as MissionData
+	return mission.between_floor_hp_restore if mission != null else 1.0
 
 
 ## Builds the floor dictionaries from the MissionData at [param path] ([] + error if missing).

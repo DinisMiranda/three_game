@@ -81,7 +81,7 @@ func run_mission(run_index: int) -> String:
 				mp.meridian_advance_floor()
 				party = bm.get_party()
 				for s in party:
-					(s as BattlerStats).restore_for_new_floor()
+					(s as BattlerStats).restore_for_new_floor(mp.MERIDIAN_BETWEEN_FLOOR_HP_RESTORE)
 			else:
 				mp.mark_rooftop_cleared()
 				result = "completed"

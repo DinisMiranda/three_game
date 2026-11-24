@@ -121,9 +121,13 @@ func duplicate_stats() -> BattlerStats:
 	return s
 
 
-## Full heal and status reset between floors (HP, energy, flying, guard, shield).
-func restore_for_new_floor() -> void:
-	current_hp = max_hp
+## Recovery between floors. Energy refills and floor statuses reset (flying,
+## guard, shield). HP recovers [param hp_fraction] of max HP, capped at max:
+## 1.0 is a full heal (the pre-v2 rule). A downed battler comes back with that
+## share of max HP (at least 1), so a death costs HP without benching the hero.
+func restore_for_new_floor(hp_fraction: float = 1.0) -> void:
+	var heal := maxi(1, ceili(clampf(hp_fraction, 0.0, 1.0) * max_hp))
+	current_hp = mini(max_hp, maxi(current_hp, 0) + heal)
 	current_energy = max_energy
 	is_flying = false
 	guard_active = false

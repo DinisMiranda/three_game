@@ -103,3 +103,75 @@ func test_duplicate_stats_copies_values() -> void:
 	assert_int(dup.current_hp).is_equal(60)
 	assert_int(dup.attack).is_equal(15)
 	assert_bool(dup.is_party).is_equal(stats.is_party)
+
+
+func _floor_survivor(hp: int) -> BattlerStats:
+	var s := BattlerStats.new()
+	s.max_hp = 100
+	s.current_hp = hp
+	s.max_energy = 60
+	s.current_energy = 5
+	s.shield_amount = 7
+	s.guard_active = true
+	s.is_flying = true
+	return s
+
+
+func test_restore_for_new_floor_default_is_full_heal() -> void:
+	# Arrange
+	var s := _floor_survivor(30)
+	# Act
+	s.restore_for_new_floor()
+	# Assert
+	assert_int(s.current_hp).is_equal(100)
+	assert_int(s.current_energy).is_equal(60)
+	assert_int(s.shield_amount).is_equal(0)
+	assert_bool(s.guard_active).is_false()
+	assert_bool(s.is_flying).is_false()
+
+
+func test_restore_for_new_floor_partial_adds_share_of_max_hp() -> void:
+	# Arrange
+	var s := _floor_survivor(30)
+	# Act
+	s.restore_for_new_floor(0.35)
+	# Assert: 30 + ceil(0.35 * 100) = 65, energy still refills
+	assert_int(s.current_hp).is_equal(65)
+	assert_int(s.current_energy).is_equal(60)
+
+
+func test_restore_for_new_floor_partial_caps_at_max_hp() -> void:
+	# Arrange
+	var s := _floor_survivor(90)
+	# Act
+	s.restore_for_new_floor(0.35)
+	# Assert
+	assert_int(s.current_hp).is_equal(100)
+
+
+func test_restore_for_new_floor_revives_downed_hero_with_share() -> void:
+	# Arrange
+	var s := _floor_survivor(0)
+	assert_bool(s.is_alive()).is_false()
+	# Act
+	s.restore_for_new_floor(0.35)
+	# Assert
+	assert_int(s.current_hp).is_equal(35)
+	assert_bool(s.is_alive()).is_true()
+
+
+func test_restore_for_new_floor_zero_fraction_still_revives_with_one_hp() -> void:
+	# Arrange
+	var s := _floor_survivor(0)
+	# Act
+	s.restore_for_new_floor(0.0)
+	# Assert
+	assert_int(s.current_hp).is_equal(1)
+
+
+func test_meridian_mission_uses_partial_restore_from_data() -> void:
+	# Arrange / Act
+	var mission := load("res://resources/missions/meridian_spire.tres") as MissionData
+	# Assert: rebalance v2 value, read by MissionProgress for both game and sim
+	assert_float(mission.between_floor_hp_restore).is_equal_approx(0.25, 0.0001)
+	assert_float(preload("res://scripts/autoload/mission_progress.gd").MERIDIAN_BETWEEN_FLOOR_HP_RESTORE).is_equal_approx(0.25, 0.0001)

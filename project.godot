@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Three Game"
-config/version="0.3.0-rebalance"
+config/version="0.4.0-rebalance-v2"
 config/description="Turn-based 4v1-4 battle game. Turn order by speed."
 run/main_scene="res://scenes/main_menu/main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")

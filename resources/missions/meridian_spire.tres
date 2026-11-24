@@ -25,4 +25,5 @@ enemies = Array[String](["custodian"])
 script = ExtResource("1_mission")
 id = "meridian_spire"
 display_name = "Meridian Spire"
+between_floor_hp_restore = 0.25
 floors = Array[ExtResource("2_floor")]([SubResource("FloorData_1"), SubResource("FloorData_2"), SubResource("FloorData_3")])
